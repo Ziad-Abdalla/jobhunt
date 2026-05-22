@@ -16,37 +16,34 @@ and zero data leaving your computer.
 
 ## Install
 
+It's one file. You download it, you open it, the app opens in your browser.
+That's all.
+
 <div align="center">
 
-### Click your operating system to download
+### Download for your computer
 
 <table>
 <tr>
 <td align="center" width="33%">
 
-**Windows**
+### 🪟 Windows
 
-[**⬇ Download jobhunt.exe**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
-
-Then double-click it.
+[**Download jobhunt.exe →**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
 
 </td>
 <td align="center" width="33%">
 
-**macOS** (Apple Silicon)
+### 🍎 macOS
 
-[**⬇ Download jobhunt**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
-
-Then run it (see below).
+[**Download jobhunt →**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
 
 </td>
 <td align="center" width="33%">
 
-**Linux** (x86_64)
+### 🐧 Linux
 
-[**⬇ Download jobhunt**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-linux-x86_64)
-
-Then run it (see below).
+[**Download jobhunt →**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-linux-x86_64)
 
 </td>
 </tr>
@@ -54,61 +51,123 @@ Then run it (see below).
 
 </div>
 
-### After you've downloaded it
+### Then open it
 
-**Windows:** double-click `jobhunt.exe`. The first time, Windows SmartScreen will say
-"unrecognized publisher" — click **More info → Run anyway**. That's normal for any
-open-source app that isn't paying for code-signing.
+<details open>
+<summary><b>🪟 Windows</b> — one double-click</summary>
 
-**macOS:** open Terminal, then run:
+1. Find `jobhunt-windows-x86_64.exe` in your **Downloads** folder.
+2. **Double-click it.**
+3. Windows will likely show a blue box that says *"Windows protected your PC"*.
+   This appears for every app that hasn't paid Microsoft for a certificate — it
+   isn't a malware warning. Click **More info**, then **Run anyway**.
+4. A small black window pops up and your browser opens to jobhunt. ✨
+
+</details>
+
+<details>
+<summary><b>🍎 macOS</b> — right-click to open</summary>
+
+1. Find the downloaded file in your **Downloads** folder.
+2. **Right-click** (or hold Control and click) on it → choose **Open**.
+3. macOS will ask *"are you sure you want to open it?"* — click **Open**.
+   (This dance is required once for every app that isn't from the App Store.)
+4. A small Terminal window appears and your browser opens to jobhunt. ✨
+
+If macOS says *"cannot be opened because the developer cannot be verified"*
+with no Open option, do this once:
+- Open **System Settings → Privacy & Security**
+- Scroll down — you'll see a message about jobhunt being blocked
+- Click **Open Anyway**
+
+</details>
+
+<details>
+<summary><b>🐧 Linux</b> — two clicks</summary>
+
+1. Right-click the downloaded `jobhunt-linux-x86_64` file → **Properties** →
+   **Permissions** → tick **"Allow executing file as program"**. (Or in a
+   terminal: `chmod +x ~/Downloads/jobhunt-linux-x86_64`.)
+2. Double-click it. Your browser opens to jobhunt. ✨
+
+If your file manager opens it as text instead of running it, use the terminal:
 ```bash
-cd ~/Downloads
-chmod +x jobhunt-macos-arm64
-xattr -d com.apple.quarantine jobhunt-macos-arm64    # bypasses Gatekeeper for this file
-./jobhunt-macos-arm64 app
+~/Downloads/jobhunt-linux-x86_64 app
 ```
 
-**Linux:** open Terminal, then run:
-```bash
-cd ~/Downloads
-chmod +x jobhunt-linux-x86_64
-./jobhunt-linux-x86_64 app
-```
+</details>
 
-`jobhunt app` starts a tiny server on your machine and opens the page in your
-browser. Click **Refresh sources** in the top bar and wait about a minute for
-the first pull. That's it.
+### What happens on first launch
 
-### Or — install with one command (Terminal users)
+A friendly empty page that says **"Your paper is blank."** Click the big
+**Pull listings now** button. The app reaches out to a handful of public
+company career pages and pulls down ~5,000 real job postings. Takes about a
+minute.
 
-Linux / macOS:
+After that, the filters do the rest. Sort by relevance, narrow to remote roles,
+add language tags, set a maximum years of experience — all without a page
+reload.
+
+### Is it safe?
+
+Short answer: yes. Specifically:
+
+- **Everything runs on your machine.** No data is sent anywhere — not to me,
+  not to any analytics service.
+- **The whole source code is here.** You can read every line.
+- **It only ever reads from job-board APIs.** It never logs into anything, never
+  fills a form, never posts.
+- **The web page is bound to `127.0.0.1`** — your laptop only, not your network.
+- **Released under MIT.** Use it, modify it, share it.
+
+The OS warnings ("unrecognized publisher", "developer cannot be verified")
+appear because this is a free open-source project that doesn't pay Apple or
+Microsoft the yearly fee for an official signing certificate. They're not
+malware warnings — every indie app gets them.
+
+### Don't want to download? Other ways to install
+
+<details>
+<summary>Install from the terminal in one line</summary>
+
+**Linux / macOS:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 jobhunt app
 ```
 
-Windows PowerShell:
+**Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 jobhunt app
 ```
 
-These scripts auto-detect your OS, download the right binary, install it to
-`~/.local/bin` (or `%USERPROFILE%\jobhunt\`), and tell you what to do next.
+These do the same thing — figure out your OS, pull the right file, drop it
+somewhere on your PATH.
 
-### Or — if you have Python or Docker
+</details>
+
+<details>
+<summary>Already have Python?</summary>
 
 ```bash
-# Python users
-pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git && jobhunt app
+pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git
+jobhunt app
 ```
 
+</details>
+
+<details>
+<summary>Prefer Docker?</summary>
+
 ```bash
-# Docker users
 git clone https://github.com/Abdalla2004-collab/Jobhunt
 cd Jobhunt
-docker compose up --build -d   # then open http://127.0.0.1:8765
+docker compose up --build -d
+# open http://127.0.0.1:8765
 ```
+
+</details>
 
 ---
 
