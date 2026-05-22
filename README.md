@@ -16,47 +16,99 @@ and zero data leaving your computer.
 
 ## Install
 
-Pick whichever line looks easiest. They all leave you with the same app.
+<div align="center">
 
-### One-line install (Linux & macOS)
+### Click your operating system to download
 
+<table>
+<tr>
+<td align="center" width="33%">
+
+**Windows**
+
+[**⬇ Download jobhunt.exe**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
+
+Then double-click it.
+
+</td>
+<td align="center" width="33%">
+
+**macOS** (Apple Silicon)
+
+[**⬇ Download jobhunt**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
+
+Then run it (see below).
+
+</td>
+<td align="center" width="33%">
+
+**Linux** (x86_64)
+
+[**⬇ Download jobhunt**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-linux-x86_64)
+
+Then run it (see below).
+
+</td>
+</tr>
+</table>
+
+</div>
+
+### After you've downloaded it
+
+**Windows:** double-click `jobhunt.exe`. The first time, Windows SmartScreen will say
+"unrecognized publisher" — click **More info → Run anyway**. That's normal for any
+open-source app that isn't paying for code-signing.
+
+**macOS:** open Terminal, then run:
+```bash
+cd ~/Downloads
+chmod +x jobhunt-macos-arm64
+xattr -d com.apple.quarantine jobhunt-macos-arm64    # bypasses Gatekeeper for this file
+./jobhunt-macos-arm64 app
+```
+
+**Linux:** open Terminal, then run:
+```bash
+cd ~/Downloads
+chmod +x jobhunt-linux-x86_64
+./jobhunt-linux-x86_64 app
+```
+
+`jobhunt app` starts a tiny server on your machine and opens the page in your
+browser. Click **Refresh sources** in the top bar and wait about a minute for
+the first pull. That's it.
+
+### Or — install with one command (Terminal users)
+
+Linux / macOS:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 jobhunt app
 ```
 
-### One-line install (Windows PowerShell)
-
+Windows PowerShell:
 ```powershell
 irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 jobhunt app
 ```
 
-### Or grab the binary by hand
+These scripts auto-detect your OS, download the right binary, install it to
+`~/.local/bin` (or `%USERPROFILE%\jobhunt\`), and tell you what to do next.
 
-Head to [the latest release](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest),
-download the file for your operating system, double-click it (Windows) or
-make it executable (`chmod +x jobhunt && ./jobhunt app`).
-
-### Or — if you already have Python
+### Or — if you have Python or Docker
 
 ```bash
-pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git
-jobhunt app
+# Python users
+pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git && jobhunt app
 ```
 
-### Or — Docker
-
 ```bash
+# Docker users
 git clone https://github.com/Abdalla2004-collab/Jobhunt
 cd Jobhunt
-docker compose up --build -d
-# open http://127.0.0.1:8765
+docker compose up --build -d   # then open http://127.0.0.1:8765
 ```
-
-When you run `jobhunt app`, it starts a small server on your computer and opens
-the page in your browser. Click **Refresh sources** in the top bar and wait
-about a minute for the first pull. That's it.
 
 ---
 
