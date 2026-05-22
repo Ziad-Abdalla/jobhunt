@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>jobhunt — search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="stylesheet" href="/static/style.css" />
   <script src="/static/htmx.min.js" defer></script>
   <script src="/static/app.js" defer></script>
@@ -19,15 +20,15 @@
             hx-trigger="change, keyup changed delay:300ms from:input[type=text], submit"
             hx-include="this">
 
-        <label>Keyword
+        <label data-hint="Searches title, company name, and full job description.">Keyword
           <input type="text" name="q" placeholder="title, company, anything" autocomplete="off" />
         </label>
 
-        <label>Company
+        <label data-hint="Substring match against the company name.">Company
           <input type="text" name="company" placeholder="e.g. Stripe" autocomplete="off" />
         </label>
 
-        <label>Location
+        <label data-hint="Substring match against location text — try a city, region, or country.">Location
           <input type="text" name="location" placeholder="London, NYC, US…" autocomplete="off" />
         </label>
 
@@ -67,19 +68,19 @@
           <label class="radio"><input type="radio" name="degree" value="" checked /> any</label>
         </fieldset>
 
-        <label>Max years of experience
+        <label data-hint="Filter out jobs that demand more experience than this. Roles without a stated minimum always pass through.">Max years of experience
           <input type="number" name="max_years" min="0" max="20" placeholder="e.g. 3" />
         </label>
 
-        <label>Languages (comma sep)
+        <label data-hint="Comma-separated programming languages — case-insensitive exact match.">Languages
           <input type="text" name="languages" placeholder="python, typescript" autocomplete="off" />
         </label>
 
-        <label>Skills (comma sep)
+        <label data-hint="Comma-separated technologies (frameworks, clouds, tools).">Skills
           <input type="text" name="skills" placeholder="react, aws" autocomplete="off" />
         </label>
 
-        <label>Posted within
+        <label data-hint="Hide jobs that were posted before this cutoff.">Posted within
           <select name="posted_within_days">
             <option value="">any time</option>
             <option value="1">24 hours</option>

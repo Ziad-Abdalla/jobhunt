@@ -3,34 +3,47 @@
   "use strict";
 
   // ---------- refresh sources ----------
+  function setStatus(msg, opts) {
+    const status = document.getElementById("refresh-status");
+    if (!status) return;
+    opts = opts || {};
+    status.textContent = "";
+    if (opts.spinner) {
+      const sp = document.createElement("span");
+      sp.className = "spinner";
+      sp.setAttribute("aria-hidden", "true");
+      status.appendChild(sp);
+    }
+    status.appendChild(document.createTextNode(msg));
+  }
+
   function bindRefreshButton() {
     const btn = document.getElementById("refresh-btn");
     if (!btn) return;
     btn.addEventListener("click", async function () {
-      const status = document.getElementById("refresh-status");
       const wasText = btn.textContent;
       btn.disabled = true;
       btn.textContent = "scraping…";
-      if (status) status.textContent = "";
+      setStatus("pulling from every source — this takes ~1 minute", { spinner: true });
+      document.body.classList.add("results-loading");
       try {
         const r = await fetch("/api/refresh", { method: "POST" });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const j = await r.json();
-        let msg = "+" + j.added + " added · " + j.seen + " seen · " + j.removed + " removed";
+        let msg = "added " + j.added + " · saw " + j.seen + " · removed " + j.removed;
         if (j.alerts && typeof j.alerts.notified === "number" && j.alerts.notified > 0) {
-          msg += " · " + j.alerts.notified + " alert" + (j.alerts.notified === 1 ? "" : "s");
+          msg += " · " + j.alerts.notified + " alert" + (j.alerts.notified === 1 ? "" : "s") + " sent";
         }
-        if (status) status.textContent = msg;
-        // Trigger re-render of any HTMX listener.
+        setStatus(msg);
         const form = document.getElementById("filters");
         if (form) form.dispatchEvent(new Event("submit", { bubbles: true }));
-        // On health page, reload to refresh tables.
         if (document.body.dataset.page === "health") {
           setTimeout(function () { location.reload(); }, 800);
         }
       } catch (e) {
-        if (status) status.textContent = "scrape failed: " + e.message;
+        setStatus("scrape failed: " + e.message);
       } finally {
+        document.body.classList.remove("results-loading");
         btn.disabled = false;
         btn.textContent = wasText;
       }

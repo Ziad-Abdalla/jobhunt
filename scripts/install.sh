@@ -1,105 +1,89 @@
-#!/usr/bin/env sh
-# jobhunt installer (Linux / macOS / WSL).
+#!/usr/bin/env bash
+# jobhunt — one-line binary installer for Linux & macOS.
+#
+# Detects your OS + CPU, downloads the matching pre-built binary from the
+# latest GitHub release, drops it at ~/.local/bin/jobhunt, and prints the
+# next step. No Python required.
 #
 # Usage:
-#   ./scripts/install.sh            # assumes `uv` is already installed
-#   ./scripts/install.sh --with-uv  # also install `uv` into ~/.local/bin
+#   curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 #
-# This script does NOT pipe curl to sh. If you pass --with-uv we use the
-# official uv installer command directly; otherwise we just print the
-# instruction so you can install uv yourself.
+# Or, after cloning:
+#   bash scripts/install.sh
+set -euo pipefail
 
-set -eu
-# `set -o pipefail` isn't in POSIX, but most modern /bin/sh implementations
-# (bash, dash, ash on Alpine, zsh) support it. Guard the call so we don't
-# crash on a shell that doesn't.
-# shellcheck disable=SC3040
-(set -o pipefail 2>/dev/null) && set -o pipefail
+REPO="Abdalla2004-collab/Jobhunt"
+INSTALL_DIR="${JOBHUNT_INSTALL_DIR:-$HOME/.local/bin}"
+BIN_NAME="jobhunt"
 
-WITH_UV=0
-for arg in "$@"; do
-    case "$arg" in
-        --with-uv) WITH_UV=1 ;;
-        -h|--help)
-            sed -n '2,11p' "$0"
-            exit 0
-            ;;
-        *)
-            echo "unknown arg: $arg" >&2
-            exit 2
-            ;;
-    esac
-done
+say()  { printf "\033[1;36m▸\033[0m %s\n" "$*"; }
+warn() { printf "\033[1;33m▸\033[0m %s\n" "$*" >&2; }
+die()  { printf "\033[1;31m✗\033[0m %s\n" "$*" >&2; exit 1; }
 
-# --- 1. Python >= 3.11 check ---------------------------------------------------
+# 1. detect OS / arch
+uname_s="$(uname -s)"
+uname_m="$(uname -m)"
+case "$uname_s" in
+  Linux)  os="linux" ;;
+  Darwin) os="macos" ;;
+  *) die "Unsupported OS: $uname_s. Try the source install — see README." ;;
+esac
+case "$uname_m" in
+  x86_64|amd64)  arch="x86_64" ;;
+  arm64|aarch64) arch="arm64" ;;
+  *) die "Unsupported CPU: $uname_m." ;;
+esac
 
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "error: python3 is not on PATH." >&2
-    echo "install Python 3.11+ from https://www.python.org/downloads/ or your OS package manager." >&2
-    exit 1
+case "$os-$arch" in
+  linux-x86_64) asset="jobhunt-linux-x86_64" ;;
+  macos-arm64)  asset="jobhunt-macos-arm64" ;;
+  macos-x86_64) asset="jobhunt-macos-arm64" ;;
+  *) die "No prebuilt binary for $os-$arch yet. Install from source — see README." ;;
+esac
+
+# 2. find latest release tag
+say "looking up latest release of $REPO"
+api_url="https://api.github.com/repos/$REPO/releases/latest"
+tag="$(curl -fsSL "$api_url" 2>/dev/null | grep -E '"tag_name"' | head -1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)"
+if [ -z "${tag:-}" ]; then
+  die "Could not find a release. Either none exist yet, or GitHub is unreachable.
+   Try the source install — see https://github.com/$REPO#install"
 fi
+say "latest release: $tag"
 
-PY_VER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
-PY_OK="$(python3 -c 'import sys; print(1 if sys.version_info >= (3, 11) else 0)')"
-if [ "$PY_OK" != "1" ]; then
-    echo "error: jobhunt requires Python >= 3.11; found $PY_VER." >&2
-    echo "install a newer Python from https://www.python.org/downloads/ and re-run." >&2
-    exit 1
-fi
-echo "[ok] python $PY_VER detected"
+download_url="https://github.com/$REPO/releases/download/$tag/$asset"
 
-# --- 2. uv availability --------------------------------------------------------
+# 3. download
+mkdir -p "$INSTALL_DIR"
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+say "downloading $asset"
+curl -fL --progress-bar -o "$tmp" "$download_url" \
+  || die "Download failed. URL: $download_url"
 
-if ! command -v uv >/dev/null 2>&1; then
-    if [ "$WITH_UV" = "1" ]; then
-        echo "[..] installing uv into ~/.local/bin via pip"
-        python3 -m pip install --user --upgrade uv
-        # Make sure ~/.local/bin is on PATH for the rest of this script.
-        case ":$PATH:" in
-            *":$HOME/.local/bin:"*) : ;;
-            *) PATH="$HOME/.local/bin:$PATH" ; export PATH ;;
-        esac
-    else
-        echo "error: uv is not installed." >&2
-        echo "install it with one of:" >&2
-        echo "    pip install --user uv" >&2
-        echo "    pipx install uv" >&2
-        echo "or re-run this script with --with-uv to install it via pip --user." >&2
-        echo "we do not pipe curl to sh." >&2
-        exit 1
-    fi
-fi
-echo "[ok] uv available: $(command -v uv)"
+# 4. install
+chmod +x "$tmp"
+install_path="$INSTALL_DIR/$BIN_NAME"
+mv "$tmp" "$install_path"
+trap - EXIT
+say "installed at $install_path"
 
-# --- 3. project install --------------------------------------------------------
+# 5. PATH check
+case ":$PATH:" in
+  *":$INSTALL_DIR:"*) ;;
+  *)
+    warn "$INSTALL_DIR is not on your PATH. Add this to your shell config:"
+    printf "\n    export PATH=\"%s:\$PATH\"\n\n" "$INSTALL_DIR"
+    ;;
+esac
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$PROJECT_ROOT"
+cat <<EOF
 
-if [ ! -d ".venv" ]; then
-    echo "[..] creating virtualenv at .venv"
-    uv venv
-else
-    echo "[ok] .venv already exists"
-fi
+Done. Run jobhunt with:
 
-echo "[..] installing project + dev extras"
-uv pip install -e ".[dev]"
+    jobhunt app
 
-# --- 4. next steps -------------------------------------------------------------
+That starts the server and opens it in your browser.
 
-cat <<'EOF'
-
-[done] jobhunt installed.
-
-next steps:
-    source .venv/bin/activate
-    jobhunt scrape           # first scrape (a few minutes)
-    jobhunt serve            # open http://127.0.0.1:8765
-
-optional extras:
-    uv pip install -e ".[match]"       # local CV matching (~500MB of deps)
-    uv pip install -e ".[linkedin]"    # opt-in only; violates LinkedIn ToS
-
+Source code & docs: https://github.com/$REPO
 EOF

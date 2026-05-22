@@ -1,76 +1,68 @@
-# jobhunt installer (Windows / PowerShell).
+# jobhunt — one-line binary installer for Windows.
 #
-# Usage:
+# Detects your CPU, downloads the matching pre-built binary from the latest
+# GitHub release, drops it at $env:USERPROFILE\jobhunt\, and prints the next
+# step. No Python required.
+#
+# Usage (in PowerShell):
+#   irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
+#
+# Or, after cloning:
 #   .\scripts\install.ps1
-#
-# Requires Python 3.11+ on PATH. We do NOT pipe-execute remote scripts; if you
-# want `uv`, install it manually first (`pip install --user uv` or
-# `winget install --id=astral-sh.uv`).
-
 [CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
 
-function Fail($msg) {
-    Write-Host "error: $msg" -ForegroundColor Red
-    exit 1
+$Repo       = 'Abdalla2004-collab/Jobhunt'
+$InstallDir = if ($env:JOBHUNT_INSTALL_DIR) { $env:JOBHUNT_INSTALL_DIR } else { Join-Path $env:USERPROFILE 'jobhunt' }
+$BinName    = 'jobhunt.exe'
+
+function Say($msg)  { Write-Host "▸ $msg" -ForegroundColor Cyan }
+function Warn($msg) { Write-Host "▸ $msg" -ForegroundColor Yellow }
+function Fail($msg) { Write-Host "✗ $msg" -ForegroundColor Red; exit 1 }
+
+# 1. Find latest release.
+Say "looking up latest release of $Repo"
+try {
+  $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -ErrorAction Stop
+} catch {
+  Fail "Could not reach GitHub. Either no release exists yet, or check your connection."
 }
+$tag = $rel.tag_name
+Say "latest release: $tag"
 
-# --- 1. Python >= 3.11 check -------------------------------------------------
+# 2. Pick the right asset (Windows x86_64 only for now).
+$asset = 'jobhunt-windows-x86_64.exe'
+$url = "https://github.com/$Repo/releases/download/$tag/$asset"
 
-$python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) {
-    Fail "python is not on PATH. install Python 3.11+ from https://www.python.org/downloads/"
+# 3. Download.
+if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir | Out-Null }
+$destination = Join-Path $InstallDir $BinName
+Say "downloading $asset"
+try {
+  Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+} catch {
+  Fail "Download failed: $url"
 }
+Say "installed at $destination"
 
-$verRaw = & python -c "import sys; print('%d.%d' % sys.version_info[:2])"
-$verOk  = & python -c "import sys; print(1 if sys.version_info >= (3, 11) else 0)"
-if ($verOk.Trim() -ne '1') {
-    Fail "jobhunt requires Python >= 3.11; found $verRaw."
+# 4. PATH check.
+$paths = ($env:Path -split ';')
+if ($paths -notcontains $InstallDir) {
+  Warn "$InstallDir is not on your PATH."
+  Warn "To add it for your user, run:"
+  Write-Host ""
+  Write-Host "    [Environment]::SetEnvironmentVariable('Path', `"`$env:Path;$InstallDir`", 'User')"
+  Write-Host ""
+  Warn "Then open a new PowerShell window."
 }
-Write-Host "[ok] python $($verRaw.Trim()) detected"
-
-# --- 2. project root ---------------------------------------------------------
-
-$scriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectRoot = Resolve-Path (Join-Path $scriptDir '..')
-Set-Location $projectRoot
-
-# --- 3. virtualenv -----------------------------------------------------------
-
-if (-not (Test-Path '.venv')) {
-    Write-Host "[..] creating virtualenv at .venv"
-    & python -m venv .venv
-} else {
-    Write-Host "[ok] .venv already exists"
-}
-
-$activate = Join-Path '.venv' 'Scripts\Activate.ps1'
-if (-not (Test-Path $activate)) {
-    Fail "venv created but $activate is missing"
-}
-. $activate
-
-# --- 4. install --------------------------------------------------------------
-
-Write-Host "[..] upgrading pip"
-& python -m pip install --upgrade pip
-
-Write-Host "[..] installing project + dev extras"
-& pip install -e ".[dev]"
-
-# --- 5. next steps -----------------------------------------------------------
 
 Write-Host ""
-Write-Host "[done] jobhunt installed." -ForegroundColor Green
+Write-Host "Done. Run jobhunt with:" -ForegroundColor Green
 Write-Host ""
-Write-Host "next steps:"
-Write-Host "    .\.venv\Scripts\Activate.ps1"
-Write-Host "    jobhunt scrape           # first scrape (a few minutes)"
-Write-Host "    jobhunt serve            # open http://127.0.0.1:8765"
+Write-Host "    jobhunt app"
 Write-Host ""
-Write-Host "optional extras:"
-Write-Host "    pip install -e `".[match]`"       # local CV matching (~500MB of deps)"
-Write-Host "    pip install -e `".[linkedin]`"    # opt-in only; violates LinkedIn ToS"
+Write-Host "That starts the server and opens it in your browser."
+Write-Host "Source code & docs: https://github.com/$Repo"
 Write-Host ""
