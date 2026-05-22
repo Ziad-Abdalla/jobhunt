@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+
+# Local data — never commit a user's scraped database, CV, or cache
+data/*.db
+data/*.db-journal
+data/cache/
+data/cv/
+*.sqlite
+
+# Env
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local config that may contain personal company lists
+src/jobhunt/local_sources.yaml

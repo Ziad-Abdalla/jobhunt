@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — source health</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="health">
+  {% include "_nav.html" %}
+
+  <main class="page">
+    <h1>Source Health</h1>
+    <p>Per-board scrape outcomes and self-update status. Anything red has not produced a successful pull in the last 48 hours.</p>
+
+    <h2>Self-update</h2>
+    <section class="scheduler-card">
+      {% if scheduler.running %}
+        <p><strong class="ok">Running.</strong> Refresh every {{ scheduler.interval_minutes }} minutes.
+          {% for j in scheduler.jobs %} Next at <code>{{ j.next_run_time }}</code>.{% endfor %}
+        </p>
+      {% else %}
+        <p><strong class="warn">Not running.</strong>
+          Set <code>JOBHUNT_REFRESH_INTERVAL_MINUTES</code> &gt; 0 and restart, or POST <code>/api/scheduler/start?interval_minutes=360</code>.
+        </p>
+      {% endif %}
+      {% if scheduler.last_run.at %}
+        <p class="muted">Last automatic run: {{ scheduler.last_run.at }}
+          {% if scheduler.last_run.error %} — <span class="err">{{ scheduler.last_run.error }}</span>{% endif %}
+        </p>
+      {% endif %}
+    </section>
+
+    <h2>Boards</h2>
+    <table class="health-table">
+      <thead>
+        <tr>
+          <th>Source</th><th>Board</th><th>Status</th><th>Last run</th>
+          <th>Seen</th><th>Added</th><th>In DB</th><th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.source }}</td>
+          <td>{{ r.board }}</td>
+          <td>
+            {% if r.healthy %}<span class="badge ok">healthy</span>
+            {% elif r.error %}<span class="badge bad">failing</span>
+            {% else %}<span class="badge warn">stale</span>{% endif %}
+          </td>
+          <td class="muted">{{ r.last_run.strftime('%Y-%m-%d %H:%M') if r.last_run else "—" }}</td>
+          <td>{{ r.jobs_seen }}</td>
+          <td>{{ r.jobs_added }}</td>
+          <td>{{ r.total_in_db }}</td>
+          <td class="err">{{ r.error or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if not rows %}<p class="empty">No scrape runs yet. Press <em>Refresh sources</em> in the masthead.</p>{% endif %}
+  </main>
+</body>
+</html>

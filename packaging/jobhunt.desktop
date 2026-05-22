@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=jobhunt
+GenericName=Job Aggregator
+Comment=Local-first software engineering job board with filters and CV match
+Exec=jobhunt app
+Icon=jobhunt
+Terminal=false
+Categories=Network;Office;
+Keywords=jobs;hiring;developer;ats;
+StartupNotify=true

@@ -1,0 +1,67 @@
+# Default scrape sources. Tweak in local_sources.yaml (gitignored) for your own list.
+# Each entry: { source: <type>, board: <slug>, company: <display name> }
+# `source` must match a key in scrapers.SCRAPER_REGISTRY.
+#
+# Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
+# recruitee, workday, remoteok, hackernews
+#
+# Tip: many companies are on more than one ATS over time. If a board 404s,
+# remove that line or try a different ATS for the same company.
+
+# --- Greenhouse boards ---
+- { source: greenhouse, board: stripe,        company: Stripe }
+- { source: greenhouse, board: airbnb,        company: Airbnb }
+- { source: greenhouse, board: discord,       company: Discord }
+- { source: greenhouse, board: figma,         company: Figma }
+- { source: greenhouse, board: anthropic,     company: Anthropic }
+- { source: greenhouse, board: gitlab,        company: GitLab }
+- { source: greenhouse, board: cloudflare,    company: Cloudflare }
+- { source: greenhouse, board: databricks,    company: Databricks }
+- { source: greenhouse, board: snowflake,     company: Snowflake }
+- { source: greenhouse, board: instacart,     company: Instacart }
+- { source: greenhouse, board: doordash,      company: DoorDash }
+- { source: greenhouse, board: robinhood,     company: Robinhood }
+- { source: greenhouse, board: pinterest,     company: Pinterest }
+- { source: greenhouse, board: reddit,        company: Reddit }
+- { source: greenhouse, board: notion,        company: Notion }
+- { source: greenhouse, board: dropbox,       company: Dropbox }
+- { source: greenhouse, board: coinbase,      company: Coinbase }
+- { source: greenhouse, board: lyft,          company: Lyft }
+- { source: greenhouse, board: monzo,         company: Monzo }
+- { source: greenhouse, board: revolut,       company: Revolut }
+
+# --- Lever boards ---
+- { source: lever, board: netflix,    company: Netflix }
+- { source: lever, board: shopify,    company: Shopify }
+- { source: lever, board: spotify,    company: Spotify }
+- { source: lever, board: ramp,       company: Ramp }
+- { source: lever, board: mercury,    company: Mercury }
+- { source: lever, board: scaleai,    company: Scale AI }
+- { source: lever, board: openai,     company: OpenAI }
+- { source: lever, board: cohere,     company: Cohere }
+
+# --- Ashby boards ---
+- { source: ashby, board: posthog,     company: PostHog }
+- { source: ashby, board: linear,      company: Linear }
+- { source: ashby, board: vercel,      company: Vercel }
+- { source: ashby, board: supabase,    company: Supabase }
+- { source: ashby, board: replit,      company: Replit }
+- { source: ashby, board: ramp,        company: Ramp }
+- { source: ashby, board: openai,      company: OpenAI }
+- { source: ashby, board: ashbyhq,     company: Ashby }
+
+# --- Workable / SmartRecruiters / Recruitee / Workday ---
+# The default sources file ships only known-good Greenhouse/Lever/Ashby boards.
+# These adapters are implemented and ready to use — add your own entries in
+# local_sources.yaml (gitignored) once you have the slug for the company you care
+# about. Pull the slug from the company's careers page URL.
+#
+# Examples (uncomment if these slugs still work for you):
+# - { source: smartrecruiters, board: Bosch,    company: Bosch }
+# - { source: workable, board: <company-slug>,  company: <Display> }
+# - { source: recruitee, board: <subdomain>,    company: <Display> }
+# - { source: workday, board: "tenant/wd5/Site", company: <Display> }
+
+# --- Wide-net firehoses ---
+- { source: remoteok,   board: dev,    company: "(RemoteOK feed)" }
+- { source: hackernews, board: latest, company: "(HN Who is Hiring)" }

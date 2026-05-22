@@ -1,0 +1,14 @@
+services:
+  jobhunt:
+    build: .
+    container_name: jobhunt
+    # Bind ONLY to localhost on the host. Never expose to the network.
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      # Persist the SQLite DB across container restarts.
+      - ./data:/app/data
+    environment:
+      # Auto-refresh every 6 hours (in-process APScheduler, no cron needed).
+      JOBHUNT_REFRESH_INTERVAL_MINUTES: "360"
+    restart: unless-stopped

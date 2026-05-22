@@ -1,0 +1,51 @@
+<div class="results-header">
+  <span class="count-line">{{ "{:,}".format(total) }} matching{% if offset > 0 %} · {{ offset + 1 }}–{{ offset + jobs|length }}{% endif %}</span>
+</div>
+{% if db_empty %}
+  <section class="first-run">
+    <h2 class="first-run-title">Your paper is blank.</h2>
+    <p class="first-run-body">jobhunt hasn't pulled any listings yet. Press <strong>Refresh sources</strong>
+    in the masthead to pull from {{ default_source_count or 30 }}+ company job boards. It takes a minute or two.</p>
+    <p class="first-run-cta"><button type="button" data-action="refresh-now" class="big">Pull listings now</button></p>
+    <p class="first-run-hint">After the first pull, results appear below. You can also add your own
+    favourite companies on the <a href="/sources">Sources</a> page.</p>
+  </section>
+{% elif not jobs %}
+  <p class="empty">No matches. Widen filters, or hit <em>Refresh sources</em> if everything looks stale.</p>
+{% endif %}
+<ol class="cards">
+  {% for j in jobs %}
+  <li class="card">
+    <div class="card-head">
+      <a class="title" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">{{ j.title }}</a>
+      <div class="head-meta">
+        {% if j.cv_match is not none %}
+          <span class="cv-match" title="cosine similarity vs your CV">{{ "%.0f"|format(j.cv_match * 100) }}%</span>
+        {% endif %}
+        <span class="score" title="relevance">{{ "%.2f"|format(j.score) }}</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="company">{{ j.company }}</span>
+      {% if j.location %}<span class="dot">·</span><span>{{ j.location }}</span>{% endif %}
+      {% if j.remote and j.remote != 'unknown' %}<span class="badge remote-{{ j.remote }}">{{ j.remote }}</span>{% endif %}
+      {% if j.level and j.level != 'unknown' %}<span class="badge">{{ j.level }}</span>{% endif %}
+      {% if j.min_years is not none %}<span class="badge">{{ j.min_years }}+ yrs</span>{% endif %}
+      {% if j.degree and j.degree != 'unknown' %}<span class="badge">{{ j.degree }}</span>{% endif %}
+    </div>
+    {% if j.languages or j.skills %}
+    <div class="tags">
+      {% for l in j.languages %}<span class="tag lang">{{ l }}</span>{% endfor %}
+      {% for s in j.skills %}<span class="tag">{{ s }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="card-foot">
+      <span class="source">{{ j.source }}</span>
+      {% if j.posted_at %}<span class="dot">·</span><span>{{ j.posted_at | localdate }}</span>{% endif %}
+      <a class="apply-link" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">
+        view on {{ j.url | replace('https://', '') | replace('http://', '') | truncate(40, true, '…') }} →
+      </a>
+    </div>
+  </li>
+  {% endfor %}
+</ol>

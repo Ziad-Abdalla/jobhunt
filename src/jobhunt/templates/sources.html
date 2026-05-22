@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — sources</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="sources">
+  {% include "_nav.html" %}
+
+  <main class="page">
+    <h1>Sources</h1>
+    <p>Add or remove ATS boards without editing YAML. Default boards ship with the app and are read-only; your additions live in <code>local_sources.yaml</code> and survive upgrades.</p>
+
+    {% if error %}
+    <p class="alert" role="alert"><strong>Could not save:</strong> {{ error }}</p>
+    {% endif %}
+
+    <h2>Add a source</h2>
+    <section class="form-card">
+      <form method="post" action="/sources/add" class="alert-form">
+        <label>Source
+          <select name="source" required>
+            {% for t in source_types %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Board slug <input type="text" name="board" required maxlength="128" placeholder="e.g. stripe" autocomplete="off" /></label>
+        <label>Company <input type="text" name="company" required maxlength="128" placeholder="e.g. Stripe" autocomplete="off" /></label>
+        <button type="submit">Save source</button>
+      </form>
+      <p class="muted" style="margin-top: var(--sp-4); font-size: var(--fs-sm);">
+        Find the slug in the company's careers page URL.
+        <br>Greenhouse: <code>boards.greenhouse.io/SLUG</code>.
+        Lever: <code>jobs.lever.co/SLUG</code>.
+        Ashby: <code>jobs.ashbyhq.com/SLUG</code>.
+        Workday: full path like <code>tenant/wd5/site</code>.
+      </p>
+    </section>
+
+    <h2>Active sources <span class="muted">· {{ total_default }} default · {{ total_local }} yours</span></h2>
+    {% if not grouped %}
+    <p class="empty">No sources configured yet — add your first above.</p>
+    {% endif %}
+
+    {% for source_type, entries in grouped.items() %}
+    <section class="form-card" style="margin-bottom: var(--sp-5);">
+      <h3 style="margin-top: 0; font-family: var(--font-display); font-size: var(--fs-lg);">{{ source_type }}</h3>
+      <table class="health-table">
+        <thead>
+          <tr>
+            <th>Board</th>
+            <th>Company</th>
+            <th>Origin</th>
+            <th style="width: 1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+          <tr>
+            <td><code>{{ e.board }}</code></td>
+            <td>{{ e.company or "—" }}</td>
+            <td>
+              {% if e.origin == "default" %}
+              <span class="badge muted">default</span>
+              {% else %}
+              <span class="badge ok">local</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.origin == "local" %}
+              <form method="post" action="/sources/{{ e.source }}/{{ e.board }}/remove" class="inline-form" data-confirm="Remove {{ e.source }}/{{ e.board }} ({{ e.company }})?">
+                <button type="submit" class="danger">remove</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endfor %}
+  </main>
+</body>
+</html>

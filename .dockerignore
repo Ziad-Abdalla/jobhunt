@@ -1,0 +1,35 @@
+# Python build / cache artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# User data — NEVER bake the local SQLite DB into the image.
+data/
+
+# VCS + local env
+.git/
+.gitignore
+.env
+.env.*
+
+# Tests and docs are not needed at runtime.
+tests/
+docs/
+
+# Markdown noise (keep README.md for the build).
+*.md
+!README.md
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store

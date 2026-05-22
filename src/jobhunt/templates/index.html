@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="search">
+  {% include "_nav.html" %}
+
+  <div class="layout">
+    <aside class="filters" aria-label="Filters">
+      <form id="filters"
+            hx-get="/jobs"
+            hx-target="#results"
+            hx-trigger="change, keyup changed delay:300ms from:input[type=text], submit"
+            hx-include="this">
+
+        <label>Keyword
+          <input type="text" name="q" placeholder="title, company, anything" autocomplete="off" />
+        </label>
+
+        <label>Company
+          <input type="text" name="company" placeholder="e.g. Stripe" autocomplete="off" />
+        </label>
+
+        <label>Location
+          <input type="text" name="location" placeholder="London, NYC, US…" autocomplete="off" />
+        </label>
+
+        <fieldset>
+          <legend>Work mode</legend>
+          {% for value, count in facets.remote %}
+            {% if value in ("remote","hybrid","onsite") %}
+            <label class="radio">
+              <input type="radio" name="remote" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
+            </label>
+            {% endif %}
+          {% endfor %}
+          <label class="radio"><input type="radio" name="remote" value="" checked /> any</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Level</legend>
+          {% for value, count in facets.level %}
+            {% if value != "unknown" %}
+            <label class="radio">
+              <input type="radio" name="level" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
+            </label>
+            {% endif %}
+          {% endfor %}
+          <label class="radio"><input type="radio" name="level" value="" checked /> any</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Degree</legend>
+          {% for value, count in facets.degree %}
+            {% if value != "unknown" %}
+            <label class="radio">
+              <input type="radio" name="degree" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
+            </label>
+            {% endif %}
+          {% endfor %}
+          <label class="radio"><input type="radio" name="degree" value="" checked /> any</label>
+        </fieldset>
+
+        <label>Max years of experience
+          <input type="number" name="max_years" min="0" max="20" placeholder="e.g. 3" />
+        </label>
+
+        <label>Languages (comma sep)
+          <input type="text" name="languages" placeholder="python, typescript" autocomplete="off" />
+        </label>
+
+        <label>Skills (comma sep)
+          <input type="text" name="skills" placeholder="react, aws" autocomplete="off" />
+        </label>
+
+        <label>Posted within
+          <select name="posted_within_days">
+            <option value="">any time</option>
+            <option value="1">24 hours</option>
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30">30 days</option>
+          </select>
+        </label>
+
+        {% if cv_loaded %}
+        <label>Min CV match
+          <select name="min_cv_match">
+            <option value="">any</option>
+            <option value="0.3">≥ 30 %</option>
+            <option value="0.5">≥ 50 %</option>
+            <option value="0.7">≥ 70 %</option>
+          </select>
+        </label>
+        {% endif %}
+
+        <label>Sort by
+          <select name="sort">
+            <option value="score">relevance</option>
+            <option value="posted">posted date</option>
+            <option value="seen">last seen</option>
+            {% if cv_loaded %}<option value="cv">CV match</option>{% endif %}
+          </select>
+        </label>
+
+        <label>Show top
+          <select name="limit">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+        </label>
+
+        {% if cv_loaded %}
+          <p class="info-pill">CV loaded — sort or filter by match.</p>
+        {% else %}
+          <p class="info-pill">Upload a <a href="/cv">CV</a> to enable semantic match.</p>
+        {% endif %}
+      </form>
+    </aside>
+
+    <main id="results" hx-get="/jobs" hx-trigger="load" hx-include="#filters" aria-live="polite">
+      <div class="loading">setting type…</div>
+    </main>
+  </div>
+</body>
+</html>

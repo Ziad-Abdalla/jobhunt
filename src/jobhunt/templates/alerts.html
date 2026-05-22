@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — alerts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="alerts">
+  {% include "_nav.html" %}
+
+  <main class="page">
+    <h1>Saved Searches</h1>
+    <p>Each saved search is a standing column. After every scrape, fresh matches fire a desktop notification (via <code>notify-send</code>, <code>osascript</code> or PowerShell), each posting only once.</p>
+
+    <h2>New / update</h2>
+    <section class="form-card">
+      <form method="post" action="/alerts/create" class="alert-form">
+        <label>Name <input type="text" name="name" required placeholder="e.g. London Python remote" autocomplete="off" /></label>
+        <label>Search text <input type="text" name="q" autocomplete="off" /></label>
+        <label>Company <input type="text" name="company" autocomplete="off" /></label>
+        <label>Location <input type="text" name="location" autocomplete="off" /></label>
+        <label>Work mode
+          <select name="remote">
+            <option value="">any</option>
+            <option value="remote">remote</option>
+            <option value="hybrid">hybrid</option>
+            <option value="onsite">onsite</option>
+          </select>
+        </label>
+        <label>Level
+          <select name="level">
+            <option value="">any</option>
+            <option value="intern">intern</option>
+            <option value="entry">entry</option>
+            <option value="junior">junior</option>
+            <option value="mid">mid</option>
+            <option value="senior">senior</option>
+            <option value="staff">staff</option>
+            <option value="principal">principal</option>
+            <option value="lead">lead</option>
+          </select>
+        </label>
+        <label>Degree
+          <select name="degree">
+            <option value="">any</option>
+            <option value="none">none required</option>
+            <option value="bachelors">bachelors</option>
+            <option value="masters">masters</option>
+            <option value="phd">phd</option>
+          </select>
+        </label>
+        <label>Max years <input type="number" name="max_years" min="0" max="20" /></label>
+        <label>Languages (comma sep) <input type="text" name="languages" placeholder="python, go" autocomplete="off" /></label>
+        <label>Skills (comma sep) <input type="text" name="skills" placeholder="react, aws" autocomplete="off" /></label>
+        <label>Posted within (days) <input type="number" name="posted_within_days" min="1" max="60" /></label>
+        <label class="checkbox"><input type="checkbox" name="notify" checked /> Send desktop notification</label>
+        <button type="submit">Save</button>
+      </form>
+    </section>
+
+    <h2>Active</h2>
+    {% if not searches %}<p class="empty">None yet — your dispatch boxes are empty.</p>{% endif %}
+    <ol class="alert-list">
+      {% for s in searches %}
+      <li>
+        <div class="alert-head">
+          <strong>{{ s.name }}</strong>
+          {% if s.notify %}<span class="badge ok">notify</span>{% else %}<span class="badge muted">silent</span>{% endif %}
+          <span class="muted">created {{ s.created_at.strftime('%Y-%m-%d') }}</span>
+          {% if s.last_notified_at %}<span class="muted">· last fired {{ s.last_notified_at.strftime('%Y-%m-%d %H:%M') }}</span>{% endif %}
+          <span class="muted">· {{ s.notified_job_ids|length }} dispatched</span>
+        </div>
+        <code class="alert-query">{{ s.query_json }}</code>
+        <form method="post" action="/alerts/{{ s.id }}/delete" class="inline-form" data-confirm="Delete saved search {{ s.name }}?">
+          <button type="submit" class="danger">delete</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ol>
+
+    <h2>Manual check</h2>
+    <p>
+      <button type="button" data-action="check-alerts">Check alerts now</button>
+      <span id="check-status" class="muted"></span>
+    </p>
+  </main>
+</body>
+</html>

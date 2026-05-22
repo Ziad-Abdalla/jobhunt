@@ -1,0 +1,22 @@
+<header class="masthead">
+  <div class="masthead-left">
+    <span class="brand">job<span class="brand-mark">·</span>hunt</span>
+    <span class="brand-tagline">a quiet job paper</span>
+  </div>
+  <div class="masthead-date">
+    {% if today is defined %}{{ today }}{% else %}{{ now }}{% endif %}
+    · Vol. 0 · No. 1
+  </div>
+  <div class="masthead-meta">
+    {% if total is defined %}<span class="counter">{{ "{:,}".format(total) }} jobs</span>{% endif %}
+    <button id="refresh-btn" type="button" data-action="refresh">Refresh sources</button>
+    <span id="refresh-status" class="refresh-status" aria-live="polite"></span>
+  </div>
+</header>
+<nav class="subnav" aria-label="Sections">
+  <a href="/" class="{% if nav == 'search' %}active{% endif %}">Search</a>
+  <a href="/alerts" class="{% if nav == 'alerts' %}active{% endif %}">Alerts</a>
+  <a href="/cv" class="{% if nav == 'cv' %}active{% endif %}">CV Match</a>
+  <a href="/sources" class="{% if nav == 'sources' %}active{% endif %}">Sources</a>
+  <a href="/health" class="{% if nav == 'health' %}active{% endif %}">Source Health</a>
+</nav>
