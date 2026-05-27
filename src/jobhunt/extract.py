@@ -49,9 +49,20 @@ LANGUAGE_TOKENS: tuple[str, ...] = (
 )
 
 _LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\bintern(?:ship)?\b|\bpraktik(?:um|ant)\b|\bwerkstudent\b", re.I), "intern"),
     (re.compile(
-        r"\bnew[- ]?grad\b|\bgraduate\b|\bentry[- ]?level\b|\bberufseinstieg\b", re.I,
+        r"\bintern(?:ship)?\b|\bpraktik(?:um|ant)\b|\bwerkstudent(?:in)?\b"
+        r"|\bco-?op\b|\bplacement\s+(?:year|student)\b"
+        r"|\bausbildung\b|\bazubi\b",
+        re.I,
+    ), "intern"),
+    (re.compile(
+        r"\bnew[- ]?grad(?:uate)?\b|\bgraduate\b|\bentry[- ]?level\b"
+        r"|\bberufseinstieg\b|\bberufseinsteiger\b"
+        r"|\bassociate\s+(?:software|developer|engineer)\b"
+        r"|\btrainee\b|\bapprentice(?:ship)?\b"
+        r"|\b(?:0|zero)\s*(?:[-–—~]|to)\s*(?:1|one)\s*years?\b"
+        r"|\bno\s+experience\s+(?:required|needed|necessary)\b",
+        re.I,
     ), "entry"),
     (re.compile(r"\bjunior\b|\bjr\.?\b", re.I), "junior"),
     (re.compile(r"\bstaff\b", re.I), "staff"),

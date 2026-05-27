@@ -306,6 +306,68 @@ def api_jobs(
     )
 
 
+# ---------- local jobs page ----------
+
+
+@app.get("/local", response_class=HTMLResponse)
+def local_jobs(
+    request: Request,
+    location: str = "",
+    level: str = "",
+    employment_type: str = "",
+    min_salary: str = "",
+) -> HTMLResponse:
+    """Entry-level jobs near a location (UK/Germany focused)."""
+    jobs: list[Job] = []
+    total = 0
+    if location.strip():
+        from sqlalchemy import or_
+
+        with db_session() as s:
+            stmt = select(Job).where(
+                Job.location.ilike(f"%{location.strip()}%")
+            )
+            if level:
+                stmt = stmt.where(Job.level == level)
+            else:
+                stmt = stmt.where(
+                    or_(
+                        Job.level.in_(["intern", "entry", "junior", "mid"]),
+                        Job.min_years.is_(None),
+                        Job.min_years <= 2,
+                    )
+                )
+            if employment_type:
+                stmt = stmt.where(Job.employment_type == employment_type)
+            sal = _safe_int(min_salary)
+            if sal:
+                stmt = stmt.where(
+                    Job.salary_max.is_not(None), Job.salary_max >= sal
+                )
+            stmt = stmt.order_by(Job.score.desc(), Job.posted_at.desc().nullslast())
+            total = s.execute(
+                select(func.count()).select_from(
+                    stmt.subquery()
+                )
+            ).scalar_one()
+            jobs = list(s.execute(stmt.limit(100)).scalars().all())
+
+    return templates.TemplateResponse(
+        request,
+        "local.html",
+        {
+            "nav": "local",
+            "today": _today(),
+            "jobs": jobs,
+            "total": total,
+            "location": location.strip(),
+            "level": level,
+            "employment_type": employment_type,
+            "min_salary": min_salary,
+        },
+    )
+
+
 @app.post("/api/refresh")
 async def api_refresh() -> JSONResponse:
     result = await asyncio.shield(scrape_all())

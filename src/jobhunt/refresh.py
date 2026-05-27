@@ -157,8 +157,10 @@ def _persist(
     # ── Employment type ──
     et_from_api = _normalize_employment_type(raw.employment_type)
     employment_type = et_from_api if et_from_api != "unknown" else ex.employment_type
-    if employment_type == "unknown" and level == "intern":
+    if employment_type == "unknown" and level in ("intern",):
         employment_type = "Internship"
+    if employment_type == "unknown" and level in ("entry", "junior") and len(raw.description) > 50:
+        employment_type = "Full-time"
     if employment_type == "unknown" and len(raw.description) > 50:
         employment_type = "Full-time"
 

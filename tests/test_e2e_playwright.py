@@ -122,7 +122,7 @@ def test_keyword_filter(browser_page):
 
 def test_all_pages_load(browser_page):
     pg, base = browser_page
-    for path in ["/health", "/alerts", "/cv", "/sources"]:
+    for path in ["/health", "/alerts", "/cv", "/sources", "/settings", "/local"]:
         pg.goto(f"{base}{path}", wait_until="networkidle")
         assert pg.query_selector("h1") is not None, f"Page {path} missing h1"
 

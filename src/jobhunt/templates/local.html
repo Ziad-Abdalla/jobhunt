@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — local jobs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="local">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:900px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Local Jobs</h1>
+    <p>Entry-level and junior roles near you. Focused on UK and Germany.</p>
+
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <form method="get" action="/local" style="display:flex;flex-wrap:wrap;gap:var(--sp-4);align-items:flex-end;">
+        <label style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Location
+          <input type="text" name="location" value="{{ location }}" placeholder="e.g. London, Whitechapel, Stuttgart, Berlin" required />
+        </label>
+        <label style="min-width:120px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Level
+          <select name="level">
+            <option value="" {% if not level %}selected{% endif %}>any (entry-level)</option>
+            <option value="intern" {% if level == 'intern' %}selected{% endif %}>Intern</option>
+            <option value="entry" {% if level == 'entry' %}selected{% endif %}>Entry / Graduate</option>
+            <option value="junior" {% if level == 'junior' %}selected{% endif %}>Junior</option>
+          </select>
+        </label>
+        <label style="min-width:120px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Job type
+          <select name="employment_type">
+            <option value="" {% if not employment_type %}selected{% endif %}>any</option>
+            <option value="Full-time" {% if employment_type == 'Full-time' %}selected{% endif %}>Full-time</option>
+            <option value="Part-time" {% if employment_type == 'Part-time' %}selected{% endif %}>Part-time</option>
+            <option value="Internship" {% if employment_type == 'Internship' %}selected{% endif %}>Internship</option>
+            <option value="Contract" {% if employment_type == 'Contract' %}selected{% endif %}>Contract</option>
+          </select>
+        </label>
+        <label style="min-width:100px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Min salary
+          <input type="number" name="min_salary" value="{{ min_salary or '' }}" min="0" step="5000" placeholder="any" />
+        </label>
+        <button type="submit" style="height:38px;">Search</button>
+      </form>
+    </div>
+
+    {% if not location %}
+      <div class="first-run" style="margin-top:var(--sp-5);">
+        <h2 class="first-run-title">Where are you based?</h2>
+        <p class="first-run-body">Type your city or area above — like <strong>Whitechapel</strong>, <strong>Stuttgart</strong>, or <strong>Berlin</strong> — and we'll find entry-level tech jobs near you.</p>
+        <p class="first-run-hint">Works best for UK and Germany. You can also set your location in <a href="/settings">Settings</a>.</p>
+      </div>
+    {% elif not jobs %}
+      <p class="empty">No entry-level jobs found near "{{ location }}". Try a broader area or different filters.</p>
+    {% else %}
+      <div class="results-header">
+        <span class="count-line">{{ "{:,}".format(total) }} jobs near {{ location }}</span>
+      </div>
+      <ol class="cards">
+        {% for j in jobs %}
+        <li class="card">
+          <div class="card-head">
+            <a class="title" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">{{ j.title }}</a>
+            <div class="head-meta">
+              {% if j.level and j.level != 'unknown' %}<span class="badge ok">{{ j.level }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="company">{{ j.company }}</span>
+            {% if j.location %}<span class="dot">·</span><span>{{ j.location }}</span>{% endif %}
+            {% if j.remote and j.remote != 'unknown' %}<span class="badge remote-{{ j.remote }}">{{ j.remote }}</span>{% endif %}
+            {% if j.employment_type and j.employment_type != 'unknown' %}<span class="badge">{{ j.employment_type }}</span>{% endif %}
+            {% if j.salary_min or j.salary_max %}
+              <span class="badge salary{% if j.salary_estimated %} estimated{% endif %}">
+                {%- if j.salary_estimated %}~{% endif -%}
+                {%- if j.salary_currency == "USD" or not j.salary_currency %}${% endif -%}
+                {%- if j.salary_min %}{{ "{:,}".format(j.salary_min) }}{% endif -%}
+                {%- if j.salary_min and j.salary_max %}-{% endif -%}
+                {%- if j.salary_max %}{{ "{:,}".format(j.salary_max) }}{% endif -%}
+                {%- if j.salary_currency and j.salary_currency != "USD" %} {{ j.salary_currency }}{% endif -%}
+              </span>
+            {% endif %}
+          </div>
+          {% if j.languages or j.skills %}
+          <div class="tags">
+            {% for l in j.languages %}<span class="tag lang">{{ l }}</span>{% endfor %}
+            {% for s in j.skills %}<span class="tag">{{ s }}</span>{% endfor %}
+          </div>
+          {% endif %}
+          <div class="card-foot">
+            <span class="source">{{ j.source }}</span>
+            {% if j.posted_at %}<span class="dot">·</span><span>{{ j.posted_at | localdate }}</span>{% endif %}
+            <a class="apply-link" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">Apply</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+  </main>
+</body>
+</html>

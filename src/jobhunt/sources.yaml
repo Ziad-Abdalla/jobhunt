@@ -1,15 +1,49 @@
-# Default scrape sources. Tweak in local_sources.yaml (gitignored) for your own list.
-# Each entry: { source: <type>, board: <slug>, company: <display name> }
-# `source` must match a key in scrapers.SCRAPER_REGISTRY.
+# Default job sources. Add your own via the Sources tab in the UI.
 #
 # Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
 # recruitee, workday, remoteok, hackernews, simplifyjobs, arbeitnow, jobicy,
 # himalayas, themuse, jooble, arbeitsagentur, reed
-#
-# Tip: many companies are on more than one ATS over time. If a board 404s,
-# remove that line or try a different ATS for the same company.
 
-# --- Greenhouse boards (verified 2026-05-27) ---
+# ═══════════════════════════════════════════════════════════════════
+#  INTERN / ENTRY-LEVEL FOCUSED SOURCES
+# ═══════════════════════════════════════════════════════════════════
+
+# SimplifyJobs — the best free intern/new-grad aggregators
+- { source: simplifyjobs,  board: internships,  company: "(SimplifyJobs Internships)" }
+- { source: simplifyjobs,  board: new-grad,     company: "(SimplifyJobs New Grad)" }
+
+# Arbeitsagentur — German entry-level / Ausbildung / Praktikum
+- { source: arbeitsagentur, board: "Praktikum Informatik",     company: "(Germany - Praktikum)" }
+- { source: arbeitsagentur, board: "Werkstudent Software",     company: "(Germany - Werkstudent)" }
+- { source: arbeitsagentur, board: "Ausbildung Informatik",    company: "(Germany - Ausbildung)" }
+- { source: arbeitsagentur, board: "Junior Software Engineer", company: "(Germany - Junior)" }
+- { source: arbeitsagentur, board: "Trainee IT",               company: "(Germany - Trainee)" }
+
+# Reed UK — entry-level specific
+- { source: reed, board: "junior software developer",  company: "(Reed UK - Junior)" }
+- { source: reed, board: "graduate software developer", company: "(Reed UK - Graduate)" }
+- { source: reed, board: "internship software",        company: "(Reed UK - Internship)" }
+
+# Jooble — entry-level specific
+- { source: jooble, board: "junior developer|United Kingdom",  company: "(Jooble UK - Junior)" }
+- { source: jooble, board: "graduate developer|United Kingdom", company: "(Jooble UK - Graduate)" }
+- { source: jooble, board: "junior developer|Germany",         company: "(Jooble Germany - Junior)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  WIDE-NET FIREHOSES (all levels)
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: remoteok,      board: dev,          company: "(RemoteOK)" }
+- { source: hackernews,    board: latest,       company: "(HN Who is Hiring)" }
+- { source: arbeitnow,     board: "",           company: "(Arbeitnow EU)" }
+- { source: jobicy,        board: "",           company: "(Jobicy Remote)" }
+- { source: himalayas,     board: "",           company: "(Himalayas Remote)" }
+- { source: themuse,       board: "",           company: "(The Muse)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  COMPANY BOARDS — Greenhouse
+# ═══════════════════════════════════════════════════════════════════
+
 - { source: greenhouse, board: stripe,             company: Stripe }
 - { source: greenhouse, board: airbnb,             company: Airbnb }
 - { source: greenhouse, board: discord,            company: Discord }
@@ -71,10 +105,16 @@
 - { source: greenhouse, board: webflow,            company: Webflow }
 - { source: greenhouse, board: zscaler,            company: Zscaler }
 
-# --- Lever boards ---
+# ═══════════════════════════════════════════════════════════════════
+#  COMPANY BOARDS — Lever
+# ═══════════════════════════════════════════════════════════════════
+
 - { source: lever, board: spotify,    company: Spotify }
 
-# --- Ashby boards (verified 2026-05-27) ---
+# ═══════════════════════════════════════════════════════════════════
+#  COMPANY BOARDS — Ashby
+# ═══════════════════════════════════════════════════════════════════
+
 - { source: ashby, board: posthog,       company: PostHog }
 - { source: ashby, board: linear,        company: Linear }
 - { source: ashby, board: vercel,        company: Vercel }
@@ -99,41 +139,39 @@
 - { source: ashby, board: runway,        company: Runway }
 - { source: ashby, board: zapier,        company: Zapier }
 
-# --- Wide-net firehoses ---
-- { source: remoteok,      board: dev,          company: "(RemoteOK feed)" }
-- { source: hackernews,    board: latest,       company: "(HN Who is Hiring)" }
-- { source: simplifyjobs,  board: internships,  company: "(SimplifyJobs Internships)" }
-- { source: simplifyjobs,  board: new-grad,     company: "(SimplifyJobs New Grad)" }
-- { source: arbeitnow,     board: "",            company: "(Arbeitnow EU Jobs)" }
-- { source: jobicy,        board: "",            company: "(Jobicy Remote Jobs)" }
-- { source: himalayas,     board: "",            company: "(Himalayas Remote Jobs)" }
-- { source: themuse,       board: "",            company: "(The Muse Jobs)" }
+# ═══════════════════════════════════════════════════════════════════
+#  GERMANY — general (Arbeitsagentur, free, no key)
+# ═══════════════════════════════════════════════════════════════════
 
-# --- Germany (Arbeitsagentur — free, no key, unlimited) ---
-- { source: arbeitsagentur, board: "Software Engineer",   company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Softwareentwickler",  company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Entwickler",          company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Backend Developer",   company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Frontend Developer",  company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "DevOps Engineer",     company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Data Engineer",       company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Informatiker",        company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Cloud Engineer",      company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Full Stack",          company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Webentwickler",       company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "IT Consultant",       company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Software Engineer",   company: "(Germany)" }
+- { source: arbeitsagentur, board: "Softwareentwickler",  company: "(Germany)" }
+- { source: arbeitsagentur, board: "Entwickler",          company: "(Germany)" }
+- { source: arbeitsagentur, board: "Backend Developer",   company: "(Germany)" }
+- { source: arbeitsagentur, board: "Frontend Developer",  company: "(Germany)" }
+- { source: arbeitsagentur, board: "DevOps Engineer",     company: "(Germany)" }
+- { source: arbeitsagentur, board: "Data Engineer",       company: "(Germany)" }
+- { source: arbeitsagentur, board: "Informatiker",        company: "(Germany)" }
+- { source: arbeitsagentur, board: "Cloud Engineer",      company: "(Germany)" }
+- { source: arbeitsagentur, board: "Full Stack",          company: "(Germany)" }
+- { source: arbeitsagentur, board: "Webentwickler",       company: "(Germany)" }
+- { source: arbeitsagentur, board: "IT Consultant",       company: "(Germany)" }
 
-# --- UK (Reed — free key at reed.co.uk/developers, 1000 req/day) ---
-- { source: reed, board: "software engineer",  company: "(Reed UK)" }
-- { source: reed, board: "software developer", company: "(Reed UK)" }
-- { source: reed, board: "frontend developer", company: "(Reed UK)" }
-- { source: reed, board: "backend developer",  company: "(Reed UK)" }
-- { source: reed, board: "devops engineer",    company: "(Reed UK)" }
-- { source: reed, board: "data engineer",      company: "(Reed UK)" }
+# ═══════════════════════════════════════════════════════════════════
+#  UK — general (Reed, free key at reed.co.uk/developers)
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: reed, board: "software engineer",    company: "(Reed UK)" }
+- { source: reed, board: "software developer",   company: "(Reed UK)" }
+- { source: reed, board: "frontend developer",   company: "(Reed UK)" }
+- { source: reed, board: "backend developer",    company: "(Reed UK)" }
+- { source: reed, board: "devops engineer",      company: "(Reed UK)" }
+- { source: reed, board: "data engineer",        company: "(Reed UK)" }
 - { source: reed, board: "full stack developer", company: "(Reed UK)" }
 
-# --- Multi-country local jobs (Jooble — free key at jooble.org/api/about) ---
-# Format: "keywords|location" — searches for SOFTWARE jobs in each country.
+# ═══════════════════════════════════════════════════════════════════
+#  MULTI-COUNTRY LOCAL JOBS (Jooble, free key at jooble.org/api/about)
+# ═══════════════════════════════════════════════════════════════════
+
 - { source: jooble, board: "software developer|United Kingdom",  company: "(Jooble UK)" }
 - { source: jooble, board: "software engineer|United Kingdom",   company: "(Jooble UK)" }
 - { source: jooble, board: "software developer|Egypt",           company: "(Jooble Egypt)" }
