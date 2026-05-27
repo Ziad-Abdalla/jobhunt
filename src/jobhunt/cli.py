@@ -15,7 +15,7 @@ from .config import settings
 from .db import db_session, init_db
 from .refresh import scrape_all
 
-app = typer.Typer(no_args_is_help=True, help="jobhunt — local job board aggregator.")
+app = typer.Typer(invoke_without_command=True, help="jobhunt — local job board aggregator.")
 
 
 def _version_callback(value: bool) -> None:
@@ -24,14 +24,17 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(
         False, "--version", "-V", callback=_version_callback, is_eager=True,
         help="Show version and exit.",
     ),
 ) -> None:
     """jobhunt — local job board aggregator."""
+    if ctx.invoked_subcommand is None:
+        app_mode(port=None, no_browser=False, schedule=0)
 
 
 def _find_free_port(preferred: int) -> int:
@@ -199,6 +202,37 @@ def list_sources() -> None:
         by_kind[it.get("source", "?")] = by_kind.get(it.get("source", "?"), 0) + 1
     for kind, n in sorted(by_kind.items()):
         typer.echo(f"  {kind}: {n}")
+
+
+@app.command()
+def update() -> None:
+    """Update jobhunt to the latest version."""
+    import shutil
+    import subprocess
+
+    uv = shutil.which("uv")
+    pipx = shutil.which("pipx")
+
+    if uv:
+        typer.echo("updating via uv...")
+        result = subprocess.run([uv, "tool", "upgrade", "jobhunt"], capture_output=True, text=True)
+        if result.returncode == 0:
+            typer.echo(result.stdout.strip() if result.stdout.strip() else "jobhunt is up to date.")
+        else:
+            typer.echo(f"uv upgrade failed: {result.stderr.strip()}", err=True)
+            raise typer.Exit(1)
+    elif pipx:
+        typer.echo("updating via pipx...")
+        subprocess.run([pipx, "upgrade", "jobhunt"], check=False)
+    else:
+        typer.echo(
+            "could not find uv or pipx. update manually:\n"
+            "  uv tool upgrade jobhunt\n"
+            "  — or —\n"
+            "  pipx upgrade jobhunt",
+            err=True,
+        )
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

@@ -1,68 +1,98 @@
-# jobhunt — one-line binary installer for Windows.
+# jobhunt installer for Windows.
 #
-# Detects your CPU, downloads the matching pre-built binary from the latest
-# GitHub release, drops it at $env:USERPROFILE\jobhunt\, and prints the next
-# step. No Python required.
+# What this does (nothing hidden):
+#   1. Installs "uv" if you don't have it - a trusted, open-source Python
+#      package manager made by Astral (the company behind ruff). It's a
+#      single small file, installs to your user directory, and doesn't
+#      touch anything else on your machine.
+#   2. Installs jobhunt in its own isolated environment via uv.
+#   3. Adds the "jobhunt" command to your PATH.
 #
 # Usage (in PowerShell):
 #   irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 #
-# Or, after cloning:
-#   .\scripts\install.ps1
+# To uninstall:
+#   uv tool uninstall jobhunt
 [CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
 
-$Repo       = 'Abdalla2004-collab/Jobhunt'
-$InstallDir = if ($env:JOBHUNT_INSTALL_DIR) { $env:JOBHUNT_INSTALL_DIR } else { Join-Path $env:USERPROFILE 'jobhunt' }
-$BinName    = 'jobhunt.exe'
+$Repo    = 'Abdalla2004-collab/Jobhunt'
+$Package = "git+https://github.com/$Repo.git"
 
-function Say($msg)  { Write-Host "▸ $msg" -ForegroundColor Cyan }
-function Warn($msg) { Write-Host "▸ $msg" -ForegroundColor Yellow }
-function Fail($msg) { Write-Host "✗ $msg" -ForegroundColor Red; exit 1 }
+function Info($msg)  { Write-Host "  → $msg" -ForegroundColor Cyan }
+function Ok($msg)    { Write-Host "  ✓ $msg" -ForegroundColor Green }
+function Fail($msg)  { Write-Host "  ✗ $msg" -ForegroundColor Red; exit 1 }
 
-# 1. Find latest release.
-Say "looking up latest release of $Repo"
-try {
-  $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -ErrorAction Stop
-} catch {
-  Fail "Could not reach GitHub. Either no release exists yet, or check your connection."
+Write-Host ""
+Write-Host "  Installing jobhunt"
+Write-Host "  ──────────────────"
+Write-Host ""
+
+# ── Step 1: uv ──────────────────────────────────────────────────────────────
+
+if (Get-Command uv -ErrorAction SilentlyContinue) {
+    $uvVer = & uv --version 2>$null
+    Ok "uv is already installed ($uvVer)"
+} else {
+    Info "Installing uv (open-source Python package manager by Astral)..."
+    Info "Source: https://astral.sh/uv — widely trusted, MIT-licensed."
+    Write-Host ""
+    try {
+        powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" 2>$null
+    } catch {
+        Fail "Could not install uv automatically."
+        Fail "Install it yourself: https://docs.astral.sh/uv/getting-started/installation/"
+    }
+    # Refresh PATH so we can find uv.
+    $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Fail "Could not find uv after installation. Close this window, open a new PowerShell, and re-run the script."
+    }
+    Ok "uv installed"
 }
-$tag = $rel.tag_name
-Say "latest release: $tag"
 
-# 2. Pick the right asset (Windows x86_64 only for now).
-$asset = 'jobhunt-windows-x86_64.exe'
-$url = "https://github.com/$Repo/releases/download/$tag/$asset"
+# ── Step 2: jobhunt ─────────────────────────────────────────────────────────
 
-# 3. Download.
-if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir | Out-Null }
-$destination = Join-Path $InstallDir $BinName
-Say "downloading $asset"
-try {
-  Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
-} catch {
-  Fail "Download failed: $url"
+Info "Installing jobhunt into its own isolated environment..."
+$output = & uv tool install $Package 2>&1 | Out-String
+if ($output -match 'already installed') {
+    Info "jobhunt is already installed — upgrading to latest..."
+    & uv tool upgrade jobhunt 2>$null
 }
-Say "installed at $destination"
+Ok "jobhunt installed"
 
-# 4. PATH check.
-$paths = ($env:Path -split ';')
-if ($paths -notcontains $InstallDir) {
-  Warn "$InstallDir is not on your PATH."
-  Warn "To add it for your user, run:"
-  Write-Host ""
-  Write-Host "    [Environment]::SetEnvironmentVariable('Path', `"`$env:Path;$InstallDir`", 'User')"
-  Write-Host ""
-  Warn "Then open a new PowerShell window."
+# ── Step 3: verify ──────────────────────────────────────────────────────────
+
+# Refresh PATH one more time.
+$env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+
+if (-not (Get-Command jobhunt -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Info "Almost done — close this window and open a new PowerShell so the"
+    Info "PATH update takes effect, then run: jobhunt"
+} else {
+    Ok "Ready"
 }
 
 Write-Host ""
-Write-Host "Done. Run jobhunt with:" -ForegroundColor Green
-Write-Host ""
-Write-Host "    jobhunt app"
-Write-Host ""
-Write-Host "That starts the server and opens it in your browser."
-Write-Host "Source code & docs: https://github.com/$Repo"
+Write-Host "  ┌──────────────────────────────────────────────┐"
+Write-Host "  │                                              │"
+Write-Host "  │   All done. To launch jobhunt, just run:     │"
+Write-Host "  │                                              │"
+Write-Host "  │       jobhunt                                │"
+Write-Host "  │                                              │"
+Write-Host "  │   It starts a local server and opens your    │"
+Write-Host "  │   browser. Nothing leaves your machine.      │"
+Write-Host "  │                                              │"
+Write-Host "  │   To update later:                           │"
+Write-Host "  │                                              │"
+Write-Host "  │       uv tool upgrade jobhunt                │"
+Write-Host "  │                                              │"
+Write-Host "  │   To uninstall:                              │"
+Write-Host "  │                                              │"
+Write-Host "  │       uv tool uninstall jobhunt              │"
+Write-Host "  │                                              │"
+Write-Host "  └──────────────────────────────────────────────┘"
 Write-Host ""

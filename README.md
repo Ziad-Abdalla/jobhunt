@@ -16,86 +16,51 @@ and zero data leaving your computer.
 
 ## Install
 
-It's one file. You download it, you open it, the app opens in your browser.
-That's all.
+One command. Works on Linux, macOS, and Windows. Takes about 30 seconds.
 
-<div align="center">
-
-### Download for your computer
-
-<table>
-<tr>
-<td align="center" width="33%">
-
-### 🪟 Windows
-
-[**Download jobhunt.exe →**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
-
-</td>
-<td align="center" width="33%">
-
-### 🍎 macOS
-
-[**Download jobhunt →**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
-
-</td>
-<td align="center" width="33%">
-
-### 🐧 Linux
-
-[**Download jobhunt →**](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-linux-x86_64)
-
-</td>
-</tr>
-</table>
-
-</div>
-
-### Then open it
-
-<details open>
-<summary><b>🪟 Windows</b> — one double-click</summary>
-
-1. Find `jobhunt-windows-x86_64.exe` in your **Downloads** folder.
-2. **Double-click it.**
-3. Windows will likely show a blue box that says *"Windows protected your PC"*.
-   This appears for every app that hasn't paid Microsoft for a certificate — it
-   isn't a malware warning. Click **More info**, then **Run anyway**.
-4. A small black window pops up and your browser opens to jobhunt. ✨
-
-</details>
-
-<details>
-<summary><b>🍎 macOS</b> — right-click to open</summary>
-
-1. Find the downloaded file in your **Downloads** folder.
-2. **Right-click** (or hold Control and click) on it → choose **Open**.
-3. macOS will ask *"are you sure you want to open it?"* — click **Open**.
-   (This dance is required once for every app that isn't from the App Store.)
-4. A small Terminal window appears and your browser opens to jobhunt. ✨
-
-If macOS says *"cannot be opened because the developer cannot be verified"*
-with no Open option, do this once:
-- Open **System Settings → Privacy & Security**
-- Scroll down — you'll see a message about jobhunt being blocked
-- Click **Open Anyway**
-
-</details>
-
-<details>
-<summary><b>🐧 Linux</b> — two clicks</summary>
-
-1. Right-click the downloaded `jobhunt-linux-x86_64` file → **Properties** →
-   **Permissions** → tick **"Allow executing file as program"**. (Or in a
-   terminal: `chmod +x ~/Downloads/jobhunt-linux-x86_64`.)
-2. Double-click it. Your browser opens to jobhunt. ✨
-
-If your file manager opens it as text instead of running it, use the terminal:
+**Linux / macOS** — open a terminal and paste:
 ```bash
-~/Downloads/jobhunt-linux-x86_64 app
+curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 ```
 
-</details>
+**Windows** — open PowerShell and paste:
+```powershell
+irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
+```
+
+Then run:
+```
+jobhunt
+```
+
+Your browser opens. That's it.
+
+### What the install script does (nothing hidden)
+
+1. Installs **[uv](https://github.com/astral-sh/uv)** if you don't have it —
+   a widely trusted, open-source Python package manager by Astral (40k+ GitHub
+   stars, MIT-licensed). It's a single small file that goes in your user
+   directory. It doesn't touch your system or anything else on your machine.
+2. Installs jobhunt in its **own isolated environment** via uv. No global
+   packages, no conflicts with anything you already have installed.
+3. Adds the `jobhunt` command to your PATH.
+
+You can [read the full script](scripts/install.sh) before running it.
+
+### Updating
+
+When there's a new version:
+```
+jobhunt update
+```
+
+### Uninstalling
+
+```
+uv tool uninstall jobhunt
+```
+
+Removes jobhunt and its isolated environment. Nothing else is touched.
 
 ### What happens on first launch
 
@@ -120,40 +85,18 @@ Short answer: yes. Specifically:
 - **The web page is bound to `127.0.0.1`** — your laptop only, not your network.
 - **Released under MIT.** Use it, modify it, share it.
 
-The OS warnings ("unrecognized publisher", "developer cannot be verified")
-appear because this is a free open-source project that doesn't pay Apple or
-Microsoft the yearly fee for an official signing certificate. They're not
-malware warnings — every indie app gets them.
-
-### Don't want to download? Other ways to install
+### Other ways to install
 
 <details>
-<summary>Install from the terminal in one line</summary>
-
-**Linux / macOS:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
-jobhunt app
-```
-
-**Windows (PowerShell):**
-```powershell
-irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
-jobhunt app
-```
-
-These do the same thing — figure out your OS, pull the right file, drop it
-somewhere on your PATH.
-
-</details>
-
-<details>
-<summary>Already have Python?</summary>
+<summary>Already have uv or pipx?</summary>
 
 ```bash
+uv tool install git+https://github.com/Abdalla2004-collab/Jobhunt.git
+# or
 pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git
-jobhunt app
 ```
+
+Update: `uv tool upgrade jobhunt` or `pipx upgrade jobhunt`.
 
 </details>
 
@@ -166,6 +109,21 @@ cd Jobhunt
 docker compose up --build -d
 # open http://127.0.0.1:8765
 ```
+
+Update: `git pull && docker compose up --build -d`.
+
+</details>
+
+<details>
+<summary>Download a standalone binary</summary>
+
+Pre-built binaries for each OS are available on the
+[Releases page](https://github.com/Abdalla2004-collab/Jobhunt/releases).
+Download, make it executable, and run it. No Python required.
+
+Note: your OS may show a security warning because the binary isn't code-signed.
+This happens with every free open-source project that doesn't pay for a signing
+certificate. It isn't a malware warning.
 
 </details>
 
@@ -190,7 +148,7 @@ docker compose up --build -d
 
 ## Screenshots
 
-> Run `jobhunt app` and visit `http://127.0.0.1:8765`. Five pages: Search,
+> Run `jobhunt` and visit `http://127.0.0.1:8765`. Five pages: Search,
 > Alerts, CV Match, Sources, Source Health.
 
 ## How it works
@@ -220,8 +178,9 @@ explains the trade-offs.
 ## Day-to-day commands
 
 ```bash
-jobhunt app              # start UI + open browser (this is the main one)
-jobhunt app --schedule 360   # also refresh every 6 hours in the background
+jobhunt                  # start UI + open browser (this is the main one)
+jobhunt --schedule 360   # also refresh every 6 hours in the background
+jobhunt update           # update to the latest version
 
 jobhunt scrape           # one-off scrape from the CLI
 jobhunt stats            # quick counts by source
@@ -251,11 +210,13 @@ jobhunt --version
 
 ## CV match (optional)
 
+To enable CV-aware ranking, reinstall with the match extra:
 ```bash
-uv pip install -e ".[match]"   # adds sentence-transformers, ~500 MB
+uv tool install --reinstall "git+https://github.com/Abdalla2004-collab/Jobhunt.git[match]"
 ```
 
-Then open the **CV Match** tab and upload a PDF, DOCX, or TXT. The CV is
+This adds sentence-transformers (~500 MB one-time download). Then open the
+**CV Match** tab and upload a PDF, DOCX, or TXT. The CV is
 parsed locally and embedded with `sentence-transformers/all-MiniLM-L6-v2`
 on CPU. Every job in your database gets a cosine similarity score against
 your CV. Sort or filter by match. Nothing ever leaves your machine.
@@ -277,15 +238,14 @@ jobhunt keeps LinkedIn strictly opt-in via the `[linkedin]` extra.
 
 Run `jobhunt info` any time to see the resolved paths.
 
-## Self-update
+## Automatic job refresh
 
 ```bash
-jobhunt app --schedule 360
-# or:
-JOBHUNT_REFRESH_INTERVAL_MINUTES=360 jobhunt serve
+jobhunt --schedule 360
 ```
 
-An in-process scheduler re-scrapes on the interval. No cron job needed.
+Runs the app and re-scrapes all sources every 6 hours in the background.
+No cron job needed — an in-process scheduler handles it while the app is open.
 
 ## Safety
 
@@ -306,7 +266,7 @@ cd Jobhunt
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev,match]"
 pytest -q
-jobhunt app --schedule 0
+jobhunt
 ```
 
 ## Architecture
