@@ -238,6 +238,7 @@ def jobs(
             "limit": query.limit,
             "offset": query.offset,
             "db_empty": db_total == 0,
+            "default_source_count": 130,
         },
     )
 
@@ -753,14 +754,17 @@ def api_save_settings(
     user_location: str = Form(""),
 ) -> RedirectResponse:
     """Save user settings to a .env file in the data directory."""
+    jk = jooble_api_key.strip()[:256]
+    rk = reed_api_key.strip()[:256]
+    ul = user_location.strip()[:256]
     env = _load_user_env()
-    env["JOBHUNT_JOOBLE_API_KEY"] = jooble_api_key.strip()
-    env["JOBHUNT_REED_API_KEY"] = reed_api_key.strip()
-    env["JOBHUNT_USER_LOCATION"] = user_location.strip()
+    env["JOBHUNT_JOOBLE_API_KEY"] = jk
+    env["JOBHUNT_REED_API_KEY"] = rk
+    env["JOBHUNT_USER_LOCATION"] = ul
     _save_user_env(env)
-    settings.jooble_api_key = jooble_api_key.strip()
-    settings.reed_api_key = reed_api_key.strip()
-    settings.user_location = user_location.strip()
+    settings.jooble_api_key = jk
+    settings.reed_api_key = rk
+    settings.user_location = ul
     return RedirectResponse("/settings", status_code=303)
 
 

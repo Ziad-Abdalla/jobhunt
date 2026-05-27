@@ -48,20 +48,16 @@ LANGUAGE_TOKENS: tuple[str, ...] = (
     "solidity", "sql", "bash", "shell",
 )
 
-_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+_TITLE_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(
         r"\bintern(?:ship)?\b|\bpraktik(?:um|ant)\b|\bwerkstudent(?:in)?\b"
-        r"|\bco-?op\b|\bplacement\s+(?:year|student)\b"
-        r"|\bausbildung\b|\bazubi\b",
+        r"|\bco-?op\b|\bausbildung\b|\bazubi\b",
         re.I,
     ), "intern"),
     (re.compile(
         r"\bnew[- ]?grad(?:uate)?\b|\bgraduate\b|\bentry[- ]?level\b"
-        r"|\bberufseinstieg\b|\bberufseinsteiger\b"
-        r"|\bassociate\s+(?:software|developer|engineer)\b"
         r"|\btrainee\b|\bapprentice(?:ship)?\b"
-        r"|\b(?:0|zero)\s*(?:[-–—~]|to)\s*(?:1|one)\s*years?\b"
-        r"|\bno\s+experience\s+(?:required|needed|necessary)\b",
+        r"|\b(?<!senior\s)associate\s+(?:software|developer|engineer)\b",
         re.I,
     ), "entry"),
     (re.compile(r"\bjunior\b|\bjr\.?\b", re.I), "junior"),
@@ -71,6 +67,26 @@ _LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bsenior\b|\bsr\.?\b", re.I), "senior"),
     (re.compile(r"\blead\b", re.I), "lead"),
     (re.compile(r"\bmid[- ]?level\b", re.I), "mid"),
+)
+
+_DESC_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(
+        r"\bintern(?:ship)\s+(?:program|position|role|opportunity)\b"
+        r"|\bpraktik(?:um|ant)\b|\bwerkstudent\b"
+        r"|\bplacement\s+(?:year|student)\b",
+        re.I,
+    ), "intern"),
+    (re.compile(
+        r"\bnew[- ]?grad(?:uate)?\s+(?:program|role|position|hire)\b"
+        r"|\bentry[- ]?level\b|\bberufseinstieg\b|\bberufseinsteiger\b"
+        r"|\b(?:0|zero)\s*(?:[-–—~]|to)\s*(?:1|one)\s*years?\b"
+        r"|\bno\s+experience\s+(?:required|needed|necessary)\b",
+        re.I,
+    ), "entry"),
+    (re.compile(r"\bjunior\b|\bjr\.?\b", re.I), "junior"),
+    (re.compile(r"\bsenior\b|\bsr\.?\b", re.I), "senior"),
+    (re.compile(r"\bstaff\b", re.I), "staff"),
+    (re.compile(r"\blead\b", re.I), "lead"),
 )
 
 _REMOTE_STRONG = re.compile(
@@ -142,13 +158,14 @@ _LOCATION_REMOTE_RE = re.compile(
 
 
 def _parse_salary_number(raw: str) -> int | None:
-    """Parse '120,000', '120k', '120.000' (EU) into an integer."""
-    s = raw.strip().replace(",", "").replace(".", "").replace("_", "")
+    """Parse '120,000', '120k', '1.5k', '120.000' (EU) into an integer."""
+    s = raw.strip().replace(",", "").replace("_", "")
     if s.lower().endswith("k"):
         try:
             return int(float(s[:-1]) * 1000)
         except ValueError:
             return None
+    s = s.replace(".", "")
     try:
         val = int(s)
         if val < 1000:
@@ -205,10 +222,15 @@ def extract(text: str, *, title: str = "") -> Extracted:
         skills.add("postgres")
 
     level = "unknown"
-    for pat, lvl in _LEVEL_PATTERNS:
-        if pat.search(haystack):
+    for pat, lvl in _TITLE_LEVEL_PATTERNS:
+        if pat.search(title):
             level = lvl
             break
+    if level == "unknown":
+        for pat, lvl in _DESC_LEVEL_PATTERNS:
+            if pat.search(text):
+                level = lvl
+                break
 
     # Remote detection: strong patterns match anywhere, weak "remote" only in
     # title + first 300 chars to avoid false positives from "remote debugging" etc.
