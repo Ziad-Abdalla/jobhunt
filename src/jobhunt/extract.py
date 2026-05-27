@@ -86,6 +86,66 @@ _YOE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"at least\s+(\d+)\s*years?", re.I),
 )
 
+# Employment type patterns — searched in description text.
+_ETYPE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(
+        r"\bfull[- ]?time\b|\bpermanent\s+(?:position|role|employment)\b"
+        r"|\bpermanent\b|\bfull[- ]?zeit\b|\bvollzeit\b",
+        re.I,
+    ), "Full-time"),
+    (re.compile(r"\bpart[- ]?time\b|\bteilzeit\b", re.I), "Part-time"),
+    (re.compile(
+        r"\bcontract(?:or)?\s+(?:position|role)\b|\bcontract\b"
+        r"|\bfreelance\b|\btemporary\b|\bfixed[- ]?term\b",
+        re.I,
+    ), "Contract"),
+    (re.compile(
+        r"\binternship\b|\bintern\s+(?:position|role)\b"
+        r"|\bpraktikum\b|\bwerkstudent\b",
+        re.I,
+    ), "Internship"),
+)
+
+# Salary patterns — match "$120,000 - $180,000", "$120k-180k", "€50.000-70.000",
+# "£45,000 to £55,000", "USD 100,000 – 150,000".
+_CURRENCY_SYMBOLS = {"$": "USD", "£": "GBP", "€": "EUR", "¥": "JPY", "₹": "INR"}
+_SALARY_RE = re.compile(
+    r"(?:(?P<cur1>[€£$¥₹])\s*)"                     # currency symbol before number
+    r"(?P<min>\d[\d,._]*[kK]?)"                       # min salary
+    r"\s*(?:[-–—~]|to)\s*"                            # separator
+    r"(?:[€£$¥₹]\s*)?"                               # optional second currency symbol
+    r"(?P<max>\d[\d,._]*[kK]?)"                       # max salary
+    r"(?:\s*(?P<cur2>[A-Z]{3}))?"                     # optional trailing currency code
+)
+_SALARY_CONTEXT_RE = re.compile(
+    r"(?:salary|compensation|pay|annual|base|range|offer)\b",
+    re.I,
+)
+
+# Location-based remote inference.
+_LOCATION_REMOTE_RE = re.compile(
+    r"\bremote\b|\banywhere\b|\bdistributed\b|\bwork from home\b|\bwfh\b"
+    r"|\bworldwide\b|\bglobal\b",
+    re.I,
+)
+
+
+def _parse_salary_number(raw: str) -> int | None:
+    """Parse '120,000', '120k', '120.000' (EU) into an integer."""
+    s = raw.strip().replace(",", "").replace(".", "").replace("_", "")
+    if s.lower().endswith("k"):
+        try:
+            return int(float(s[:-1]) * 1000)
+        except ValueError:
+            return None
+    try:
+        val = int(s)
+        if val < 1000:
+            val *= 1000
+        return val
+    except ValueError:
+        return None
+
 
 @dataclass(slots=True, frozen=True)
 class Extracted:
@@ -95,6 +155,10 @@ class Extracted:
     remote: str
     degree: str
     min_years: int | None
+    employment_type: str
+    salary_min: int | None
+    salary_max: int | None
+    salary_currency: str
 
 
 def _find_matches(text: str, tokens: tuple[str, ...]) -> list[str]:
@@ -163,6 +227,39 @@ def extract(text: str, *, title: str = "") -> Extracted:
             except (ValueError, IndexError):
                 continue
 
+    # Employment type from description text.
+    employment_type = "unknown"
+    for pat, etype in _ETYPE_PATTERNS:
+        if pat.search(haystack):
+            employment_type = etype
+            break
+
+    # Salary from description text — only near compensation-related context.
+    salary_min: int | None = None
+    salary_max: int | None = None
+    salary_currency = ""
+    for m in _SALARY_RE.finditer(haystack):
+        start = max(0, m.start() - 120)
+        context = haystack[start:m.start()]
+        if _SALARY_CONTEXT_RE.search(context) or m.start() < 500:
+            raw_min = _parse_salary_number(m.group("min"))
+            raw_max = _parse_salary_number(m.group("max"))
+            if raw_min and raw_max and 15000 <= raw_max <= 1_000_000:
+                salary_min = raw_min
+                salary_max = raw_max
+                sym = m.group("cur1") or ""
+                salary_currency = (
+                    _CURRENCY_SYMBOLS.get(sym, "")
+                    or m.group("cur2")
+                    or "USD"
+                )
+                break
+
+    # Improve remote detection using location field when description is silent.
+    if remote == "unknown" and title:
+        if _LOCATION_REMOTE_RE.search(title):
+            remote = "remote"
+
     return Extracted(
         skills=sorted(skills),
         languages=languages,
@@ -170,4 +267,8 @@ def extract(text: str, *, title: str = "") -> Extracted:
         remote=remote,
         degree=degree,
         min_years=min_years,
+        employment_type=employment_type,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_currency=salary_currency,
     )

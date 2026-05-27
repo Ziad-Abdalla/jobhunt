@@ -106,7 +106,18 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
 
     # Prefer structured API data over heuristic extraction.
     remote = raw.remote_structured if raw.remote_structured else ex.remote
-    employment_type = _normalize_employment_type(raw.employment_type)
+    # Also check location for remote signals when both API and description are silent.
+    if remote == "unknown" and raw.location:
+        loc_lower = raw.location.lower()
+        if any(w in loc_lower for w in ("remote", "anywhere", "distributed", "worldwide")):
+            remote = "remote"
+
+    et_from_api = _normalize_employment_type(raw.employment_type)
+    employment_type = et_from_api if et_from_api != "unknown" else ex.employment_type
+
+    salary_min = raw.salary_min if raw.salary_min is not None else ex.salary_min
+    salary_max = raw.salary_max if raw.salary_max is not None else ex.salary_max
+    salary_currency = raw.salary_currency or ex.salary_currency
 
     if existing is None:
         job = Job(
@@ -122,9 +133,9 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
             min_years=ex.min_years,
             degree=ex.degree,
             employment_type=employment_type,
-            salary_min=raw.salary_min,
-            salary_max=raw.salary_max,
-            salary_currency=raw.salary_currency,
+            salary_min=salary_min,
+            salary_max=salary_max,
+            salary_currency=salary_currency,
             skills=ex.skills,
             languages=ex.languages,
             description=raw.description,
@@ -147,9 +158,9 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     existing.min_years = ex.min_years
     existing.degree = ex.degree
     existing.employment_type = employment_type
-    existing.salary_min = raw.salary_min if raw.salary_min is not None else existing.salary_min
-    existing.salary_max = raw.salary_max if raw.salary_max is not None else existing.salary_max
-    existing.salary_currency = raw.salary_currency or existing.salary_currency
+    existing.salary_min = salary_min if salary_min is not None else existing.salary_min
+    existing.salary_max = salary_max if salary_max is not None else existing.salary_max
+    existing.salary_currency = salary_currency or existing.salary_currency
     existing.skills = ex.skills
     existing.languages = ex.languages
     existing.score = score
