@@ -573,6 +573,34 @@ def _detect_install_method() -> str:
     return "pip"
 
 
+def _env_file_path() -> Path:
+    """Path to the user-writable .env file in the data directory."""
+    return settings.data_dir / ".env"
+
+
+def _load_user_env() -> dict[str, str]:
+    """Load key=value pairs from the user's .env file."""
+    path = _env_file_path()
+    if not path.exists():
+        return {}
+    result: dict[str, str] = {}
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        result[key.strip()] = val.strip().strip("\"'")
+    return result
+
+
+def _save_user_env(data: dict[str, str]) -> None:
+    """Write key=value pairs to the user's .env file."""
+    path = _env_file_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [f"{k}={v}" for k, v in sorted(data.items()) if v]
+    path.write_text("\n".join(lines) + "\n" if lines else "")
+
+
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request) -> HTMLResponse:
     import platform
@@ -591,8 +619,29 @@ def settings_page(request: Request) -> HTMLResponse:
             "sources_file": str(settings.sources_file),
             "local_sources_file": str(settings.local_sources_file),
             "install_method": _detect_install_method(),
+            "jooble_api_key": settings.jooble_api_key,
+            "reed_api_key": settings.reed_api_key,
+            "user_location": settings.user_location,
         },
     )
+
+
+@app.post("/api/settings/save")
+def api_save_settings(
+    jooble_api_key: str = Form(""),
+    reed_api_key: str = Form(""),
+    user_location: str = Form(""),
+) -> RedirectResponse:
+    """Save user settings to a .env file in the data directory."""
+    env = _load_user_env()
+    env["JOBHUNT_JOOBLE_API_KEY"] = jooble_api_key.strip()
+    env["JOBHUNT_REED_API_KEY"] = reed_api_key.strip()
+    env["JOBHUNT_USER_LOCATION"] = user_location.strip()
+    _save_user_env(env)
+    settings.jooble_api_key = jooble_api_key.strip()
+    settings.reed_api_key = reed_api_key.strip()
+    settings.user_location = user_location.strip()
+    return RedirectResponse("/settings", status_code=303)
 
 
 @app.get("/api/check-update")
@@ -772,18 +821,15 @@ def api_uninstall() -> JSONResponse:
 
 @app.post("/api/clear-data")
 def api_clear_data() -> JSONResponse:
-    """Delete the local database. Jobs will be re-scraped on next refresh."""
-    import os
-
-    db = settings.db_path
-    if db.exists():
-        os.remove(db)
-        init_db()
-        return JSONResponse({
-            "ok": True,
-            "message": "Database cleared. Pull listings to re-populate.",
-        })
-    return JSONResponse({"ok": True, "message": "Database already empty."})
+    """Drop all job data but keep the schema intact."""
+    with db_session() as s:
+        from .models import Job, ScrapeRun
+        s.execute(Job.__table__.delete())
+        s.execute(ScrapeRun.__table__.delete())
+    return JSONResponse({
+        "ok": True,
+        "message": "All jobs cleared. Click Refresh to re-populate.",
+    })
 
 
 # ---------- meta ----------

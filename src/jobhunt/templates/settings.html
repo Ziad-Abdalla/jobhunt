@@ -15,20 +15,40 @@
   <main class="page" style="max-width:680px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
     <h1>Settings</h1>
 
-    <h2>About</h2>
+    <h2>API Keys (optional)</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
-      <table class="health-table" style="margin:0;">
-        <tr><td style="color:var(--text-3);font-weight:600;width:140px;">Version</td><td>{{ version }}</td></tr>
-        <tr><td style="color:var(--text-3);font-weight:600;">Platform</td><td>{{ platform }}</td></tr>
-        <tr><td style="color:var(--text-3);font-weight:600;">Installed via</td><td>{{ install_method }}</td></tr>
-        <tr><td style="color:var(--text-3);font-weight:600;">Data folder</td><td style="word-break:break-all;font-family:var(--font-mono);font-size:var(--fs-xs);">{{ data_dir }}</td></tr>
-      </table>
+      <p style="margin:0 0 var(--sp-4);color:var(--text-2);">
+        These are optional. Without them, jobhunt still searches 100+ companies.
+        Adding keys unlocks extra job sources.
+      </p>
+      <form method="post" action="/api/settings/save" style="display:flex;flex-direction:column;gap:var(--sp-4);">
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Your location
+          <input type="text" name="user_location" value="{{ user_location }}" placeholder="e.g. London, UK or Cairo, Egypt" />
+          <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">Used by Jooble to find local jobs near you.</span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Jooble API key
+          <input type="text" name="jooble_api_key" value="{{ jooble_api_key }}" placeholder="Free at jooble.org/api/about" />
+          <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
+            Unlocks jobs in 69 countries. <a href="https://jooble.org/api/about" target="_blank" rel="noopener">Get a free key here.</a>
+          </span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Reed API key
+          <input type="text" name="reed_api_key" value="{{ reed_api_key }}" placeholder="Free at reed.co.uk/developers" />
+          <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
+            Unlocks UK jobs from Reed.co.uk. <a href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">Get a free key here.</a>
+          </span>
+        </label>
+        <button type="submit" style="align-self:flex-start;">Save</button>
+      </form>
     </div>
 
     <h2>Updates</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
       <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
-        Check for a newer version and install it automatically.
+        Check for a newer version and install it.
       </p>
       <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
         <button id="update-btn" type="button">Check for updates</button>
@@ -45,7 +65,7 @@
     <h2>Data</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
       <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
-        Delete all scraped jobs. Your saved searches and CV are kept. Jobs come back on the next refresh.
+        Delete all scraped jobs. Your saved searches, CV, and API keys are kept.
       </p>
       <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
         <button id="clear-btn" type="button" class="danger">Clear all jobs</button>
@@ -53,40 +73,32 @@
       </div>
     </div>
 
+    <h2>About</h2>
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <table class="health-table" style="margin:0;">
+        <tr><td style="color:var(--text-3);font-weight:600;width:140px;">Version</td><td>{{ version }}</td></tr>
+        <tr><td style="color:var(--text-3);font-weight:600;">Platform</td><td>{{ platform }}</td></tr>
+        <tr><td style="color:var(--text-3);font-weight:600;">Installed via</td><td>{{ install_method }}</td></tr>
+        <tr><td style="color:var(--text-3);font-weight:600;">Data folder</td><td style="word-break:break-all;font-family:var(--font-mono);font-size:var(--fs-xs);">{{ data_dir }}</td></tr>
+      </table>
+    </div>
+
     <h2>Uninstall</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
       {% if install_method == 'binary' %}
-        <p style="margin:0;color:var(--text-2);">
-          To uninstall, just delete the jobhunt file you downloaded. Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
-        </p>
+        <p style="margin:0;color:var(--text-2);">Delete the jobhunt file you downloaded. Data is in <code>{{ data_dir }}</code>.</p>
       {% elif install_method == 'uv' %}
-        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
-          To uninstall, run this in your terminal:
-        </p>
-        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);font-size:var(--fs-sm);">uv tool uninstall jobhunt-app</code>
-        <p style="margin:var(--sp-3) 0 0;color:var(--text-3);font-size:var(--fs-sm);">
-          Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
-        </p>
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">Run this in your terminal:</p>
+        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);">uv tool uninstall jobhunt-app</code>
       {% elif install_method == 'pipx' %}
-        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
-          To uninstall, run this in your terminal:
-        </p>
-        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);font-size:var(--fs-sm);">pipx uninstall jobhunt-app</code>
-        <p style="margin:var(--sp-3) 0 0;color:var(--text-3);font-size:var(--fs-sm);">
-          Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
-        </p>
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">Run this in your terminal:</p>
+        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);">pipx uninstall jobhunt-app</code>
       {% else %}
-        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
-          To uninstall, run this in your terminal:
-        </p>
-        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);font-size:var(--fs-sm);">pip uninstall jobhunt-app</code>
-        <p style="margin:var(--sp-3) 0 0;color:var(--text-3);font-size:var(--fs-sm);">
-          Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
-        </p>
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">Run this in your terminal:</p>
+        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);">pip uninstall jobhunt-app</code>
       {% endif %}
     </div>
 
-    <h2>Links</h2>
     <div style="display:flex;gap:var(--sp-3);flex-wrap:wrap;">
       <a href="https://github.com/Abdalla2004-collab/Jobhunt" target="_blank" rel="noopener">
         <button type="button" class="ghost">GitHub</button>
@@ -94,24 +106,18 @@
       <a href="https://github.com/Abdalla2004-collab/Jobhunt/issues" target="_blank" rel="noopener">
         <button type="button" class="ghost">Report a bug</button>
       </a>
-      <a href="https://github.com/Abdalla2004-collab/Jobhunt/releases" target="_blank" rel="noopener">
-        <button type="button" class="ghost">All releases</button>
-      </a>
     </div>
   </main>
 
   <script>
   (function () {
     "use strict";
-
     document.addEventListener("DOMContentLoaded", function () {
-
       var updateBtn = document.getElementById("update-btn");
       var updateSpinner = document.getElementById("update-spinner");
       var updateResult = document.getElementById("update-result");
       var updateMessage = document.getElementById("update-message");
       var updateDownload = document.getElementById("update-download");
-
       if (updateBtn) {
         updateBtn.addEventListener("click", async function () {
           var was = updateBtn.textContent;
@@ -139,13 +145,11 @@
           }
         });
       }
-
       var clearBtn = document.getElementById("clear-btn");
       var clearStatus = document.getElementById("clear-status");
-
       if (clearBtn) {
         clearBtn.addEventListener("click", async function () {
-          if (!window.confirm("Delete all scraped jobs? They will come back on the next refresh.")) return;
+          if (!window.confirm("Delete all scraped jobs? They come back on next refresh.")) return;
           clearBtn.disabled = true;
           clearStatus.textContent = "";
           try {
@@ -159,7 +163,6 @@
           }
         });
       }
-
     });
   })();
   </script>
