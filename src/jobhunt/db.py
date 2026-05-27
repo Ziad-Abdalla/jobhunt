@@ -52,9 +52,32 @@ def _apply_forward_migrations() -> None:
                     conn.execute(text(ddl))
 
 
+def _normalize_employment_types() -> None:
+    """One-time pass: normalize messy employment_type values in existing rows."""
+    from .refresh import _EMPLOYMENT_TYPE_MAP
+
+    insp = inspect(_engine)
+    if not insp.has_table("jobs"):
+        return
+    with _engine.begin() as conn:
+        rows = conn.execute(
+            text("SELECT DISTINCT employment_type FROM jobs")
+        ).all()
+        for (raw,) in rows:
+            if not raw:
+                continue
+            normalized = _EMPLOYMENT_TYPE_MAP.get(raw.lower().strip(), None)
+            if normalized and normalized != raw:
+                conn.execute(
+                    text("UPDATE jobs SET employment_type = :new WHERE employment_type = :old"),
+                    {"new": normalized, "old": raw},
+                )
+
+
 def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)
+    _normalize_employment_types()
 
 
 @contextmanager

@@ -24,31 +24,54 @@ from .scrapers import SCRAPER_REGISTRY, BaseScraper, RawJob
 log = logging.getLogger(__name__)
 
 _EMPLOYMENT_TYPE_MAP: dict[str, str] = {
+    # Full-time
     "fulltime": "Full-time",
     "full time": "Full-time",
     "full-time": "Full-time",
+    "ft": "Full-time",
     "full-time permanent": "Full-time",
     "full-time fixed-term": "Full-time",
     "permanent": "Full-time",
+    "regular": "Full-time",
+    "employee": "Full-time",
+    "salaried": "Full-time",
+    # Part-time
     "parttime": "Part-time",
     "part time": "Part-time",
     "part-time": "Part-time",
+    "pt": "Part-time",
     "part-time permanent": "Part-time",
     "part-time fixed-term": "Part-time",
+    "side": "Part-time",
+    # Contract
     "contract": "Contract",
     "contractor": "Contract",
     "freelance": "Contract",
+    "freelancer": "Contract",
     "temporary": "Contract",
+    "temp": "Contract",
     "short term": "Contract",
+    "fixed-term": "Contract",
+    "fixed term": "Contract",
+    "casual": "Contract",
+    "per diem": "Contract",
+    # Internship
     "internship": "Internship",
     "intern": "Internship",
     "working student": "Internship",
     "apprenticeship": "Internship",
     "traineeship": "Internship",
-    "volunteer": "Volunteer",
-    "side": "Part-time",
+    "trainee": "Internship",
+    "co-op": "Internship",
+    "coop": "Internship",
+    "placement": "Internship",
+    "volunteer": "Internship",
+    # Suppress to unknown (these are career levels, not employment types)
     "other": "unknown",
-    # German (Arbeitnow EU listings)
+    "any": "unknown",
+    # German (from Arbeitnow / Arbeitsagentur)
+    "vollzeit": "Full-time",
+    "teilzeit": "Part-time",
     "berufserfahren": "Full-time",
     "professional / experienced": "Full-time",
     "berufseinstieg": "Full-time",
@@ -58,6 +81,10 @@ _EMPLOYMENT_TYPE_MAP: dict[str, str] = {
     "executive": "Full-time",
     "geschäftsleitung": "Full-time",
     "hilfstätigkeit / student": "Internship",
+    "werkstudent": "Internship",
+    "praktikum": "Internship",
+    "minijob": "Part-time",
+    "aushilfe": "Part-time",
 }
 
 
