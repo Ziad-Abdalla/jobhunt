@@ -16,40 +16,67 @@ and zero data leaving your computer.
 
 ## Install
 
-One command. Works on Linux, macOS, and Windows. Takes about 30 seconds.
+Pick whichever feels easier. Both take under a minute.
 
-**Linux / macOS** — open a terminal and paste:
+### Option A: Download and double-click
+
+No terminal needed. Download the file for your computer, open it, done.
+
+<div align="center">
+<table>
+<tr>
+<td align="center" width="33%">
+
+**Windows**
+
+[Download jobhunt.exe](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
+
+</td>
+<td align="center" width="33%">
+
+**macOS**
+
+[Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
+
+</td>
+<td align="center" width="33%">
+
+**Linux**
+
+[Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-linux-x86_64)
+
+</td>
+</tr>
+</table>
+</div>
+
+Double-click the file. Your browser opens to jobhunt. That's it.
+
+> Your OS may show a security prompt ("unrecognized publisher") — this
+> happens with every free open-source app. It's not a malware warning.
+> Click **More info → Run anyway** (Windows) or **Open** (macOS).
+
+### Option B: One-line install (recommended, auto-updates)
+
+**Linux / macOS:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 ```
 
-**Windows** — open PowerShell and paste:
+**Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 ```
 
-Then run:
-```
-jobhunt
-```
+Then run `jobhunt`. Your browser opens. That's it.
 
-Your browser opens. That's it.
-
-### What the install script does (nothing hidden)
-
-1. Installs **[uv](https://github.com/astral-sh/uv)** if you don't have it —
-   a widely trusted, open-source Python package manager by Astral (40k+ GitHub
-   stars, MIT-licensed). It's a single small file that goes in your user
-   directory. It doesn't touch your system or anything else on your machine.
-2. Installs jobhunt in its **own isolated environment** via uv. No global
-   packages, no conflicts with anything you already have installed.
-3. Adds the `jobhunt` command to your PATH.
-
-You can [read the full script](scripts/install.sh) before running it.
+This installs via **[uv](https://github.com/astral-sh/uv)** — a trusted,
+open-source package manager (40k+ GitHub stars). Everything goes in its own
+isolated environment. Nothing touches your system. You can
+[read the script](scripts/install.sh) before running it.
 
 ### Updating
 
-When there's a new version:
 ```
 jobhunt update
 ```
@@ -111,19 +138,6 @@ docker compose up --build -d
 ```
 
 Update: `git pull && docker compose up --build -d`.
-
-</details>
-
-<details>
-<summary>Download a standalone binary</summary>
-
-Pre-built binaries for each OS are available on the
-[Releases page](https://github.com/Abdalla2004-collab/Jobhunt/releases).
-Download, make it executable, and run it. No Python required.
-
-Note: your OS may show a security warning because the binary isn't code-signed.
-This happens with every free open-source project that doesn't pay for a signing
-certificate. It isn't a malware warning.
 
 </details>
 
