@@ -114,6 +114,9 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
 
     et_from_api = _normalize_employment_type(raw.employment_type)
     employment_type = et_from_api if et_from_api != "unknown" else ex.employment_type
+    # Infer from level when still unknown: intern → Internship.
+    if employment_type == "unknown" and ex.level == "intern":
+        employment_type = "Internship"
 
     salary_min = raw.salary_min if raw.salary_min is not None else ex.salary_min
     salary_max = raw.salary_max if raw.salary_max is not None else ex.salary_max

@@ -6,6 +6,7 @@ No auth required. Returns JSON with full job content (HTML).
 
 from __future__ import annotations
 
+import html as html_mod
 from collections.abc import AsyncIterator
 from datetime import datetime
 
@@ -24,8 +25,9 @@ class GreenhouseScraper(BaseScraper):
         resp.raise_for_status()
         data = resp.json()
         for j in data.get("jobs", []):
-            html = j.get("content") or ""
-            description = BeautifulSoup(html, "lxml").get_text("\n", strip=True) if html else ""
+            raw_content = j.get("content") or ""
+            unescaped = html_mod.unescape(raw_content) if raw_content else ""
+            description = BeautifulSoup(unescaped, "lxml").get_text("\n", strip=True) if unescaped else ""
             posted_at: datetime | None = None
             if updated := j.get("updated_at"):
                 try:

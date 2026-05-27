@@ -60,6 +60,8 @@ class SimplifyJobsScraper(BaseScraper):
                 except (ValueError, TypeError, OSError):
                     posted_at = None
 
+            etype = "Internship" if self.board == "internships" else "Full-time"
+
             yield RawJob(
                 source=self.source,
                 source_id=str(entry.get("id", "")),
@@ -69,6 +71,7 @@ class SimplifyJobsScraper(BaseScraper):
                 location=location_str,
                 description="",
                 posted_at=posted_at,
+                employment_type=etype,
                 remote_structured="remote" if is_remote else "",
                 extra={
                     "board": self.board,
