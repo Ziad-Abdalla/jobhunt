@@ -45,6 +45,18 @@ _EMPLOYMENT_TYPE_MAP: dict[str, str] = {
     "apprenticeship": "Internship",
     "traineeship": "Internship",
     "volunteer": "Volunteer",
+    "side": "Part-time",
+    "other": "unknown",
+    # German (Arbeitnow EU listings)
+    "berufserfahren": "Full-time",
+    "professional / experienced": "Full-time",
+    "berufseinstieg": "Full-time",
+    "entry": "Full-time",
+    "teamleitung": "Full-time",
+    "manager": "Full-time",
+    "executive": "Full-time",
+    "geschäftsleitung": "Full-time",
+    "hilfstätigkeit / student": "Internship",
 }
 
 
@@ -74,7 +86,8 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     if not raw.title or not raw.url:
         return False
 
-    company = company_override or raw.company or raw.source
+    override = company_override if company_override and not company_override.startswith("(") else None
+    company = override or raw.company or raw.source
     fp = fingerprint(company, raw.title, raw.location)
 
     existing: Job | None = session.execute(
