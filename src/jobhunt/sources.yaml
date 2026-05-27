@@ -10,50 +10,96 @@
 # remove that line or try a different ATS for the same company.
 
 # --- Greenhouse boards (verified 2026-05-27) ---
-- { source: greenhouse, board: stripe,        company: Stripe }
-- { source: greenhouse, board: airbnb,        company: Airbnb }
-- { source: greenhouse, board: discord,       company: Discord }
-- { source: greenhouse, board: figma,         company: Figma }
-- { source: greenhouse, board: anthropic,     company: Anthropic }
-- { source: greenhouse, board: gitlab,        company: GitLab }
-- { source: greenhouse, board: cloudflare,    company: Cloudflare }
-- { source: greenhouse, board: databricks,    company: Databricks }
-- { source: greenhouse, board: instacart,     company: Instacart }
-- { source: greenhouse, board: doordashusa,   company: DoorDash }
-- { source: greenhouse, board: robinhood,     company: Robinhood }
-- { source: greenhouse, board: pinterest,     company: Pinterest }
-- { source: greenhouse, board: reddit,        company: Reddit }
-- { source: greenhouse, board: dropbox,       company: Dropbox }
-- { source: greenhouse, board: lyft,          company: Lyft }
-- { source: greenhouse, board: monzo,         company: Monzo }
-- { source: greenhouse, board: mercury,       company: Mercury }
-- { source: greenhouse, board: scaleai,       company: Scale AI }
+- { source: greenhouse, board: stripe,             company: Stripe }
+- { source: greenhouse, board: airbnb,             company: Airbnb }
+- { source: greenhouse, board: discord,            company: Discord }
+- { source: greenhouse, board: figma,              company: Figma }
+- { source: greenhouse, board: anthropic,          company: Anthropic }
+- { source: greenhouse, board: gitlab,             company: GitLab }
+- { source: greenhouse, board: cloudflare,         company: Cloudflare }
+- { source: greenhouse, board: databricks,         company: Databricks }
+- { source: greenhouse, board: instacart,          company: Instacart }
+- { source: greenhouse, board: doordashusa,        company: DoorDash }
+- { source: greenhouse, board: robinhood,          company: Robinhood }
+- { source: greenhouse, board: pinterest,          company: Pinterest }
+- { source: greenhouse, board: reddit,             company: Reddit }
+- { source: greenhouse, board: dropbox,            company: Dropbox }
+- { source: greenhouse, board: lyft,               company: Lyft }
+- { source: greenhouse, board: monzo,              company: Monzo }
+- { source: greenhouse, board: mercury,            company: Mercury }
+- { source: greenhouse, board: scaleai,            company: Scale AI }
+- { source: greenhouse, board: affirm,             company: Affirm }
+- { source: greenhouse, board: airtable,           company: Airtable }
+- { source: greenhouse, board: amplitude,          company: Amplitude }
+- { source: greenhouse, board: andurilindustries,  company: Anduril }
+- { source: greenhouse, board: asana,              company: Asana }
+- { source: greenhouse, board: block,              company: Block (Square/Cash App) }
+- { source: greenhouse, board: brex,               company: Brex }
+- { source: greenhouse, board: calendly,           company: Calendly }
+- { source: greenhouse, board: celonis,            company: Celonis }
+- { source: greenhouse, board: chime,              company: Chime }
+- { source: greenhouse, board: cockroachlabs,      company: Cockroach Labs }
+- { source: greenhouse, board: contentful,         company: Contentful }
+- { source: greenhouse, board: coreweave,          company: CoreWeave }
+- { source: greenhouse, board: cribl,              company: Cribl }
+- { source: greenhouse, board: datadog,            company: Datadog }
+- { source: greenhouse, board: dbtlabsinc,         company: dbt Labs }
+- { source: greenhouse, board: duolingo,           company: Duolingo }
+- { source: greenhouse, board: elastic,            company: Elastic }
+- { source: greenhouse, board: epicgames,          company: Epic Games }
+- { source: greenhouse, board: flexport,           company: Flexport }
+- { source: greenhouse, board: gocardless,         company: GoCardless }
+- { source: greenhouse, board: grafanalabs,        company: Grafana Labs }
+- { source: greenhouse, board: gusto,              company: Gusto }
+- { source: greenhouse, board: intercom,           company: Intercom }
+- { source: greenhouse, board: launchdarkly,       company: LaunchDarkly }
+- { source: greenhouse, board: mongodb,            company: MongoDB }
+- { source: greenhouse, board: n26,                company: N26 }
+- { source: greenhouse, board: nubank,             company: Nubank }
+- { source: greenhouse, board: okta,               company: Okta }
+- { source: greenhouse, board: pagerduty,          company: PagerDuty }
+- { source: greenhouse, board: postman,            company: Postman }
+- { source: greenhouse, board: roblox,             company: Roblox }
+- { source: greenhouse, board: rubrik,             company: Rubrik }
+- { source: greenhouse, board: samsara,            company: Samsara }
+- { source: greenhouse, board: squarespace,        company: Squarespace }
+- { source: greenhouse, board: toast,              company: Toast }
+- { source: greenhouse, board: twilio,             company: Twilio }
+- { source: greenhouse, board: twitch,             company: Twitch }
+- { source: greenhouse, board: unity3d,            company: Unity }
+- { source: greenhouse, board: waymo,              company: Waymo }
+- { source: greenhouse, board: webflow,            company: Webflow }
+- { source: greenhouse, board: zscaler,            company: Zscaler }
 
 # --- Lever boards (verified 2026-05-27) ---
 - { source: lever, board: netflix,    company: Netflix }
 - { source: lever, board: spotify,    company: Spotify }
 
 # --- Ashby boards (verified 2026-05-27) ---
-- { source: ashby, board: posthog,     company: PostHog }
-- { source: ashby, board: linear,      company: Linear }
-- { source: ashby, board: vercel,      company: Vercel }
-- { source: ashby, board: supabase,    company: Supabase }
-- { source: ashby, board: replit,      company: Replit }
-- { source: ashby, board: ramp,        company: Ramp }
-- { source: ashby, board: openai,      company: OpenAI }
-- { source: ashby, board: ashby,       company: Ashby }
-- { source: ashby, board: notion,      company: Notion }
-- { source: ashby, board: cohere,      company: Cohere }
-
-# --- Workable / SmartRecruiters / Recruitee / Workday ---
-# These adapters are implemented and ready. Add your own entries in
-# local_sources.yaml (gitignored). Pull the slug from the careers page URL.
-#
-# Examples:
-# - { source: smartrecruiters, board: Bosch,    company: Bosch }
-# - { source: workable, board: <company-slug>,  company: <Display> }
-# - { source: recruitee, board: <subdomain>,    company: <Display> }
-# - { source: workday, board: "tenant/wd5/Site", company: <Display> }
+- { source: ashby, board: posthog,       company: PostHog }
+- { source: ashby, board: linear,        company: Linear }
+- { source: ashby, board: vercel,        company: Vercel }
+- { source: ashby, board: supabase,      company: Supabase }
+- { source: ashby, board: replit,        company: Replit }
+- { source: ashby, board: ramp,          company: Ramp }
+- { source: ashby, board: openai,        company: OpenAI }
+- { source: ashby, board: ashby,         company: Ashby }
+- { source: ashby, board: notion,        company: Notion }
+- { source: ashby, board: cohere,        company: Cohere }
+- { source: ashby, board: anyscale,      company: Anyscale }
+- { source: ashby, board: cursor,        company: Cursor }
+- { source: ashby, board: deel,          company: Deel }
+- { source: ashby, board: deliveroo,     company: Deliveroo }
+- { source: ashby, board: elevenlabs,    company: ElevenLabs }
+- { source: ashby, board: modal,         company: Modal }
+- { source: ashby, board: neon,          company: Neon }
+- { source: ashby, board: perplexity,    company: Perplexity }
+- { source: ashby, board: plaid,         company: Plaid }
+- { source: ashby, board: railway,       company: Railway }
+- { source: ashby, board: render,        company: Render }
+- { source: ashby, board: resend,        company: Resend }
+- { source: ashby, board: runway,        company: Runway }
+- { source: ashby, board: zapier,        company: Zapier }
 
 # --- Wide-net firehoses ---
 - { source: remoteok,      board: dev,          company: "(RemoteOK feed)" }
