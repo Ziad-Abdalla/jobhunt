@@ -17,6 +17,7 @@ from .db import db_session, init_db
 from .dedup import description_hash, fingerprint
 from .extract import extract
 from .models import Job, ScrapeRun
+from .salary_estimator import compute_ranges_from_db, estimate_salary
 from .scoring import score_job
 from .scrapers import SCRAPER_REGISTRY, BaseScraper, RawJob
 
@@ -81,7 +82,12 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-def _persist(session: Session, raw: RawJob, company_override: str | None) -> bool:
+def _persist(
+    session: Session,
+    raw: RawJob,
+    company_override: str | None,
+    db_ranges: dict | None = None,
+) -> bool:
     """Upsert a single RawJob. Returns True if it was newly added."""
     if not raw.title or not raw.url:
         return False
@@ -125,6 +131,15 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     salary_min = raw.salary_min if raw.salary_min is not None else ex.salary_min
     salary_max = raw.salary_max if raw.salary_max is not None else ex.salary_max
     salary_currency = raw.salary_currency or ex.salary_currency
+    salary_estimated = False
+
+    # When no real salary data exists, estimate from level + location.
+    if salary_min is None and salary_max is None:
+        est = estimate_salary(ex.level, raw.location, db_ranges=db_ranges)
+        salary_min = est.min_salary
+        salary_max = est.max_salary
+        salary_currency = est.currency
+        salary_estimated = True
 
     if existing is None:
         job = Job(
@@ -143,6 +158,7 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
             salary_min=salary_min,
             salary_max=salary_max,
             salary_currency=salary_currency,
+            salary_estimated=salary_estimated,
             skills=ex.skills,
             languages=ex.languages,
             description=raw.description,
@@ -168,6 +184,7 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     existing.salary_min = salary_min if salary_min is not None else existing.salary_min
     existing.salary_max = salary_max if salary_max is not None else existing.salary_max
     existing.salary_currency = salary_currency or existing.salary_currency
+    existing.salary_estimated = salary_estimated
     existing.skills = ex.skills
     existing.languages = ex.languages
     existing.score = score
@@ -214,6 +231,11 @@ async def scrape_all() -> dict:
         )
 
     with db_session() as session:
+        # Compute salary ranges from our own data for better estimates.
+        db_ranges = compute_ranges_from_db(session)
+        if db_ranges:
+            log.info("salary estimator: %d level×region combos from own data", len(db_ranges))
+
         for spec, (source, raws, err) in zip(sources, results):
             run = ScrapeRun(
                 source=source or "?",
@@ -227,7 +249,7 @@ async def scrape_all() -> dict:
             )
             for raw in raws:
                 seen += 1
-                if _persist(session, raw, company_override=spec.get("company")):
+                if _persist(session, raw, company_override=spec.get("company"), db_ranges=db_ranges):
                     added += 1
                     run.jobs_added += 1
             session.add(run)

@@ -269,6 +269,7 @@ def api_jobs(
                     "salary_min": j.salary_min,
                     "salary_max": j.salary_max,
                     "salary_currency": j.salary_currency,
+                    "salary_estimated": j.salary_estimated,
                     "score": j.score,
                     "cv_match": j.cv_match,
                 }

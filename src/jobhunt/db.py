@@ -28,6 +28,7 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("salary_min", "ALTER TABLE jobs ADD COLUMN salary_min INTEGER"),
         ("salary_max", "ALTER TABLE jobs ADD COLUMN salary_max INTEGER"),
         ("salary_currency", "ALTER TABLE jobs ADD COLUMN salary_currency VARCHAR(8) DEFAULT ''"),
+        ("salary_estimated", "ALTER TABLE jobs ADD COLUMN salary_estimated BOOLEAN DEFAULT 0"),
     ],
     "scrape_runs": [
         ("board", "ALTER TABLE scrape_runs ADD COLUMN board VARCHAR(128) DEFAULT ''"),

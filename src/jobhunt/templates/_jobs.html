@@ -34,12 +34,14 @@
       {% if j.degree and j.degree != 'unknown' %}<span class="badge">{{ j.degree }}</span>{% endif %}
       {% if j.employment_type and j.employment_type != 'unknown' %}<span class="badge">{{ j.employment_type }}</span>{% endif %}
       {% if j.salary_min or j.salary_max %}
-        <span class="badge salary" title="Annual salary">
+        <span class="badge salary{% if j.salary_estimated %} estimated{% endif %}" title="{{ 'Estimated from role level and location' if j.salary_estimated else 'From job posting' }}">
+          {%- if j.salary_estimated %}~{% endif -%}
           {%- if j.salary_currency == "USD" or not j.salary_currency %}${% endif -%}
           {%- if j.salary_min %}{{ "{:,}".format(j.salary_min) }}{% endif -%}
           {%- if j.salary_min and j.salary_max %}–{% endif -%}
           {%- if j.salary_max %}{{ "{:,}".format(j.salary_max) }}{% endif -%}
           {%- if j.salary_currency and j.salary_currency != "USD" %} {{ j.salary_currency }}{% endif -%}
+          {%- if j.salary_estimated %} est.{% endif -%}
         </span>
       {% endif %}
     </div>

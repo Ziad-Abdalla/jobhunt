@@ -38,6 +38,7 @@ class Job(Base):
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_currency: Mapped[str] = mapped_column(String(8), default="")
+    salary_estimated: Mapped[bool] = mapped_column(Boolean, default=False)
 
     skills: Mapped[list[str]] = mapped_column(JSON, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, default=list)
