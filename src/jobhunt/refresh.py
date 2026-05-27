@@ -224,6 +224,13 @@ async def _run_scraper(
 async def scrape_all() -> dict:
     init_db()
     sources = load_sources()
+
+    # Auto-add Jooble searches for user's configured location.
+    if settings.user_location and settings.jooble_api_key:
+        loc = settings.user_location
+        for kw in ["software developer", "software engineer", "developer"]:
+            sources.append({"source": "jooble", "board": f"{kw}|{loc}"})
+
     if not sources:
         return {"sources": 0, "added": 0, "seen": 0, "removed": 0}
 

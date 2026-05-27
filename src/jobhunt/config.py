@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     jooble_api_key: str = ""
     reed_api_key: str = ""
 
+    # User's location — when set, Jooble automatically fetches local jobs for this area.
+    # Examples: "London, UK", "Berlin, Germany", "Cairo, Egypt", "Sydney, Australia"
+    user_location: str = ""
+
     @property
     def db_url(self) -> str:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

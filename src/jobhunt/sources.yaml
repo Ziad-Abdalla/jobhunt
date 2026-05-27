@@ -111,16 +111,40 @@
 - { source: himalayas,     board: "",            company: "(Himalayas Remote Jobs)" }
 - { source: themuse,       board: "",            company: "(The Muse Jobs)" }
 
-# --- Country-specific boards ---
-- { source: arbeitsagentur, board: "Software Engineer", company: "(Germany - Arbeitsagentur)" }
-- { source: arbeitsagentur, board: "Entwickler",        company: "(Germany - Arbeitsagentur)" }
+# --- Germany (Arbeitsagentur — free, no key, unlimited) ---
+- { source: arbeitsagentur, board: "Software Engineer",   company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Softwareentwickler",  company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Entwickler",          company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Backend Developer",   company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Frontend Developer",  company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "DevOps Engineer",     company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Data Engineer",       company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Informatiker",        company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Cloud Engineer",      company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Full Stack",          company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Webentwickler",       company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "IT Consultant",       company: "(Germany - Arbeitsagentur)" }
 
-# --- API-key-required (set JOBHUNT_JOOBLE_API_KEY / JOBHUNT_REED_API_KEY) ---
-- { source: jooble, board: "UK",        company: "(Jooble UK)" }
-- { source: jooble, board: "Egypt",     company: "(Jooble Egypt)" }
-- { source: jooble, board: "Qatar",     company: "(Jooble Qatar)" }
-- { source: jooble, board: "Australia", company: "(Jooble Australia)" }
-- { source: jooble, board: "Malaysia",  company: "(Jooble Malaysia)" }
-- { source: jooble, board: "Germany",   company: "(Jooble Germany)" }
-- { source: reed,   board: "software engineer", company: "(Reed UK)" }
-- { source: reed,   board: "developer",         company: "(Reed UK)" }
+# --- UK (Reed — free key at reed.co.uk/developers, 1000 req/day) ---
+- { source: reed, board: "software engineer",  company: "(Reed UK)" }
+- { source: reed, board: "software developer", company: "(Reed UK)" }
+- { source: reed, board: "frontend developer", company: "(Reed UK)" }
+- { source: reed, board: "backend developer",  company: "(Reed UK)" }
+- { source: reed, board: "devops engineer",    company: "(Reed UK)" }
+- { source: reed, board: "data engineer",      company: "(Reed UK)" }
+- { source: reed, board: "full stack developer", company: "(Reed UK)" }
+
+# --- Multi-country local jobs (Jooble — free key at jooble.org/api/about) ---
+# Format: "keywords|location" — searches for SOFTWARE jobs in each country.
+- { source: jooble, board: "software developer|United Kingdom",  company: "(Jooble UK)" }
+- { source: jooble, board: "software engineer|United Kingdom",   company: "(Jooble UK)" }
+- { source: jooble, board: "software developer|Egypt",           company: "(Jooble Egypt)" }
+- { source: jooble, board: "software engineer|Egypt",            company: "(Jooble Egypt)" }
+- { source: jooble, board: "developer|Cairo",                    company: "(Jooble Egypt)" }
+- { source: jooble, board: "software developer|Qatar",           company: "(Jooble Qatar)" }
+- { source: jooble, board: "IT engineer|Qatar",                  company: "(Jooble Qatar)" }
+- { source: jooble, board: "software developer|Australia",       company: "(Jooble Australia)" }
+- { source: jooble, board: "software engineer|Australia",        company: "(Jooble Australia)" }
+- { source: jooble, board: "software developer|Malaysia",        company: "(Jooble Malaysia)" }
+- { source: jooble, board: "software engineer|Malaysia",         company: "(Jooble Malaysia)" }
+- { source: jooble, board: "software developer|Germany",         company: "(Jooble Germany)" }

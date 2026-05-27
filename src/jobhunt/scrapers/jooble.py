@@ -69,10 +69,17 @@ class JoobleScraper(BaseScraper):
         page = 1
         total_yielded = 0
 
+        # board format: "keywords|location" or just "location" (defaults to software)
+        if "|" in self.board:
+            keywords, location = self.board.split("|", 1)
+        else:
+            keywords = "software developer"
+            location = self.board
+
         while total_yielded < _MAX_JOBS:
             body = {
-                "keywords": "",
-                "location": self.board,
+                "keywords": keywords.strip(),
+                "location": location.strip(),
                 "page": str(page),
             }
             resp = await self.client.post(url, json=body)
