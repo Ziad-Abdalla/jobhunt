@@ -1,66 +1,57 @@
 #!/usr/bin/env bash
-# jobhunt installer for Linux and macOS.
+# jobhunt installer for macOS and Linux.
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 set -euo pipefail
 
-GIT_PACKAGE="git+https://github.com/Abdalla2004-collab/Jobhunt.git"
-
-info()  { printf '  \033[1;36m>\033[0m %s\n' "$*"; }
-ok()    { printf '  \033[1;32mOK\033[0m %s\n' "$*"; }
-fail()  { printf '  \033[1;31mFAIL\033[0m %s\n' "$*" >&2; }
-
 echo ""
-echo "  Installing jobhunt"
-echo "  -------------------"
+echo "  ============================="
+echo "       jobhunt installer"
+echo "  ============================="
 echo ""
-
-# ── uv ──
 
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
+# -- Step 1: uv --
+
 if command -v uv >/dev/null 2>&1; then
-    ok "uv is already installed"
+    echo "  [1/2] uv found"
 else
-    info "Installing uv (package manager)..."
+    echo "  [1/2] Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh 2>/dev/null
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
     if ! command -v uv >/dev/null 2>&1; then
-        fail "Could not install uv. Install from: https://docs.astral.sh/uv/"
+        echo "  ERROR: uv install failed. Visit https://docs.astral.sh/uv/"
         exit 1
     fi
-    ok "uv installed"
+    echo "  [1/2] uv installed"
 fi
 
-# ── jobhunt ──
+# -- Step 2: jobhunt --
 
-if command -v jobhunt >/dev/null 2>&1; then
-    info "jobhunt is already installed. Updating..."
-    uv tool install --reinstall --upgrade jobhunt-app 2>&1 || true
-    ok "jobhunt updated"
-else
-    info "Installing jobhunt..."
-    if ! uv tool install jobhunt-app 2>&1; then
-        info "PyPI failed. Trying from GitHub..."
-        uv tool install "$GIT_PACKAGE" 2>&1
-    fi
-    ok "jobhunt installed"
-fi
+echo "  [2/2] Installing jobhunt..."
 
-# ── verify ──
+uv tool uninstall jobhunt-app 2>/dev/null || true
+uv tool uninstall jobhunt 2>/dev/null || true
+uv tool install jobhunt-app
 
 export PATH="$HOME/.local/bin:$PATH"
 
-if command -v jobhunt >/dev/null 2>&1; then
-    ok "Ready"
-else
-    echo ""
-    info "Add this to your ~/.bashrc or ~/.zshrc, then reopen your terminal:"
-    echo '      export PATH="$HOME/.local/bin:$PATH"'
+ver=$(jobhunt --version 2>/dev/null || echo "")
+if [ -z "$ver" ]; then
+    echo "  ERROR: jobhunt not found after install."
+    echo "  Add this to ~/.bashrc or ~/.zshrc:"
+    echo '    export PATH="$HOME/.local/bin:$PATH"'
+    exit 1
 fi
 
+echo "  [2/2] $ver installed"
+
 echo ""
-echo "  To launch:      jobhunt"
-echo "  To update:      jobhunt update"
-echo "  To uninstall:   uv tool uninstall jobhunt-app"
+echo "  ============================="
+echo "         All done!"
+echo "  ============================="
+echo ""
+echo "  Type 'jobhunt' to start."
+echo "  To update later: run this same command again."
 echo ""
