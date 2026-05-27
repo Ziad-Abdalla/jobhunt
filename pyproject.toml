@@ -1,6 +1,6 @@
 [project]
 name = "jobhunt-app"
-version = "0.7.1"
+version = "0.7.2"
 description = "Local-first, scrape-friendly software engineering job aggregator with rich filtering."
 readme = "README.md"
 requires-python = ">=3.11"

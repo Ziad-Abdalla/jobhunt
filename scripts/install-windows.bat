@@ -1,8 +1,8 @@
 @echo off
 title jobhunt - installing...
 echo.
-echo   jobhunt installer
-echo   -----------------
+echo   Installing jobhunt
+echo   -------------------
 echo.
 
 :: Check if uv is already installed
@@ -17,15 +17,12 @@ echo   Installing uv (package manager)...
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
 
-:: Add uv to PATH for this session
 set "PATH=%USERPROFILE%\.local\bin;%USERPROFILE%\.cargo\bin;%PATH%"
 
 where uv >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
-    echo   Could not install uv automatically.
-    echo   Please install it from: https://docs.astral.sh/uv/
-    echo.
+    echo   Could not install uv. Visit https://docs.astral.sh/uv/
     pause
     exit /b 1
 )
@@ -34,43 +31,40 @@ echo   [OK] uv installed.
 :install_jobhunt
 echo.
 
-:: Check if jobhunt is already installed
-where jobhunt >nul 2>&1
-if %errorlevel% equ 0 (
-    echo   [OK] jobhunt is already installed. Updating...
-    uv tool install --reinstall --upgrade jobhunt-app
-    goto :launch
-)
+:: Remove old versions to avoid conflicts
+uv tool uninstall jobhunt-app >nul 2>&1
+uv tool uninstall jobhunt >nul 2>&1
 
-echo   Installing jobhunt...
-echo.
+:: Install latest from PyPI
+echo   Installing latest jobhunt...
 uv tool install jobhunt-app
-if %errorlevel% neq 0 (
-    echo.
-    echo   PyPI install failed. Trying from GitHub...
-    uv tool install "git+https://github.com/Abdalla2004-collab/Jobhunt.git"
-)
 
-:: Add tool bin to PATH
+:: Add to PATH
 for /f "tokens=*" %%i in ('uv tool dir --bin 2^>nul') do set "PATH=%%i;%PATH%"
 set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 
-:launch
-where jobhunt >nul 2>&1
+:: Show version
+jobhunt --version 2>nul
 if %errorlevel% neq 0 (
     echo.
-    echo   jobhunt was installed but is not in your PATH yet.
-    echo   Close this window, open a new terminal, and type: jobhunt
-    echo.
+    echo   Install failed. Close this window and try again.
     pause
-    exit /b 0
+    exit /b 1
 )
 
+:: Create desktop shortcut
+echo @echo off > "%USERPROFILE%\Desktop\jobhunt.bat"
+echo title jobhunt >> "%USERPROFILE%\Desktop\jobhunt.bat"
+echo jobhunt >> "%USERPROFILE%\Desktop\jobhunt.bat"
+echo pause >> "%USERPROFILE%\Desktop\jobhunt.bat"
+echo   [OK] Desktop shortcut created.
+
 echo.
-echo   [OK] jobhunt installed.
+echo   [OK] All done!
 echo.
-echo   Starting jobhunt...
-echo   Your browser will open shortly.
-echo   Press Ctrl+C to stop.
+echo   To start: double-click 'jobhunt' on your Desktop
+echo   To update: run this installer again
+echo.
+echo   Starting jobhunt now...
 echo.
 jobhunt

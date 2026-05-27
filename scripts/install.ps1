@@ -3,8 +3,6 @@
 #   irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 $ErrorActionPreference = 'Continue'
 
-$GitPackage = "git+https://github.com/Abdalla2004-collab/Jobhunt.git"
-
 function Info($msg)  { Write-Host "  > $msg" -ForegroundColor Cyan }
 function Ok($msg)    { Write-Host "  OK $msg" -ForegroundColor Green }
 
@@ -32,14 +30,22 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
         if (Test-Path (Join-Path $uvBin 'uv.exe')) {
             $env:Path = "$uvBin;$env:Path"
         } else {
-            Write-Host "  FAIL Could not install uv. Install from: https://docs.astral.sh/uv/" -ForegroundColor Red
+            Write-Host "  FAIL Could not install uv." -ForegroundColor Red
             exit 1
         }
     }
     Ok "uv installed"
 }
 
-# -- jobhunt --
+# -- uninstall old version if present (fixes broken update command) --
+
+& uv tool uninstall jobhunt-app 2>$null
+& uv tool uninstall jobhunt 2>$null
+
+# -- install latest from PyPI --
+
+Info "Installing latest jobhunt from PyPI..."
+& uv tool install jobhunt-app 2>$null
 
 Refresh-Path
 $toolBin = & uv tool dir --bin 2>$null
@@ -47,39 +53,29 @@ if ($toolBin -and (Test-Path $toolBin)) {
     $env:Path = "$toolBin;$env:Path"
 }
 
-if (Get-Command jobhunt -ErrorAction SilentlyContinue) {
-    Info "jobhunt is already installed. Updating..."
-    & uv tool install --reinstall --upgrade jobhunt-app 2>$null
-    Ok "jobhunt updated"
+# -- show version --
+
+$ver = & jobhunt --version 2>$null
+if ($ver) {
+    Ok "Installed: $ver"
 } else {
-    Info "Installing jobhunt..."
-    & uv tool install jobhunt-app 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Info "Trying from GitHub..."
-        & uv tool install $GitPackage 2>$null
-    }
-    Ok "jobhunt installed"
+    Write-Host "  FAIL jobhunt not found after install" -ForegroundColor Red
+    exit 1
 }
 
-# -- verify --
+# -- create desktop shortcut --
 
-Refresh-Path
-$toolBin = & uv tool dir --bin 2>$null
-if ($toolBin -and (Test-Path $toolBin)) {
-    if ($env:Path -notlike "*$toolBin*") {
-        $env:Path = "$toolBin;$env:Path"
-    }
-}
-
-if (Get-Command jobhunt -ErrorAction SilentlyContinue) {
-    Ok "Ready -- run 'jobhunt' to start"
-} else {
-    Write-Host ""
-    Info "Close this window, open a new PowerShell, and run: jobhunt"
-}
+$desktop = [Environment]::GetFolderPath('Desktop')
+$batPath = Join-Path $desktop 'jobhunt.bat'
+$batContent = "@echo off`ntitle jobhunt`njobhunt`npause"
+Set-Content -Path $batPath -Value $batContent -Encoding ASCII
+Ok "Desktop shortcut created: jobhunt.bat"
 
 Write-Host ""
-Write-Host "  To launch:      jobhunt"
-Write-Host "  To update:      jobhunt update"
-Write-Host "  To uninstall:   uv tool uninstall jobhunt-app"
+Write-Host "  All done!" -ForegroundColor Green
+Write-Host ""
+Write-Host "  To start: double-click 'jobhunt' on your Desktop"
+Write-Host "            or type 'jobhunt' in any terminal"
+Write-Host ""
+Write-Host "  To update later: run this same command again"
 Write-Host ""
