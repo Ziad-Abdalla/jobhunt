@@ -40,6 +40,16 @@ def main(
         app_mode(port=None, no_browser=False, schedule=0)
 
 
+def _is_port_in_use(port: int) -> bool:
+    """Check if a port is already bound (another jobhunt instance running)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+            return False
+        except OSError:
+            return True
+
+
 def _find_free_port(preferred: int) -> int:
     """Return preferred port if free; otherwise pick a free ephemeral port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -105,11 +115,19 @@ def app_mode(
     ),
 ) -> None:
     """Launch jobhunt as a local app — starts the server and opens it in your browser."""
+    preferred = port or settings.port
+
+    if not no_browser and _is_port_in_use(preferred):
+        url = f"http://127.0.0.1:{preferred}/"
+        typer.echo(f"jobhunt is already running at {url}")
+        webbrowser.open(url)
+        return
+
     init_db()
     if schedule > 0:
         import os
         os.environ["JOBHUNT_REFRESH_INTERVAL_MINUTES"] = str(schedule)
-    chosen = _find_free_port(port or settings.port)
+    chosen = preferred
     url = f"http://127.0.0.1:{chosen}/"
     typer.echo(f"jobhunt {__version__}")
     typer.echo(f"  data dir : {settings.data_dir}")
@@ -118,7 +136,7 @@ def app_mode(
 
     if not no_browser:
         threading.Thread(
-            target=lambda: (time.sleep(0.6), webbrowser.open(url)),
+            target=lambda: (time.sleep(0.8), webbrowser.open(url)),
             daemon=True,
         ).start()
 

@@ -68,19 +68,9 @@ if (-not $jobhuntExe) {
 $desktop = [Environment]::GetFolderPath('Desktop')
 $batPath = Join-Path $desktop 'jobhunt.bat'
 
-# The .bat checks if already running, and if so just opens the browser
 $batLines = @(
     '@echo off'
     'title jobhunt'
-    ''
-    ':: Check if jobhunt is already running on port 8765'
-    'netstat -ano 2>nul | findstr ":8765.*LISTENING" >nul 2>nul'
-    'if %errorlevel% equ 0 ('
-    '    echo   jobhunt is already running.'
-    '    start http://127.0.0.1:8765/'
-    '    exit /b 0'
-    ')'
-    ''
     "set ""PATH=$toolBin;%USERPROFILE%\.local\bin;%PATH%"""
     'echo.'
     'echo   Starting jobhunt...'
@@ -88,6 +78,11 @@ $batLines = @(
     'echo   Close this window to stop the server.'
     'echo.'
     'jobhunt'
+    'if %errorlevel% neq 0 ('
+    '    echo.'
+    '    echo   Something went wrong. See error above.'
+    '    pause'
+    ')'
 )
 Set-Content -Path $batPath -Value ($batLines -join "`r`n") -Encoding ASCII
 Write-Host "  [3/3] Desktop shortcut created" -ForegroundColor Green
