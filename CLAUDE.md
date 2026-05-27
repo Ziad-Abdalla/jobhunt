@@ -47,6 +47,17 @@ python3 -c "from jobhunt.main import app; from fastapi.testclient import TestCli
 - Windows install creates desktop shortcut (`jobhunt.bat`)
 - Docker: `docker compose up`
 
+## Known issues / watch-outs
+- **uv caches aggressively** — after publishing a new PyPI version, the install
+  script must use `uv cache clean` + `"jobhunt-app>=X.Y.Z"` to force the latest.
+  Without this, users get stale versions and don't see new features.
+- **Windows .bat shortcuts** — the desktop .bat must include the uv tool bin in
+  PATH (`uv tool dir --bin`) or the `jobhunt` command isn't found.
+- **Duplicate instances** — `app_mode()` checks if port 8765 is in use before
+  starting. If already running, it opens the browser to the existing URL.
+- **Every code change** must be published to PyPI to reach users. The install
+  scripts pull from PyPI, not GitHub.
+
 ## Target users
 Juniors and interns looking for software roles, primarily in UK and Germany.
 The app should maximize quantity of entry-level listings and keep filters simple.

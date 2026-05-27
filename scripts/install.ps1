@@ -41,7 +41,8 @@ Write-Host "  [2/3] Installing jobhunt..." -ForegroundColor Cyan
 
 & uv tool uninstall jobhunt-app 2>$null | Out-Null
 & uv tool uninstall jobhunt 2>$null | Out-Null
-& uv tool install jobhunt-app
+& uv cache clean jobhunt-app 2>$null | Out-Null
+& uv tool install "jobhunt-app>=0.7.3"
 
 Refresh-Path
 $toolBin = & uv tool dir --bin 2>$null
@@ -51,11 +52,21 @@ if ($toolBin -and (Test-Path $toolBin)) {
 
 $ver = & jobhunt --version 2>$null
 if (-not $ver) {
-    Write-Host "  ERROR: install failed." -ForegroundColor Red
+    Write-Host "  ERROR: install failed. Try closing all terminals and running again." -ForegroundColor Red
     Read-Host "  Press Enter to close"
     exit 1
 }
 Write-Host "  [2/3] $ver installed" -ForegroundColor Green
+if ($ver -notlike "*0.7*") {
+    Write-Host "  WARNING: Expected v0.7.x but got $ver. Cache may be stale." -ForegroundColor Yellow
+    Write-Host "  Trying forced reinstall..." -ForegroundColor Yellow
+    & uv cache clean 2>$null | Out-Null
+    & uv tool uninstall jobhunt-app 2>$null | Out-Null
+    & uv tool install "jobhunt-app>=0.7.3" --reinstall
+    Refresh-Path
+    $ver = & jobhunt --version 2>$null
+    Write-Host "  [2/3] $ver installed (forced)" -ForegroundColor Green
+}
 
 # -- Step 3: desktop shortcut --
 
