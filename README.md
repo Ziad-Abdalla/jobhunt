@@ -16,83 +16,41 @@ and zero data leaving your computer.
 
 ## Install
 
-Pick whichever feels easier. Both take under a minute.
+Takes under a minute. Pick your platform:
 
-### Option A: Download and double-click
+### Windows
 
-No terminal needed. Download the file for your computer, open it, done.
+**Option A — Double-click installer (easiest):**
 
-<div align="center">
-<table>
-<tr>
-<td align="center" width="25%">
+[Download install-windows.bat](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-windows.bat) — double-click it. It installs everything and opens jobhunt in your browser.
 
-**Windows**
-
-[Download jobhunt.exe](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
-
-</td>
-<td align="center" width="25%">
-
-**macOS (Apple Silicon)**
-
-[Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
-
-</td>
-<td align="center" width="25%">
-
-**macOS (Intel)**
-
-[Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-x86_64)
-
-</td>
-<td align="center" width="25%">
-
-**Linux**
-
-[Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-linux-x86_64)
-
-</td>
-</tr>
-</table>
-</div>
-
-Double-click the file. Your browser opens to jobhunt. That's it.
-
-> **Windows:** you may see "Windows protected your PC" — click **More info
-> → Run anyway**. This happens with every free open-source app that hasn't
-> paid for code signing.
->
-> **macOS:** right-click the file → Open (or System Settings → Privacy &
-> Security → Open Anyway). macOS blocks unsigned apps by default.
->
-> **Linux:** you may need to make the file executable first:
-> `chmod +x jobhunt-linux-x86_64` then `./jobhunt-linux-x86_64`
-
-### Option B: One-line install (recommended, auto-updates)
-
-Requires [Git](https://git-scm.com/) to be installed.
-
-**Linux / macOS:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
-```
-
-**Windows (PowerShell):**
+**Option B — One-liner in PowerShell:**
 ```powershell
 irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 ```
+Then run `jobhunt`.
 
-Then run `jobhunt`. Your browser opens. That's it.
+### macOS / Linux
 
-This installs via **[uv](https://github.com/astral-sh/uv)** — a trusted,
-open-source package manager (40k+ GitHub stars). Everything goes in its own
-isolated environment. Nothing touches your system. You can
-[read the script](scripts/install.sh) before running it.
+```bash
+curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
+```
+Then run `jobhunt`.
+
+### Already have pip, uv, or pipx?
+
+```bash
+pip install jobhunt
+# or
+uv tool install jobhunt
+# or
+pipx install jobhunt
+```
+
+Then run `jobhunt`.
 
 ### Updating
 
-From the terminal:
 ```
 jobhunt update
 ```
@@ -101,57 +59,32 @@ Or open the **Settings** tab in the web UI and click **Check for updates**.
 
 ### Uninstalling
 
-From the terminal:
 ```
 uv tool uninstall jobhunt
 ```
 
-Or open the **Settings** tab in the web UI — it shows the exact command for
-your install method.
-
-Removes jobhunt and its isolated environment. Your job data stays in your
-data directory (see [Where your data lives](#where-your-data-lives)) — delete
-that folder too if you want a clean removal.
+Or check the **Settings** tab — it shows the exact command for your setup.
 
 ### What happens on first launch
 
-A friendly empty page that says **"Your paper is blank."** Click the big
-**Pull listings now** button. The app reaches out to public company career
-pages and pulls down thousands of real job postings. Takes about a minute.
+An empty page with a big **Pull listings now** button. Click it. jobhunt
+reaches out to public company career pages and pulls down thousands of real
+job postings. Takes about a minute.
 
-After that, the filters do the rest. Sort by relevance, narrow to remote roles,
-add language tags, set a maximum years of experience — all without a page
-reload.
+After that, use the filters on the left — remote only, salary minimum,
+specific languages, experience level — all without a page reload.
 
 ### Is it safe?
 
-Short answer: yes. Specifically:
-
-- **Everything runs on your machine.** No data is sent anywhere — not to me,
-  not to any analytics service.
-- **The whole source code is here.** You can read every line.
-- **It only ever reads from job-board APIs.** It never logs into anything, never
-  fills a form, never posts.
+- **Everything runs on your machine.** No data is sent anywhere.
+- **The whole source code is here.** MIT licensed.
+- **It only reads from job-board APIs.** Never logs in, fills forms, or posts.
 - **The web page is bound to `127.0.0.1`** — your laptop only, not your network.
-- **Released under MIT.** Use it, modify it, share it.
 
 ### Other ways to install
 
 <details>
-<summary>Already have uv or pipx?</summary>
-
-```bash
-uv tool install git+https://github.com/Abdalla2004-collab/Jobhunt.git
-# or
-pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git
-```
-
-Update: `jobhunt update` or `uv tool upgrade jobhunt`.
-
-</details>
-
-<details>
-<summary>Prefer Docker?</summary>
+<summary>Docker</summary>
 
 ```bash
 git clone https://github.com/Abdalla2004-collab/Jobhunt
@@ -160,37 +93,25 @@ docker compose up --build -d
 # open http://127.0.0.1:8765
 ```
 
-Update: `git pull && docker compose up --build -d`.
-
 </details>
 
 <details>
 <summary>Troubleshooting</summary>
 
 **"command not found" after install:**
-Your shell doesn't see `~/.local/bin`. Add this to your `~/.bashrc` or `~/.zshrc`:
+Add `~/.local/bin` to your PATH:
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
-Then reopen your terminal.
+Add that line to `~/.bashrc` or `~/.zshrc` and reopen your terminal.
 
 **Windows: "irm is not recognized":**
-You need PowerShell 5.1+ (built into Windows 10/11). Don't use Command Prompt
-(cmd.exe). Search for "PowerShell" in the Start menu.
+Use PowerShell (not Command Prompt). Search for "PowerShell" in Start.
 
 **Windows: "execution of scripts is disabled":**
-Run PowerShell as Administrator and type:
 ```powershell
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
-
-**macOS: "jobhunt can't be opened because it is from an unidentified developer":**
-Right-click the file → Open, or: System Settings → Privacy & Security → scroll
-down → click "Open Anyway".
-
-**Binary doesn't start / crashes immediately:**
-Try the terminal install instead (Option B). If you need help, open an issue:
-https://github.com/Abdalla2004-collab/Jobhunt/issues
 
 </details>
 
@@ -208,16 +129,11 @@ https://github.com/Abdalla2004-collab/Jobhunt/issues
   CV match score, and sort order. All stackable.
 - **Salary on every job**: 100% salary coverage — real salary data where
   available, plus a self-calibrating estimator for the rest.
-- **CV match** (optional): drop in your PDF/DOCX/TXT and every job gets a
-  similarity score. Sort by match. Filter to >= 70 %. Stop scrolling junk.
-- **Saved searches**: define a filter set once, get a desktop notification
-  whenever a new matching job appears. Each posting is alerted at most once.
-- **Self-updating**: tell it to refresh every N minutes; it runs in the
-  background while the app is open. No cron jobs.
-- **Add your own companies**: pop over to the Sources tab and add any
-  company's career-page slug. No YAML editing required.
-- **Settings page**: check for updates, clear data, and get uninstall
-  instructions — all from the web UI.
+- **CV match** (optional): upload your CV and every job gets a similarity score.
+- **Saved searches**: get desktop notifications when new matching jobs appear.
+- **Auto-refresh**: set it to re-scrape every N hours in the background.
+- **Add your own companies**: use the Sources tab — no file editing needed.
+- **Settings page**: update, clear data, and uninstall — all from the UI.
 
 ## Screenshots
 
@@ -226,86 +142,20 @@ https://github.com/Abdalla2004-collab/Jobhunt/issues
 
 ## How it works
 
-Companies that hire publicly use applicant-tracking systems (ATS) like
-Greenhouse, Lever, and Ashby. Their career pages are powered by stable,
-public JSON APIs that anyone is allowed to call. jobhunt is just a friendly
-client over those APIs, with a local database, a search UI, and a CV matcher
-on top.
+Companies use applicant-tracking systems (ATS) like Greenhouse, Lever, and
+Ashby. Their career pages have stable, public JSON APIs. jobhunt is a
+friendly client over those APIs, with a local database, search UI, and CV
+matcher on top.
 
-It does **not** scrape LinkedIn or Indeed. Their terms forbid it, and their
-anti-bot defences break unofficial scrapers every few weeks. If you really
-want LinkedIn coverage, install the opt-in `[linkedin]` extra — the README
-explains the trade-offs.
+It does **not** scrape LinkedIn or Indeed (their terms forbid it).
 
 ## Privacy
 
 - Everything stays on your machine. Nothing is uploaded anywhere.
-- Your SQLite database, your CV, and your alert history all live in
-  `~/.local/share/jobhunt/` (Linux), `~/Library/Application Support/jobhunt/`
-  (macOS), or `%APPDATA%\jobhunt\` (Windows).
-- The web UI binds to `127.0.0.1` only — never reachable from your network.
 - No telemetry. No analytics. No update pings.
-- A polite `User-Agent` is sent to job-board APIs so we're identifiable
-  rather than sneaky.
+- The web UI binds to `127.0.0.1` only — never reachable from your network.
 
-## Day-to-day commands
-
-```bash
-jobhunt                  # start UI + open browser (this is the main one)
-jobhunt --schedule 360   # also refresh every 6 hours in the background
-jobhunt update           # update to the latest version
-jobhunt doctor           # check all sources, flag any that are broken
-
-jobhunt scrape           # one-off scrape from the CLI
-jobhunt stats            # quick counts by source
-jobhunt list-sources     # what's configured
-jobhunt check-alerts     # manually fire alert check now
-jobhunt match-cv my.pdf  # upload CV + score all jobs (needs [match] extra)
-jobhunt info             # show paths
-jobhunt --version
-```
-
-## Filters in detail
-
-| Filter             | What it does |
-|--------------------|--------------|
-| keyword            | free text across title, company, description |
-| company            | substring of company name |
-| location           | substring of location |
-| work mode          | remote / hybrid / onsite |
-| level              | intern, entry, junior, mid, senior, staff, principal, lead |
-| job type           | full-time, part-time, contract, internship |
-| min salary         | minimum annual salary (real or estimated) |
-| degree             | none, bachelors, masters, phd |
-| max years          | excludes jobs whose minimum YoE exceeds this |
-| languages          | comma list — `python`, `go`, `typescript`, ... |
-| skills             | comma list — `react`, `aws`, `kubernetes`, ... |
-| posted within      | 1 / 7 / 14 / 30 days |
-| visa sponsorship   | yes / no |
-| min CV match       | when a CV is loaded, hide anything below the threshold |
-| sort               | relevance / posted date / last seen / CV match |
-
-## CV match (optional)
-
-To enable CV-aware ranking, reinstall with the match extra:
-```bash
-uv tool install --reinstall "git+https://github.com/Abdalla2004-collab/Jobhunt.git[match]"
-```
-
-This adds sentence-transformers (~500 MB one-time download). Then open the
-**CV Match** tab and upload a PDF, DOCX, or TXT. The CV is
-parsed locally and embedded with `sentence-transformers/all-MiniLM-L6-v2`
-on CPU. Every job in your database gets a cosine similarity score against
-your CV. Sort or filter by match. Nothing ever leaves your machine.
-
-## About LinkedIn / Indeed
-
-There is **no free legitimate LinkedIn API**. LinkedIn killed third-party
-access in 2015. The unofficial `linkedin-api` and JobSpy's LinkedIn scraper
-use your account's session cookie and **risk a permanent account ban**.
-jobhunt keeps LinkedIn strictly opt-in via the `[linkedin]` extra.
-
-## Where your data lives
+### Where your data lives
 
 | OS      | Path                                         |
 |---------|----------------------------------------------|
@@ -313,76 +163,41 @@ jobhunt keeps LinkedIn strictly opt-in via the `[linkedin]` extra.
 | macOS   | `~/Library/Application Support/jobhunt/`     |
 | Windows | `%APPDATA%\jobhunt\`                         |
 
-Run `jobhunt info` any time to see the resolved paths.
+Run `jobhunt info` to see the resolved paths.
 
-## Automatic job refresh
+## Commands
 
 ```bash
-jobhunt --schedule 360
+jobhunt                  # start + open browser
+jobhunt --schedule 360   # also refresh every 6 hours
+jobhunt update           # update to latest version
+jobhunt doctor           # check which sources are working
+jobhunt scrape           # one-off scrape from CLI
+jobhunt stats            # job counts by source
+jobhunt match-cv my.pdf  # upload CV + score all jobs
+jobhunt info             # show file paths
+jobhunt --version
 ```
-
-Runs the app and re-scrapes all sources every 6 hours in the background.
-No cron job needed — an in-process scheduler handles it while the app is open.
-
-## Safety
-
-- Strict Content Security Policy (`script-src 'self'`).
-- CSRF defence: cross-origin POSTs to `127.0.0.1` are rejected.
-- HTMX vendored locally — no CDN dependency.
-- `X-Frame-Options DENY`, `X-Content-Type-Options nosniff`,
-  `Referrer-Policy same-origin`.
-- Read-only scraping. The app never POSTs or clicks anything on job sites.
 
 ## For developers
 
-Full development guide in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Full guide in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ```bash
 git clone https://github.com/Abdalla2004-collab/Jobhunt
 cd Jobhunt
 uv venv && source .venv/bin/activate
-uv pip install -e ".[dev,match]"
+uv pip install -e ".[dev]"
 pytest -q
 jobhunt
-```
-
-## Architecture
-
-```
-src/jobhunt/
-├── main.py            FastAPI app, security headers, routes
-├── cli.py             typer CLI (jobhunt app/serve/scrape/...)
-├── config.py          pydantic-settings, OS-correct data dir
-├── db.py              SQLAlchemy engine + forward-only migrations
-├── models.py          Job, ScrapeRun, SavedSearch, CVProfile
-├── filters.py         JobQuery + SQL builder + facets
-├── refresh.py         scrape pipeline, dedup, stale sweep
-├── scoring.py         transparent relevance score
-├── extract.py         skill/level/remote/YoE extractors
-├── dedup.py           fingerprint + normalization
-├── salary_estimator.py self-calibrating salary estimation
-├── scheduler.py       APScheduler self-update
-├── notifications.py   cross-platform desktop notify
-├── alerts.py          saved-search alert engine
-├── cv.py              CV parse + embed + cosine match
-├── sources_admin.py   in-UI source management
-├── scrapers/          17 source adapters
-├── templates/         Jinja2 — masthead + 6 pages
-├── static/            style.css, app.js, htmx.min.js (vendored)
-└── sources.yaml       default board list
 ```
 
 ## Tests
 
 ```bash
-pytest -q     # 69 unit tests + 11 browser E2E tests
+pytest -q          # 69 unit tests
+pytest -m e2e      # 11 browser E2E tests (needs Playwright)
 ```
-
-Includes a real end-to-end CV pipeline test with three synthetic CVs
-(junior Python, senior ML, frontend React) against a synthetic job corpus.
-Each CV correctly ranks its expected role at #1.
-
-Browser E2E tests (requires Playwright): `pytest -m e2e`
 
 ## License
 
