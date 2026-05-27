@@ -109,62 +109,6 @@
     </div>
   </main>
 
-  <script>
-  (function () {
-    "use strict";
-    document.addEventListener("DOMContentLoaded", function () {
-      var updateBtn = document.getElementById("update-btn");
-      var updateSpinner = document.getElementById("update-spinner");
-      var updateResult = document.getElementById("update-result");
-      var updateMessage = document.getElementById("update-message");
-      var updateDownload = document.getElementById("update-download");
-      if (updateBtn) {
-        updateBtn.addEventListener("click", async function () {
-          var was = updateBtn.textContent;
-          updateBtn.disabled = true;
-          updateBtn.textContent = "checking...";
-          updateSpinner.style.display = "inline-block";
-          updateResult.style.display = "none";
-          updateDownload.style.display = "none";
-          try {
-            var r = await fetch("/api/update", { method: "POST" });
-            var j = await r.json();
-            updateMessage.textContent = j.message || "Done.";
-            updateResult.style.display = "block";
-            if (j.download_url) {
-              updateDownload.href = j.download_url;
-              updateDownload.style.display = "inline-block";
-            }
-          } catch (e) {
-            updateMessage.textContent = "Error: " + e.message;
-            updateResult.style.display = "block";
-          } finally {
-            updateBtn.disabled = false;
-            updateBtn.textContent = was;
-            updateSpinner.style.display = "none";
-          }
-        });
-      }
-      var clearBtn = document.getElementById("clear-btn");
-      var clearStatus = document.getElementById("clear-status");
-      if (clearBtn) {
-        clearBtn.addEventListener("click", async function () {
-          if (!window.confirm("Delete all scraped jobs? They come back on next refresh.")) return;
-          clearBtn.disabled = true;
-          clearStatus.textContent = "";
-          try {
-            var r = await fetch("/api/clear-data", { method: "POST" });
-            var j = await r.json();
-            clearStatus.textContent = j.message || "Done.";
-          } catch (e) {
-            clearStatus.textContent = "Error: " + e.message;
-          } finally {
-            clearBtn.disabled = false;
-          }
-        });
-      }
-    });
-  })();
-  </script>
+  <!-- buttons wired in app.js (bindSettingsButtons) — no inline script needed -->
 </body>
 </html>

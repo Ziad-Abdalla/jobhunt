@@ -96,6 +96,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 ::selection { background: var(--blue); color: #fff; }
+.muted { color: var(--text-3); }
 
 a { color: var(--blue); text-decoration: none; }
 a:hover { color: var(--blue-hover); text-decoration: underline; }
@@ -139,7 +140,7 @@ input::placeholder { color: var(--text-3); }
 input:focus, select:focus, textarea:focus {
   border-color: var(--blue);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  box-shadow: 0 0 0 3px var(--blue-light);
 }
 
 code, kbd, pre { font-family: var(--font-mono); font-size: 0.88em; }
@@ -641,7 +642,7 @@ main#results, main.page {
 .cv-status-card ul { list-style: none; padding: 0; margin: 0; }
 .cv-status-card li {
   padding: var(--sp-2) 0;
-  border-bottom: 1px dashed rgba(0,0,0,0.1);
+  border-bottom: 1px dashed var(--border);
   font: var(--fs-sm)/1.5 var(--font-body);
 }
 .cv-status-card li:last-child { border-bottom: 0; }

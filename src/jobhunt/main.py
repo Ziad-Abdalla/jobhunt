@@ -806,16 +806,16 @@ def api_uninstall() -> JSONResponse:
     elif method == "uv":
         return JSONResponse({
             "ok": True,
-            "message": "Run this in your terminal:\n\n  uv tool uninstall jobhunt" + data_msg,
+            "message": "Run this in your terminal:\n\n  uv tool uninstall jobhunt-app" + data_msg,
         })
     elif method == "pipx":
         return JSONResponse({
             "ok": True,
-            "message": "Run this in your terminal:\n\n  pipx uninstall jobhunt" + data_msg,
+            "message": "Run this in your terminal:\n\n  pipx uninstall jobhunt-app" + data_msg,
         })
     return JSONResponse({
         "ok": True,
-        "message": "Run this in your terminal:\n\n  pip uninstall jobhunt" + data_msg,
+        "message": "Run this in your terminal:\n\n  pip uninstall jobhunt-app" + data_msg,
     })
 
 
