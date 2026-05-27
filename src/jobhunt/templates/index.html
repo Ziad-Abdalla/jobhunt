@@ -56,45 +56,37 @@
           <label class="radio"><input type="radio" name="level" value="" checked /> any</label>
         </fieldset>
 
-        <fieldset>
-          <legend>Degree</legend>
-          {% for value, count in facets.degree %}
-            {% if value != "unknown" %}
-            <label class="radio">
-              <input type="radio" name="degree" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
-            </label>
-            {% endif %}
-          {% endfor %}
-          <label class="radio"><input type="radio" name="degree" value="" checked /> any</label>
-        </fieldset>
+        <label>Degree required
+          <select name="degree">
+            <option value="" selected>any</option>
+            <option value="none">None required</option>
+            <option value="bachelors">Bachelors</option>
+            <option value="masters">Masters</option>
+            <option value="phd">PhD</option>
+          </select>
+        </label>
 
-        <fieldset>
-          <legend>Job type</legend>
-          {% for value, count in facets.employment_type %}
-            {% if value != "unknown" %}
-            <label class="radio">
-              <input type="radio" name="employment_type" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
-            </label>
-            {% endif %}
-          {% endfor %}
-          <label class="radio"><input type="radio" name="employment_type" value="" checked /> any</label>
-        </fieldset>
+        <label>Job type
+          <select name="employment_type">
+            <option value="" selected>any</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Contract">Contract / Freelance</option>
+            <option value="Internship">Internship</option>
+          </select>
+        </label>
 
         <label data-hint="Show only jobs that pay at least this annual salary (where salary data is available).">Min salary
           <input type="number" name="min_salary" min="0" step="10000" placeholder="e.g. 80000" />
         </label>
 
-        <fieldset>
-          <legend>Visa sponsorship</legend>
-          {% for value, count in facets.visa_sponsorship %}
-            {% if value != "unknown" %}
-            <label class="radio">
-              <input type="radio" name="visa_sponsorship" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
-            </label>
-            {% endif %}
-          {% endfor %}
-          <label class="radio"><input type="radio" name="visa_sponsorship" value="" checked /> any</label>
-        </fieldset>
+        <label>Visa sponsorship
+          <select name="visa_sponsorship">
+            <option value="" selected>any</option>
+            <option value="yes">Yes (sponsors visa)</option>
+            <option value="no">No</option>
+          </select>
+        </label>
 
         <label data-hint="Filter out jobs that demand more experience than this. Roles without a stated minimum always pass through.">Max years of experience
           <input type="number" name="max_years" min="0" max="20" placeholder="e.g. 3" />
