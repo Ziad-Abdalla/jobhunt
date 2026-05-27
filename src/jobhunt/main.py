@@ -427,6 +427,105 @@ def local_jobs(
     )
 
 
+# ---------- freelance page ----------
+
+
+@app.get("/freelance", response_class=HTMLResponse)
+def freelance_page(
+    request: Request,
+    q: str = "",
+    remote: str = "",
+    min_salary: str = "",
+) -> HTMLResponse:
+    """Contract and freelance roles, sorted by most recent."""
+    from sqlalchemy import or_
+
+    with db_session() as s:
+        stmt = select(Job).where(
+            Job.employment_type.in_(["Contract", "Freelance"])
+        )
+        if q.strip():
+            like = f"%{q.strip().lower()}%"
+            stmt = stmt.where(or_(
+                Job.title.ilike(like),
+                Job.company.ilike(like),
+                Job.description.ilike(like),
+            ))
+        if remote:
+            stmt = stmt.where(Job.remote == remote)
+        sal = _safe_int(min_salary)
+        if sal:
+            stmt = stmt.where(Job.salary_max.is_not(None), Job.salary_max >= sal)
+        stmt = stmt.order_by(Job.posted_at.desc().nullslast(), Job.score.desc())
+        total = s.execute(
+            select(func.count()).select_from(stmt.subquery())
+        ).scalar_one()
+        jobs = list(s.execute(stmt.limit(200)).scalars().all())
+
+    return templates.TemplateResponse(
+        request,
+        "freelance.html",
+        {
+            "nav": "freelance",
+            "today": _today(),
+            "jobs": jobs,
+            "total": total,
+            "q": q.strip(),
+            "remote": remote,
+            "min_salary": min_salary,
+        },
+    )
+
+
+# ---------- bug bounty page ----------
+
+
+@app.get("/bounties", response_class=HTMLResponse)
+def bounties_page(
+    request: Request,
+    q: str = "",
+    platform: str = "",
+) -> HTMLResponse:
+    """Active bug bounty programs from HackerOne, Bugcrowd, etc."""
+    from .bounties import load_cached_programs
+
+    programs = load_cached_programs()
+    if q.strip():
+        ql = q.strip().lower()
+        programs = [
+            p for p in programs
+            if ql in p.name.lower()
+            or any(ql in d.lower() for d in p.domains)
+        ]
+    if platform:
+        programs = [p for p in programs if p.platform == platform]
+
+    return templates.TemplateResponse(
+        request,
+        "bounties.html",
+        {
+            "nav": "bounties",
+            "today": _today(),
+            "programs": programs,
+            "q": q.strip(),
+            "platform": platform,
+        },
+    )
+
+
+@app.post("/api/refresh-bounties")
+def api_refresh_bounties() -> JSONResponse:
+    """Fetch latest bug bounty programs from GitHub."""
+    from .bounties import fetch_programs
+
+    programs = fetch_programs()
+    return JSONResponse({
+        "ok": True,
+        "count": len(programs),
+        "message": f"Fetched {len(programs)} bounty programs.",
+    })
+
+
 @app.post("/api/refresh")
 async def api_refresh() -> JSONResponse:
     result = await asyncio.shield(scrape_all())
@@ -435,6 +534,12 @@ async def api_refresh() -> JSONResponse:
         result["alerts"] = alert_result
     except Exception as exc:  # noqa: BLE001
         result["alerts"] = {"error": str(exc)}
+    try:
+        from .bounties import fetch_programs
+        bounty_count = len(fetch_programs())
+        result["bounties"] = bounty_count
+    except Exception as exc:  # noqa: BLE001
+        result["bounties"] = {"error": str(exc)}
     return JSONResponse(result)
 
 

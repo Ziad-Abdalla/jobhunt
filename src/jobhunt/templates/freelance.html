@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — freelance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="freelance">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:900px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Freelance &amp; Contract</h1>
+    <p>Contract, freelance, and temporary software roles. Sorted by most recently posted.</p>
+
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <form method="get" action="/freelance" style="display:flex;flex-wrap:wrap;gap:var(--sp-4);align-items:flex-end;">
+        <label style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Keyword
+          <input type="text" name="q" value="{{ q }}" placeholder="e.g. python, react, devops" autocomplete="off" />
+        </label>
+        <label style="min-width:120px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Work mode
+          <select name="remote">
+            <option value="" {% if not remote %}selected{% endif %}>any</option>
+            <option value="remote" {% if remote == 'remote' %}selected{% endif %}>Remote</option>
+            <option value="hybrid" {% if remote == 'hybrid' %}selected{% endif %}>Hybrid</option>
+            <option value="onsite" {% if remote == 'onsite' %}selected{% endif %}>On-site</option>
+          </select>
+        </label>
+        <label style="min-width:100px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Min salary
+          <input type="number" name="min_salary" value="{{ min_salary or '' }}" min="0" step="5000" placeholder="any" />
+        </label>
+        <button type="submit" style="height:38px;">Search</button>
+      </form>
+    </div>
+
+    {% if not jobs %}
+      <p class="empty">No freelance/contract roles found{% if q %} matching "{{ q }}"{% endif %}. Try different keywords or refresh sources.</p>
+    {% else %}
+      <div class="results-header">
+        <span class="count-line">{{ "{:,}".format(total) }} freelance roles{% if q %} matching "{{ q }}"{% endif %}</span>
+      </div>
+      <ol class="cards">
+        {% for j in jobs %}
+        <li class="card">
+          <div class="card-head">
+            <a class="title" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">{{ j.title }}</a>
+          </div>
+          <div class="card-meta">
+            <span class="company">{{ j.company }}</span>
+            {% if j.location %}<span class="dot">·</span><span>{{ j.location }}</span>{% endif %}
+            {% if j.remote and j.remote != 'unknown' %}<span class="badge remote-{{ j.remote }}">{{ j.remote }}</span>{% endif %}
+            <span class="badge">{{ j.employment_type }}</span>
+            {% if j.salary_min or j.salary_max %}
+              <span class="badge salary{% if j.salary_estimated %} estimated{% endif %}">
+                {%- if j.salary_estimated %}~{% endif -%}
+                {%- if j.salary_currency == "USD" or not j.salary_currency %}${% endif -%}
+                {%- if j.salary_min %}{{ "{:,}".format(j.salary_min) }}{% endif -%}
+                {%- if j.salary_min and j.salary_max %}-{% endif -%}
+                {%- if j.salary_max %}{{ "{:,}".format(j.salary_max) }}{% endif -%}
+                {%- if j.salary_currency and j.salary_currency != "USD" %} {{ j.salary_currency }}{% endif -%}
+              </span>
+            {% endif %}
+          </div>
+          {% if j.languages or j.skills %}
+          <div class="tags">
+            {% for l in j.languages %}<span class="tag lang">{{ l }}</span>{% endfor %}
+            {% for s in j.skills %}<span class="tag">{{ s }}</span>{% endfor %}
+          </div>
+          {% endif %}
+          <div class="card-foot">
+            <span class="source">{{ j.source }}</span>
+            {% if j.posted_at %}<span class="dot">·</span><span>{{ j.posted_at | localdate }}</span>{% endif %}
+            <a class="apply-link" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">Apply</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+  </main>
+</body>
+</html>
