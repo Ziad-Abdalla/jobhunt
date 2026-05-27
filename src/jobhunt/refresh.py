@@ -22,6 +22,37 @@ from .scrapers import SCRAPER_REGISTRY, BaseScraper, RawJob
 
 log = logging.getLogger(__name__)
 
+_EMPLOYMENT_TYPE_MAP: dict[str, str] = {
+    "fulltime": "Full-time",
+    "full time": "Full-time",
+    "full-time": "Full-time",
+    "full-time permanent": "Full-time",
+    "full-time fixed-term": "Full-time",
+    "permanent": "Full-time",
+    "parttime": "Part-time",
+    "part time": "Part-time",
+    "part-time": "Part-time",
+    "part-time permanent": "Part-time",
+    "part-time fixed-term": "Part-time",
+    "contract": "Contract",
+    "contractor": "Contract",
+    "freelance": "Contract",
+    "temporary": "Contract",
+    "short term": "Contract",
+    "internship": "Internship",
+    "intern": "Internship",
+    "working student": "Internship",
+    "apprenticeship": "Internship",
+    "traineeship": "Internship",
+    "volunteer": "Volunteer",
+}
+
+
+def _normalize_employment_type(raw: str) -> str:
+    if not raw or raw == "unknown":
+        return "unknown"
+    return _EMPLOYMENT_TYPE_MAP.get(raw.lower().strip(), raw)
+
 
 def load_sources() -> list[dict]:
     items: list[dict] = []
@@ -61,7 +92,7 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
 
     # Prefer structured API data over heuristic extraction.
     remote = raw.remote_structured if raw.remote_structured else ex.remote
-    employment_type = raw.employment_type if raw.employment_type else "unknown"
+    employment_type = _normalize_employment_type(raw.employment_type)
 
     if existing is None:
         job = Job(

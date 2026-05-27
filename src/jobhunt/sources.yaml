@@ -9,7 +9,7 @@
 # Tip: many companies are on more than one ATS over time. If a board 404s,
 # remove that line or try a different ATS for the same company.
 
-# --- Greenhouse boards ---
+# --- Greenhouse boards (verified 2026-05-27) ---
 - { source: greenhouse, board: stripe,        company: Stripe }
 - { source: greenhouse, board: airbnb,        company: Airbnb }
 - { source: greenhouse, board: discord,       company: Discord }
@@ -18,30 +18,22 @@
 - { source: greenhouse, board: gitlab,        company: GitLab }
 - { source: greenhouse, board: cloudflare,    company: Cloudflare }
 - { source: greenhouse, board: databricks,    company: Databricks }
-- { source: greenhouse, board: snowflake,     company: Snowflake }
 - { source: greenhouse, board: instacart,     company: Instacart }
-- { source: greenhouse, board: doordash,      company: DoorDash }
+- { source: greenhouse, board: doordashusa,   company: DoorDash }
 - { source: greenhouse, board: robinhood,     company: Robinhood }
 - { source: greenhouse, board: pinterest,     company: Pinterest }
 - { source: greenhouse, board: reddit,        company: Reddit }
-- { source: greenhouse, board: notion,        company: Notion }
 - { source: greenhouse, board: dropbox,       company: Dropbox }
-- { source: greenhouse, board: coinbase,      company: Coinbase }
 - { source: greenhouse, board: lyft,          company: Lyft }
 - { source: greenhouse, board: monzo,         company: Monzo }
-- { source: greenhouse, board: revolut,       company: Revolut }
+- { source: greenhouse, board: mercury,       company: Mercury }
+- { source: greenhouse, board: scaleai,       company: Scale AI }
 
-# --- Lever boards ---
+# --- Lever boards (verified 2026-05-27) ---
 - { source: lever, board: netflix,    company: Netflix }
-- { source: lever, board: shopify,    company: Shopify }
 - { source: lever, board: spotify,    company: Spotify }
-- { source: lever, board: ramp,       company: Ramp }
-- { source: lever, board: mercury,    company: Mercury }
-- { source: lever, board: scaleai,    company: Scale AI }
-- { source: lever, board: openai,     company: OpenAI }
-- { source: lever, board: cohere,     company: Cohere }
 
-# --- Ashby boards ---
+# --- Ashby boards (verified 2026-05-27) ---
 - { source: ashby, board: posthog,     company: PostHog }
 - { source: ashby, board: linear,      company: Linear }
 - { source: ashby, board: vercel,      company: Vercel }
@@ -49,15 +41,15 @@
 - { source: ashby, board: replit,      company: Replit }
 - { source: ashby, board: ramp,        company: Ramp }
 - { source: ashby, board: openai,      company: OpenAI }
-- { source: ashby, board: ashbyhq,     company: Ashby }
+- { source: ashby, board: ashby,       company: Ashby }
+- { source: ashby, board: notion,      company: Notion }
+- { source: ashby, board: cohere,      company: Cohere }
 
 # --- Workable / SmartRecruiters / Recruitee / Workday ---
-# The default sources file ships only known-good Greenhouse/Lever/Ashby boards.
-# These adapters are implemented and ready to use — add your own entries in
-# local_sources.yaml (gitignored) once you have the slug for the company you care
-# about. Pull the slug from the company's careers page URL.
+# These adapters are implemented and ready. Add your own entries in
+# local_sources.yaml (gitignored). Pull the slug from the careers page URL.
 #
-# Examples (uncomment if these slugs still work for you):
+# Examples:
 # - { source: smartrecruiters, board: Bosch,    company: Bosch }
 # - { source: workable, board: <company-slug>,  company: <Display> }
 # - { source: recruitee, board: <subdomain>,    company: <Display> }
