@@ -41,7 +41,7 @@ info "Installing jobhunt..."
 
 # Try PyPI first (fast, no git needed), fall back to git
 installed=false
-if uv tool install jobhunt >/dev/null 2>&1; then
+if uv tool install jobhunt-app >/dev/null 2>&1; then
     installed=true
 elif uv tool install "$GIT_PACKAGE" >/dev/null 2>&1; then
     installed=true

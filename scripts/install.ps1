@@ -56,7 +56,7 @@ Info "Installing jobhunt..."
 # Try PyPI first (fast, no git needed), fall back to git
 $prev = $ErrorActionPreference
 $ErrorActionPreference = 'SilentlyContinue'
-$output = & uv tool install jobhunt 2>&1 | Out-String
+$output = & uv tool install jobhunt-app 2>&1 | Out-String
 $exitCode = $LASTEXITCODE
 $ErrorActionPreference = $prev
 

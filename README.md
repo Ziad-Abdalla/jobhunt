@@ -40,11 +40,11 @@ Then run `jobhunt`.
 ### Already have pip, uv, or pipx?
 
 ```bash
-pip install jobhunt
+pip install jobhunt-app
 # or
-uv tool install jobhunt
+uv tool install jobhunt-app
 # or
-pipx install jobhunt
+pipx install jobhunt-app
 ```
 
 Then run `jobhunt`.

@@ -709,19 +709,24 @@ def api_update() -> JSONResponse:
     elif method == "uv":
         uv = shutil.which("uv")
         result = subprocess.run(
-            [uv, "tool", "install", "--reinstall", "--upgrade",
-             f"git+https://github.com/{_GITHUB_REPO}.git"],
+            [uv, "tool", "install", "--reinstall", "--upgrade", "jobhunt-app"],
             capture_output=True, text=True, timeout=120,
         )
         if result.returncode == 0:
-            msg = result.stdout.strip() or "jobhunt updated. Restart to use the new version."
+            msg = (
+                result.stdout.strip()
+                or "jobhunt updated. Restart to use the new version."
+            )
             return JSONResponse({"ok": True, "message": msg})
-        return JSONResponse({"ok": False, "message": result.stderr.strip() or "Update failed."})
+        return JSONResponse({
+            "ok": False,
+            "message": result.stderr.strip() or "Update failed.",
+        })
 
     elif method == "pipx":
         pipx = shutil.which("pipx")
         result = subprocess.run(
-            [pipx, "upgrade", "jobhunt"],
+            [pipx, "upgrade", "jobhunt-app"],
             capture_output=True, text=True, timeout=120,
         )
         msg = result.stdout.strip() or result.stderr.strip() or "done"

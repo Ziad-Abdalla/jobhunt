@@ -281,15 +281,18 @@ def update() -> None:
 
     if uv:
         typer.echo("updating via uv...")
-        result = subprocess.run([uv, "tool", "upgrade", "jobhunt"], capture_output=True, text=True)
+        result = subprocess.run(
+            [uv, "tool", "install", "--reinstall", "--upgrade", "jobhunt-app"],
+            capture_output=True, text=True,
+        )
         if result.returncode == 0:
             typer.echo(result.stdout.strip() if result.stdout.strip() else "jobhunt is up to date.")
         else:
-            typer.echo(f"uv upgrade failed: {result.stderr.strip()}", err=True)
+            typer.echo(f"upgrade failed: {result.stderr.strip()}", err=True)
             raise typer.Exit(1)
     elif pipx:
         typer.echo("updating via pipx...")
-        subprocess.run([pipx, "upgrade", "jobhunt"], check=False)
+        subprocess.run([pipx, "upgrade", "jobhunt-app"], check=False)
     else:
         typer.echo(
             "could not find uv or pipx. update manually:\n"

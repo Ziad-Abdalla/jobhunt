@@ -37,7 +37,7 @@ echo   Installing jobhunt...
 echo.
 
 :: Try PyPI first, fall back to GitHub
-uv tool install jobhunt >nul 2>&1
+uv tool install jobhunt-app >nul 2>&1
 if %errorlevel% neq 0 (
     uv tool install "git+https://github.com/Abdalla2004-collab/Jobhunt.git" >nul 2>&1
 )

@@ -1,5 +1,5 @@
 [project]
-name = "jobhunt"
+name = "jobhunt-app"
 version = "0.3.2"
 description = "Local-first, scrape-friendly software engineering job aggregator with rich filtering."
 readme = "README.md"
