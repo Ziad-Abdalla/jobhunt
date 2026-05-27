@@ -6,13 +6,29 @@ sources**.
 
 ## Development setup
 
+**macOS / Linux:**
 ```bash
 git clone <your-fork>
 cd jobhunt
 uv venv && source .venv/bin/activate
-uv pip install -e ".[dev,match]"
+uv pip install -e ".[dev]"
 pytest -q
+jobhunt   # verify: opens http://127.0.0.1:8765
 ```
+
+**Windows (PowerShell):**
+```powershell
+git clone <your-fork>
+cd jobhunt
+uv venv
+.venv\Scripts\activate
+uv pip install -e ".[dev]"
+pytest -q
+jobhunt
+```
+
+> The `[match]` extra adds CV matching (~500 MB download). Skip it unless
+> you're working on that feature: `uv pip install -e ".[dev,match]"`
 
 ## Adding a new company to the default sources
 
@@ -22,7 +38,7 @@ pytest -q
    ```yaml
    - { source: greenhouse, board: <slug>, company: <Display Name> }
    ```
-4. Run `jobhunt scrape` and confirm the new board shows up green on `/health`.
+4. Run `jobhunt doctor` and confirm the new board shows up green.
 5. Open a PR.
 
 ## Adding a new ATS adapter

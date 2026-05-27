@@ -49,10 +49,12 @@ def notify(title: str, body: str, *, url: str | None = None) -> bool:
                 )
                 return True
         if method in ("auto", "powershell") and sys.platform == "win32":
+            ps_title = title.replace('"', '`"').replace("'", "`'")
+            ps_body = body_full.replace('"', '`"').replace("'", "`'")
             ps_cmd = (
                 "[Windows.UI.Notifications.ToastNotificationManager,"
                 "Windows.UI.Notifications,ContentType=WindowsRuntime] > $null;"
-                f'Write-Host "{title}: {body_full}"'
+                f'Write-Host "{ps_title}: {ps_body}"'
             )
             subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], check=False, timeout=5)
             return True
