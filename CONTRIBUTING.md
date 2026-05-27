@@ -1,8 +1,40 @@
 # Contributing
 
 Thanks for your interest in jobhunt. Contributions are welcome — the most useful
-right now are **new ATS source slugs** and **bug reports against existing
-sources**.
+right now are **new ATS source slugs**, **bug reports**, and **new job sources
+for UK/Germany entry-level roles**.
+
+## Architecture overview
+
+jobhunt is a local-first FastAPI app with Jinja2 templates and HTMX. No frontend
+build step. Everything server-rendered.
+
+```
+src/jobhunt/
+├── main.py            FastAPI routes (8 pages + API endpoints)
+├── cli.py             typer CLI (jobhunt app/serve/scrape/update/doctor)
+├── config.py          pydantic-settings (env vars + .env file)
+├── db.py              SQLAlchemy + SQLite, forward-only migrations
+├── models.py          Job, ScrapeRun, SavedSearch, CVProfile
+├── filters.py         Search query builder (15 stackable filters)
+├── refresh.py         Scrape pipeline + employment type normalization
+├── extract.py         Regex extractors (level, remote, salary, skills)
+├── scoring.py         Transparent relevance score (recency + quality)
+├── salary_estimator.py Self-calibrating salary estimation
+├── dedup.py           Fingerprint-based deduplication
+├── bounties.py        Bug bounty program fetcher (GitHub data)
+├── scrapers/          17 ATS adapters
+├── templates/         Jinja2 (8 pages: index, local, freelance, bounties,
+│                       alerts, cv, sources, settings)
+├── static/            style.css, app.js, htmx.min.js (vendored)
+└── sources.yaml       130+ default company boards
+```
+
+**4 sections in the app:**
+- **Jobs** — main search with all 15 filters
+- **Local Jobs** — UK/Germany entry-level by location + max experience
+- **Freelance** — contract/freelance roles
+- **Bug Bounty** — HackerOne/Bugcrowd/Intigriti/YesWeHack programs
 
 ## Development setup
 
@@ -54,8 +86,18 @@ for examples. You'll need:
   `employment_type`, `salary_min`, `salary_max`, `salary_currency`,
   `remote_structured`.
 
-Please confirm that scraping the ATS at low frequency does not violate their
-ToS (`/robots.txt`, terms page) before submitting.
+## Key conventions
+
+- **Employment types** must normalize to: Full-time, Part-time, Contract, Internship.
+  Add mappings in `refresh.py` `_EMPLOYMENT_TYPE_MAP`.
+- **Level detection** is title-first, description-second (see `extract.py`
+  `_TITLE_LEVEL_PATTERNS` and `_DESC_LEVEL_PATTERNS`). Be careful with false
+  positives — "graduate degree" is not the same as "graduate role".
+- **Filters** use fixed dropdowns, not dynamic radio buttons, to guarantee
+  clean UI regardless of data quality.
+- **No inline `<script>` tags** — CSP is `script-src 'self'`. All JS goes in
+  `static/app.js`.
+- **PyPI package name** is `jobhunt-app` (not `jobhunt`, which was taken).
 
 ## Code style
 
@@ -64,10 +106,17 @@ ToS (`/robots.txt`, terms page) before submitting.
 - No comments unless they explain WHY something is non-obvious.
 - Server-rendered templates only — no frontend build step.
 
+## Testing
+
+```bash
+pytest -q          # 69 unit tests
+pytest -m e2e      # 11 Playwright browser E2E tests
+```
+
 ## Reporting bugs
 
 Please include:
-- Output of `jobhunt info`.
-- Output of `jobhunt --version`.
-- A repro: which filter / which source / what you expected vs got.
-- For scraper bugs, the board slug that's failing.
+- Output of `jobhunt info` and `jobhunt --version`.
+- Which section (Jobs / Local / Freelance / Bug Bounty).
+- Which filter or action was used.
+- What you expected vs what happened.
