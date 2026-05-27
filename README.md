@@ -195,6 +195,7 @@ explains the trade-offs.
 jobhunt                  # start UI + open browser (this is the main one)
 jobhunt --schedule 360   # also refresh every 6 hours in the background
 jobhunt update           # update to the latest version
+jobhunt doctor           # check all sources, flag any that are broken
 
 jobhunt scrape           # one-off scrape from the CLI
 jobhunt stats            # quick counts by source
@@ -214,6 +215,8 @@ jobhunt --version
 | location      | substring of location |
 | work mode     | remote / hybrid / onsite |
 | level         | intern, entry, junior, mid, senior, staff, principal, lead |
+| job type      | full-time, part-time, contract, internship |
+| min salary    | minimum annual salary (real or estimated) |
 | degree        | none, bachelors, masters, phd |
 | max years     | excludes jobs whose minimum YoE exceeds this |
 | languages     | comma list — `python`, `go`, `typescript`, … |

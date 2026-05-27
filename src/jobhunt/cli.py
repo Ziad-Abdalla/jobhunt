@@ -205,6 +205,62 @@ def list_sources() -> None:
 
 
 @app.command()
+def doctor() -> None:
+    """Check all sources and report which ones need attention."""
+    import asyncio
+
+    import httpx
+
+    from .config import settings
+    from .refresh import load_sources
+    from .scrapers import SCRAPER_REGISTRY
+
+    init_db()
+    sources = load_sources()
+    typer.echo(f"checking {len(sources)} sources...\n")
+
+    async def check_source(spec: dict) -> tuple[str, str, str]:
+        name = spec.get("source", "?")
+        board = spec.get("board", "")
+        company = spec.get("company", board)
+        cls = SCRAPER_REGISTRY.get(name)
+        if cls is None:
+            return (company, "error", f"unknown source type: {name}")
+        headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}
+        async with httpx.AsyncClient(
+            headers=headers, timeout=15, follow_redirects=True,
+        ) as client:
+            try:
+                scraper = cls(client=client, board=board)
+                jobs = [j async for j in scraper.fetch()]
+                if not jobs:
+                    return (company, "warn", f"0 jobs returned ({name}/{board})")
+                return (company, "ok", f"{len(jobs)} jobs")
+            except Exception as exc:  # noqa: BLE001
+                return (company, "error", f"{type(exc).__name__}: {exc}")
+
+    async def run_all() -> list[tuple[str, str, str]]:
+        return await asyncio.gather(*[check_source(s) for s in sources])
+
+    results = asyncio.run(run_all())
+    ok = [(c, m) for c, s, m in results if s == "ok"]
+    warn = [(c, m) for c, s, m in results if s == "warn"]
+    errors = [(c, m) for c, s, m in results if s == "error"]
+
+    for company, msg in ok:
+        typer.echo(f"  ok    {company:30s} {msg}")
+    for company, msg in warn:
+        typer.echo(f"  WARN  {company:30s} {msg}")
+    for company, msg in errors:
+        typer.echo(f"  FAIL  {company:30s} {msg}")
+
+    typer.echo(f"\n{len(ok)} ok · {len(warn)} warnings · {len(errors)} errors")
+    if errors:
+        typer.echo("\nFailed sources may have changed their careers page URL.")
+        typer.echo("Remove them: edit src/jobhunt/sources.yaml or use the Sources page in the UI.")
+
+
+@app.command()
 def update() -> None:
     """Update jobhunt to the latest version."""
     import shutil
