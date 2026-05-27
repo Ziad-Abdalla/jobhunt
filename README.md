@@ -3,51 +3,69 @@
 
 # jobhunt
 
-**A quiet job paper for your machine.**
+**Search thousands of real job openings — locally, privately, with great filters.**
 
-Search thousands of real software engineering openings — from real
-company career pages — with strong filters, optional CV-aware ranking,
-and zero data leaving your computer.
+No account needed. No data leaves your machine. Just download, run, and search.
 
-[Install](#install) · [Features](#what-it-does) · [How it works](#how-it-works) · [Privacy](#privacy)
+[Features](#what-it-does) · [How it works](#how-it-works) · [Privacy](#privacy)
 </div>
 
 ---
 
-## Install
+## Download
 
-Takes under a minute. Pick your platform:
+Pick your system. One click installs everything and opens jobhunt in your browser.
 
-### Windows
+<div align="center">
+<table>
+<tr>
+<th align="center" width="33%">Windows</th>
+<th align="center" width="33%">macOS</th>
+<th align="center" width="33%">Linux</th>
+</tr>
+<tr>
+<td align="center">
 
-**Option A — Double-click installer (easiest):**
+**[Download for Windows](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-windows.bat)**
 
-[Download install-windows.bat](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-windows.bat) — double-click it. It installs everything and opens jobhunt in your browser.
+Double-click the file.
 
-**Option B — One-liner in PowerShell:**
-```powershell
-irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
-```
-Then run `jobhunt`.
+</td>
+<td align="center">
 
-### macOS / Linux
+**[Download for Mac](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-mac.command)**
+
+Double-click the file.
+
+</td>
+<td align="center">
+
+**[Download for Linux](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-linux.sh)**
+
+Run: `bash install-linux.sh`
+
+</td>
+</tr>
+</table>
+</div>
+
+Each installer is a tiny script (~1 KB) that installs [uv](https://github.com/astral-sh/uv)
+(a trusted package manager), then installs jobhunt from [PyPI](https://pypi.org/project/jobhunt-app/),
+and opens it. You can [read the source](scripts/) before running.
+
+> **Windows note:** You may see "Windows protected your PC" — click
+> **More info > Run anyway**. This is normal for any script not from the Microsoft Store.
+
+### Alternative: one-line terminal install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
+pip install jobhunt-app && jobhunt
 ```
-Then run `jobhunt`.
 
-### Already have pip, uv, or pipx?
-
+Or with uv/pipx:
 ```bash
-pip install jobhunt-app
-# or
-uv tool install jobhunt-app
-# or
-pipx install jobhunt-app
+uv tool install jobhunt-app && jobhunt
 ```
-
-Then run `jobhunt`.
 
 ### Updating
 
@@ -55,149 +73,70 @@ Then run `jobhunt`.
 jobhunt update
 ```
 
-Or open the **Settings** tab in the web UI and click **Check for updates**.
+Or click **Check for updates** in the Settings tab.
 
 ### Uninstalling
 
 ```
-uv tool uninstall jobhunt
+uv tool uninstall jobhunt-app
 ```
 
-Or check the **Settings** tab — it shows the exact command for your setup.
-
-### What happens on first launch
-
-An empty page with a big **Pull listings now** button. Click it. jobhunt
-reaches out to public company career pages and pulls down thousands of real
-job postings. Takes about a minute.
-
-After that, use the filters on the left — remote only, salary minimum,
-specific languages, experience level — all without a page reload.
-
-### Is it safe?
-
-- **Everything runs on your machine.** No data is sent anywhere.
-- **The whole source code is here.** MIT licensed.
-- **It only reads from job-board APIs.** Never logs in, fills forms, or posts.
-- **The web page is bound to `127.0.0.1`** — your laptop only, not your network.
-
-### Other ways to install
-
-<details>
-<summary>Docker</summary>
-
-```bash
-git clone https://github.com/Abdalla2004-collab/Jobhunt
-cd Jobhunt
-docker compose up --build -d
-# open http://127.0.0.1:8765
-```
-
-</details>
-
-<details>
-<summary>Troubleshooting</summary>
-
-**"command not found" after install:**
-Add `~/.local/bin` to your PATH:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-Add that line to `~/.bashrc` or `~/.zshrc` and reopen your terminal.
-
-**Windows: "irm is not recognized":**
-Use PowerShell (not Command Prompt). Search for "PowerShell" in Start.
-
-**Windows: "execution of scripts is disabled":**
-```powershell
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-</details>
+Or check the **Settings** tab for the exact command.
 
 ---
 
 ## What it does
 
-- Searches across **17 job board adapters**: Greenhouse, Lever, Ashby, Workable,
-  SmartRecruiters, Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs,
-  Arbeitnow, Jobicy, Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble
-  (69 countries), and Reed.co.uk (UK).
-- **15 filters**: keyword, company, location, work mode (remote/hybrid/onsite),
-  level (intern to principal), job type, minimum salary, degree, max years of
-  experience, programming languages, skills, posted within, visa sponsorship,
-  CV match score, and sort order. All stackable.
-- **Salary on every job**: 100% salary coverage — real salary data where
-  available, plus a self-calibrating estimator for the rest.
-- **CV match** (optional): upload your CV and every job gets a similarity score.
+- **17 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+  Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs, Arbeitnow, Jobicy,
+  Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble (69 countries), Reed (UK).
+- **15 stackable filters**: keyword, company, location, remote/hybrid/onsite,
+  level, job type, salary, degree, experience, languages, skills, date,
+  visa sponsorship, CV match, and sort order.
+- **Salary on every job**: real data where available, plus a self-calibrating estimator.
+- **CV match**: upload your CV and sort jobs by how well they fit your experience.
 - **Saved searches**: get desktop notifications when new matching jobs appear.
-- **Auto-refresh**: set it to re-scrape every N hours in the background.
-- **Add your own companies**: use the Sources tab — no file editing needed.
-- **Settings page**: update, clear data, and uninstall — all from the UI.
-
-## Screenshots
-
-> Run `jobhunt` and visit `http://127.0.0.1:8765`. Six pages: Search,
-> Alerts, CV Match, Sources, Source Health, Settings.
+- **Auto-refresh**: re-scrape every N hours in the background.
+- **Add companies**: from the Sources tab — no config files needed.
+- **Settings page**: update, clear data, uninstall — all from the UI.
 
 ## How it works
 
-Companies use applicant-tracking systems (ATS) like Greenhouse, Lever, and
-Ashby. Their career pages have stable, public JSON APIs. jobhunt is a
-friendly client over those APIs, with a local database, search UI, and CV
-matcher on top.
+Companies use applicant-tracking systems (Greenhouse, Lever, Ashby, etc.)
+with stable public APIs. jobhunt reads from those APIs, stores everything
+locally, and gives you a search UI with filters and a CV matcher.
 
-It does **not** scrape LinkedIn or Indeed (their terms forbid it).
+It does **not** scrape LinkedIn or Indeed.
 
 ## Privacy
 
-- Everything stays on your machine. Nothing is uploaded anywhere.
-- No telemetry. No analytics. No update pings.
-- The web UI binds to `127.0.0.1` only — never reachable from your network.
-
-### Where your data lives
-
-| OS      | Path                                         |
-|---------|----------------------------------------------|
-| Linux   | `~/.local/share/jobhunt/`                    |
-| macOS   | `~/Library/Application Support/jobhunt/`     |
-| Windows | `%APPDATA%\jobhunt\`                         |
-
-Run `jobhunt info` to see the resolved paths.
+- Everything runs on your machine. Nothing is uploaded.
+- No telemetry, analytics, or update pings.
+- The UI only listens on `127.0.0.1` (your machine, not your network).
+- Your data is at: `~/.local/share/jobhunt/` (Linux), `~/Library/Application Support/jobhunt/` (Mac), `%APPDATA%\jobhunt\` (Windows). Run `jobhunt info` to check.
 
 ## Commands
 
 ```bash
 jobhunt                  # start + open browser
-jobhunt --schedule 360   # also refresh every 6 hours
-jobhunt update           # update to latest version
-jobhunt doctor           # check which sources are working
-jobhunt scrape           # one-off scrape from CLI
-jobhunt stats            # job counts by source
-jobhunt match-cv my.pdf  # upload CV + score all jobs
+jobhunt --schedule 360   # auto-refresh every 6 hours
+jobhunt update           # update to latest
+jobhunt doctor           # check which sources work
+jobhunt match-cv my.pdf  # score jobs against your CV
 jobhunt info             # show file paths
-jobhunt --version
 ```
 
 ## For developers
 
-Full guide in [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
 ```bash
-git clone https://github.com/Abdalla2004-collab/Jobhunt
-cd Jobhunt
+git clone https://github.com/Abdalla2004-collab/Jobhunt && cd Jobhunt
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-pytest -q
-jobhunt
+pytest -q      # 69 unit tests
+jobhunt        # run locally
 ```
 
-## Tests
-
-```bash
-pytest -q          # 69 unit tests
-pytest -m e2e      # 11 browser E2E tests (needs Playwright)
-```
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide.
 
 ## License
 

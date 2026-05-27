@@ -52,9 +52,9 @@ jobs:
           files: |
             dist/*.whl
             dist/*.tar.gz
-            scripts/install.sh
-            scripts/install.ps1
             scripts/install-windows.bat
+            scripts/install-mac.command
+            scripts/install-linux.sh
           generate_release_notes: true
 
   publish-pypi:
