@@ -110,21 +110,28 @@ def _persist(
     )
     now = _utcnow()
 
-    # Prefer structured API data over heuristic extraction.
+    # ── Remote ──
     remote = raw.remote_structured if raw.remote_structured else ex.remote
-    # Also check location for remote signals when both API and description are silent.
     if remote == "unknown" and raw.location:
         loc_lower = raw.location.lower()
-        if any(w in loc_lower for w in ("remote", "anywhere", "distributed", "worldwide")):
+        remote_words = ("remote", "anywhere", "distributed", "worldwide", "global")
+        if any(w in loc_lower for w in remote_words):
             remote = "remote"
+    # A specific city/state location with no remote signal → onsite.
+    if remote == "unknown" and raw.location and "," in raw.location:
+        remote = "onsite"
 
+    # ── Level ──
+    level = ex.level
+    # "Software Engineer" with no qualifier is mid-level (industry convention).
+    if level == "unknown" and len(raw.description) > 50:
+        level = "mid"
+
+    # ── Employment type ──
     et_from_api = _normalize_employment_type(raw.employment_type)
     employment_type = et_from_api if et_from_api != "unknown" else ex.employment_type
-    # Infer from level when still unknown: intern → Internship.
-    if employment_type == "unknown" and ex.level == "intern":
+    if employment_type == "unknown" and level == "intern":
         employment_type = "Internship"
-    # Industry default: a real job posting that doesn't say part-time/contract/internship
-    # is full-time. Every major job board (Indeed, LinkedIn) uses this convention.
     if employment_type == "unknown" and len(raw.description) > 50:
         employment_type = "Full-time"
 
@@ -135,7 +142,7 @@ def _persist(
 
     # When no real salary data exists, estimate from level + location.
     if salary_min is None and salary_max is None:
-        est = estimate_salary(ex.level, raw.location, db_ranges=db_ranges)
+        est = estimate_salary(level, raw.location, db_ranges=db_ranges)
         salary_min = est.min_salary
         salary_max = est.max_salary
         salary_currency = est.currency
@@ -151,7 +158,7 @@ def _persist(
             title=raw.title,
             location=raw.location,
             remote=remote,
-            level=ex.level,
+            level=level,
             min_years=ex.min_years,
             degree=ex.degree,
             employment_type=employment_type,
@@ -177,7 +184,7 @@ def _persist(
     existing.description = raw.description or existing.description
     existing.description_hash = description_hash(existing.description)
     existing.remote = remote
-    existing.level = ex.level
+    existing.level = level
     existing.min_years = ex.min_years
     existing.degree = ex.degree
     existing.employment_type = employment_type
