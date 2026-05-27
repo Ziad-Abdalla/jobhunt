@@ -18,7 +18,7 @@ from ..config import settings
 from .base import BaseScraper, RawJob
 
 _API_BASE = "https://jooble.org/api"
-_MAX_JOBS = 500
+_MAX_JOBS = 50  # Conservative: 1 page per country to stay within the 500-request key limit
 
 # Pattern to extract salary range: "$60,000 - $90,000", "£30,000 - £40,000", etc.
 _SALARY_RE = re.compile(
