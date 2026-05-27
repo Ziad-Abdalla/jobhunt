@@ -117,6 +117,10 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     # Infer from level when still unknown: intern → Internship.
     if employment_type == "unknown" and ex.level == "intern":
         employment_type = "Internship"
+    # Industry default: a real job posting that doesn't say part-time/contract/internship
+    # is full-time. Every major job board (Indeed, LinkedIn) uses this convention.
+    if employment_type == "unknown" and len(raw.description) > 50:
+        employment_type = "Full-time"
 
     salary_min = raw.salary_min if raw.salary_min is not None else ex.salary_min
     salary_max = raw.salary_max if raw.salary_max is not None else ex.salary_max
