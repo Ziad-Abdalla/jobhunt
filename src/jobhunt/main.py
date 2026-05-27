@@ -323,10 +323,30 @@ def local_jobs(
     if location.strip():
         from sqlalchemy import or_
 
+        loc = location.strip().lower()
+        _UK_REGIONS = {
+            "london": ["london", "uk", "united kingdom", "england"],
+            "manchester": ["manchester", "uk", "united kingdom", "england"],
+            "birmingham": ["birmingham", "uk", "united kingdom", "england"],
+            "whitechapel": ["london", "whitechapel", "tower hamlets", "east london"],
+            "canary wharf": ["london", "canary wharf", "tower hamlets"],
+        }
+        _DE_REGIONS = {
+            "stuttgart": ["stuttgart", "baden-württemberg", "germany", "deutschland"],
+            "berlin": ["berlin", "germany", "deutschland"],
+            "munich": ["munich", "münchen", "bavaria", "bayern", "germany"],
+            "hamburg": ["hamburg", "germany", "deutschland"],
+            "frankfurt": ["frankfurt", "hessen", "germany", "deutschland"],
+        }
+        search_terms = [loc]
+        for mapping in (_UK_REGIONS, _DE_REGIONS):
+            if loc in mapping:
+                search_terms.extend(mapping[loc])
+        search_terms = list(dict.fromkeys(search_terms))
+
         with db_session() as s:
-            stmt = select(Job).where(
-                Job.location.ilike(f"%{location.strip()}%")
-            )
+            loc_filters = [Job.location.ilike(f"%{t}%") for t in search_terms]
+            stmt = select(Job).where(or_(*loc_filters))
             if level:
                 stmt = stmt.where(Job.level == level)
             else:

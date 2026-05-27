@@ -55,9 +55,7 @@
     <div class="card-foot">
       <span class="source">{{ j.source }}</span>
       {% if j.posted_at %}<span class="dot">·</span><span>{{ j.posted_at | localdate }}</span>{% endif %}
-      <a class="apply-link" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">
-        view on {{ j.url | replace('https://', '') | replace('http://', '') | truncate(40, true, '…') }} →
-      </a>
+      <a class="apply-link" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">Apply</a>
     </div>
   </li>
   {% endfor %}
