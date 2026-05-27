@@ -20,7 +20,10 @@ class LeverScraper(BaseScraper):
         url = f"https://api.lever.co/v0/postings/{self.board}?mode=json"
         resp = await self.client.get(url)
         resp.raise_for_status()
-        for j in resp.json():
+        data = resp.json()
+        if not isinstance(data, list):
+            return
+        for j in data:
             descr_html = j.get("description", "") + "\n" + j.get("descriptionPlain", "")
             description = BeautifulSoup(descr_html, "lxml").get_text("\n", strip=True)
             posted_at: datetime | None = None

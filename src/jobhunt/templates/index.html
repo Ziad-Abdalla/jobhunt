@@ -68,6 +68,22 @@
           <label class="radio"><input type="radio" name="degree" value="" checked /> any</label>
         </fieldset>
 
+        <fieldset>
+          <legend>Job type</legend>
+          {% for value, count in facets.employment_type %}
+            {% if value != "unknown" %}
+            <label class="radio">
+              <input type="radio" name="employment_type" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
+            </label>
+            {% endif %}
+          {% endfor %}
+          <label class="radio"><input type="radio" name="employment_type" value="" checked /> any</label>
+        </fieldset>
+
+        <label data-hint="Show only jobs that pay at least this annual salary (where salary data is available).">Min salary
+          <input type="number" name="min_salary" min="0" step="10000" placeholder="e.g. 80000" />
+        </label>
+
         <label data-hint="Filter out jobs that demand more experience than this. Roles without a stated minimum always pass through.">Max years of experience
           <input type="number" name="max_years" min="0" max="20" placeholder="e.g. 3" />
         </label>

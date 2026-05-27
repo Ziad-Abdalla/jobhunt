@@ -3,7 +3,8 @@
 # `source` must match a key in scrapers.SCRAPER_REGISTRY.
 #
 # Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
-# recruitee, workday, remoteok, hackernews
+# recruitee, workday, remoteok, hackernews, simplifyjobs, arbeitnow, jobicy,
+# himalayas, themuse
 #
 # Tip: many companies are on more than one ATS over time. If a board 404s,
 # remove that line or try a different ATS for the same company.

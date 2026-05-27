@@ -67,15 +67,15 @@ class SimplifyJobsScraper(BaseScraper):
                 company=(entry.get("company_name") or "").strip(),
                 title=(entry.get("title") or "").strip(),
                 location=location_str,
-                description="",  # listings.json has no description body
+                description="",
                 posted_at=posted_at,
+                remote_structured="remote" if is_remote else "",
                 extra={
                     "board": self.board,
                     "sponsorship": entry.get("sponsorship"),
                     "terms": entry.get("terms"),
                     "category": entry.get("category"),
                     "company_url": entry.get("company_url"),
-                    "remote_structured": "remote" if is_remote else None,
                     "date_updated": entry.get("date_updated"),
                 },
             )

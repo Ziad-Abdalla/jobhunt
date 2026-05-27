@@ -102,9 +102,9 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     existing.min_years = ex.min_years
     existing.degree = ex.degree
     existing.employment_type = employment_type
-    existing.salary_min = raw.salary_min
-    existing.salary_max = raw.salary_max
-    existing.salary_currency = raw.salary_currency
+    existing.salary_min = raw.salary_min if raw.salary_min is not None else existing.salary_min
+    existing.salary_max = raw.salary_max if raw.salary_max is not None else existing.salary_max
+    existing.salary_currency = raw.salary_currency or existing.salary_currency
     existing.skills = ex.skills
     existing.languages = ex.languages
     existing.score = score

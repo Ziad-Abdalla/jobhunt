@@ -39,7 +39,7 @@ class TheMuseScraper(BaseScraper):
             if not isinstance(results, list) or not results:
                 return
 
-            page_count = payload.get("page_count", 0)
+            page_count = payload.get("page_count") or max_pages
 
             for entry in results:
                 if not isinstance(entry, dict):

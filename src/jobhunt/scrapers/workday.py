@@ -108,7 +108,7 @@ class WorkdayScraper(BaseScraper):
                         d_resp = await self.client.get(detail_url)
                         if d_resp.status_code == 200:
                             description = self._extract_description(d_resp.json())
-                    except (ValueError, TypeError):
+                    except Exception:  # noqa: BLE001
                         description = ""
 
                 if not description:

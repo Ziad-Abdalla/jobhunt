@@ -68,11 +68,11 @@ class ArbeitnowScraper(BaseScraper):
                     location=(entry.get("location") or "").strip(),
                     description=description,
                     posted_at=posted_at,
+                    employment_type=employment_type or "",
+                    remote_structured="remote" if is_remote else "",
                     extra={
                         "tags": entry.get("tags", []),
                         "job_types": job_types,
-                        "employment_type": employment_type,
-                        "remote_structured": "remote" if is_remote else None,
                     },
                 )
                 total_yielded += 1

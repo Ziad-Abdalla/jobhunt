@@ -21,7 +21,7 @@ class SmartRecruitersScraper(BaseScraper):
     async def fetch(self) -> AsyncIterator[RawJob]:
         base = f"https://api.smartrecruiters.com/v1/companies/{self.board}/postings"
         limit = 100
-        max_pages = 20
+        max_pages = 10
         for page in range(max_pages):
             offset = page * limit
             list_url = f"{base}?offset={offset}&limit={limit}"
@@ -34,9 +34,12 @@ class SmartRecruitersScraper(BaseScraper):
             for p in postings:
                 posting_id = str(p.get("id", ""))
                 detail_url = f"{base}/{posting_id}"
-                detail_resp = await self.client.get(detail_url)
-                detail_resp.raise_for_status()
-                detail = detail_resp.json()
+                try:
+                    detail_resp = await self.client.get(detail_url)
+                    detail_resp.raise_for_status()
+                    detail = detail_resp.json()
+                except Exception:  # noqa: BLE001
+                    detail = {}
                 sections = (detail.get("jobAd") or {}).get("sections") or {}
                 parts = [
                     (sections.get("jobDescription") or {}).get("text") or "",

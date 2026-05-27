@@ -125,6 +125,8 @@ def _query_from_request(
     limit: int,
     offset: int,
     min_cv_match: float | None = None,
+    employment_type: str = "",
+    min_salary: int | None = None,
 ) -> JobQuery:
     return JobQuery(
         q=q.strip(),
@@ -137,6 +139,8 @@ def _query_from_request(
         languages=tuple(s.lower() for s in (languages or []) if s),
         skills=tuple(s.lower() for s in (skills or []) if s),
         posted_within_days=posted_within_days,
+        employment_type=employment_type.strip(),
+        min_salary=min_salary,
         min_cv_match=min_cv_match,
         sort=sort or "score",
         limit=max(1, min(limit, 200)),
@@ -180,6 +184,8 @@ def jobs(
     skills: list[str] = Query(default=[]),
     posted_within_days: int | None = None,
     min_cv_match: float | None = None,
+    employment_type: str = "",
+    min_salary: int | None = None,
     sort: str = "score",
     limit: int = 50,
     offset: int = 0,
@@ -188,6 +194,8 @@ def jobs(
         q, company, location, remote, level, degree, max_years,
         languages, skills, posted_within_days, sort, limit, offset,
         min_cv_match=min_cv_match,
+        employment_type=employment_type,
+        min_salary=min_salary,
     )
     with db_session() as s:
         rows = search(s, query)
@@ -219,6 +227,8 @@ def api_jobs(
     skills: list[str] = Query(default=[]),
     posted_within_days: int | None = None,
     min_cv_match: float | None = None,
+    employment_type: str = "",
+    min_salary: int | None = None,
     sort: str = "score",
     limit: int = 50,
     offset: int = 0,
@@ -227,6 +237,8 @@ def api_jobs(
         q, company, location, remote, level, degree, max_years,
         languages, skills, posted_within_days, sort, limit, offset,
         min_cv_match=min_cv_match,
+        employment_type=employment_type,
+        min_salary=min_salary,
     )
     with db_session() as s:
         rows = search(s, query)
@@ -249,6 +261,10 @@ def api_jobs(
                     "skills": j.skills,
                     "source": j.source,
                     "posted_at": j.posted_at.isoformat() if j.posted_at else None,
+                    "employment_type": j.employment_type,
+                    "salary_min": j.salary_min,
+                    "salary_max": j.salary_max,
+                    "salary_currency": j.salary_currency,
                     "score": j.score,
                     "cv_match": j.cv_match,
                 }

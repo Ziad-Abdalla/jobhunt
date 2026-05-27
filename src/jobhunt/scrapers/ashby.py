@@ -46,10 +46,12 @@ class AshbyScraper(BaseScraper):
             salary_currency = ""
             if isinstance(comp.get("compensationTiers"), list):
                 for tier in comp["compensationTiers"]:
-                    salary_min = tier.get("min") or salary_min
-                    salary_max = tier.get("max") or salary_max
+                    raw_min = tier.get("min")
+                    salary_min = raw_min if raw_min is not None else salary_min
+                    raw_max = tier.get("max")
+                    salary_max = raw_max if raw_max is not None else salary_max
                     salary_currency = tier.get("currency") or salary_currency
-                    break  # use first tier
+                    break
 
             yield RawJob(
                 source=self.source,
