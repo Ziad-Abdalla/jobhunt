@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -78,7 +78,7 @@ def load_sources() -> list[dict]:
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _persist(session: Session, raw: RawJob, company_override: str | None) -> bool:
@@ -86,7 +86,8 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     if not raw.title or not raw.url:
         return False
 
-    override = company_override if company_override and not company_override.startswith("(") else None
+    is_real_name = company_override and not company_override.startswith("(")
+    override = company_override if is_real_name else None
     company = override or raw.company or raw.source
     fp = fingerprint(company, raw.title, raw.location)
 

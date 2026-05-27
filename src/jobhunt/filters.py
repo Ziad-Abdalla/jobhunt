@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Select, or_, select
 from sqlalchemy.orm import Session
@@ -58,7 +58,7 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
     if q.min_salary is not None:
         stmt = stmt.where(Job.salary_max.is_not(None), Job.salary_max >= q.min_salary)
     if q.posted_within_days is not None:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=q.posted_within_days)
+        cutoff = datetime.now(UTC) - timedelta(days=q.posted_within_days)
         stmt = stmt.where(or_(Job.posted_at.is_(None), Job.posted_at >= cutoff))
 
     if q.min_cv_match is not None:

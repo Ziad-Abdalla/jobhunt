@@ -21,7 +21,10 @@ _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False, future=True)
 _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
     "jobs": [
         ("cv_match", "ALTER TABLE jobs ADD COLUMN cv_match FLOAT"),
-        ("employment_type", "ALTER TABLE jobs ADD COLUMN employment_type VARCHAR(32) DEFAULT 'unknown'"),
+        (
+            "employment_type",
+            "ALTER TABLE jobs ADD COLUMN employment_type VARCHAR(32) DEFAULT 'unknown'",
+        ),
         ("salary_min", "ALTER TABLE jobs ADD COLUMN salary_min INTEGER"),
         ("salary_max", "ALTER TABLE jobs ADD COLUMN salary_max INTEGER"),
         ("salary_currency", "ALTER TABLE jobs ADD COLUMN salary_currency VARCHAR(8) DEFAULT ''"),

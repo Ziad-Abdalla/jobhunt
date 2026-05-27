@@ -49,8 +49,10 @@ LANGUAGE_TOKENS: tuple[str, ...] = (
 )
 
 _LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\bintern(?:ship)?\b", re.I), "intern"),
-    (re.compile(r"\bnew[- ]?grad\b|\bgraduate\b|\bentry[- ]?level\b", re.I), "entry"),
+    (re.compile(r"\bintern(?:ship)?\b|\bpraktik(?:um|ant)\b|\bwerkstudent\b", re.I), "intern"),
+    (re.compile(
+        r"\bnew[- ]?grad\b|\bgraduate\b|\bentry[- ]?level\b|\bberufseinstieg\b", re.I,
+    ), "entry"),
     (re.compile(r"\bjunior\b|\bjr\.?\b", re.I), "junior"),
     (re.compile(r"\bstaff\b", re.I), "staff"),
     (re.compile(r"\bprincipal\b", re.I), "principal"),
@@ -60,12 +62,15 @@ _LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bmid[- ]?level\b", re.I), "mid"),
 )
 
-_REMOTE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\bfully[- ]remote\b|\b100%\s*remote\b|\bremote[- ]first\b", re.I), "remote"),
-    (re.compile(r"\bhybrid\b", re.I), "hybrid"),
-    (re.compile(r"\bon[- ]?site\b|\bin[- ]office\b|\bin person\b", re.I), "onsite"),
-    (re.compile(r"\bremote\b", re.I), "remote"),
+_REMOTE_STRONG = re.compile(
+    r"\bfully[- ]remote\b|\b100%\s*remote\b|\bremote[- ]first\b"
+    r"|\bwork[- ]?from[- ]?home\b|\bwfh\b|\bremote[- ]friendly\b"
+    r"|\bremote[- ]eligible\b|\bremote[- ]ok\b",
+    re.I,
 )
+_REMOTE_WEAK = re.compile(r"\bremote\b", re.I)
+_HYBRID_RE = re.compile(r"\bhybrid\b", re.I)
+_ONSITE_RE = re.compile(r"\bon[- ]?site\b|\bin[- ]office\b|\bin person\b", re.I)
 
 _DEGREE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bph\.?d\b|\bdoctorate\b", re.I), "phd"),
@@ -130,11 +135,17 @@ def extract(text: str, *, title: str = "") -> Extracted:
             level = lvl
             break
 
+    # Remote detection: strong patterns match anywhere, weak "remote" only in
+    # title + first 300 chars to avoid false positives from "remote debugging" etc.
     remote = "unknown"
-    for pat, mode in _REMOTE_PATTERNS:
-        if pat.search(haystack):
-            remote = mode
-            break
+    if _REMOTE_STRONG.search(haystack):
+        remote = "remote"
+    elif _HYBRID_RE.search(haystack):
+        remote = "hybrid"
+    elif _ONSITE_RE.search(haystack):
+        remote = "onsite"
+    elif _REMOTE_WEAK.search(f"{title}\n{text[:300]}"):
+        remote = "remote"
 
     degree = "unknown"
     for pat, deg in _DEGREE_PATTERNS:

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -26,7 +26,7 @@ async def _job() -> None:
     log.info("scheduler: starting scheduled scrape")
     try:
         result = await scrape_all()
-        _last_run["at"] = datetime.now(timezone.utc).isoformat()
+        _last_run["at"] = datetime.now(UTC).isoformat()
         _last_run["result"] = result
         _last_run["error"] = None
         log.info("scheduler: completed (%s)", result)
@@ -38,7 +38,7 @@ async def _job() -> None:
         except Exception as exc:  # noqa: BLE001
             log.warning("scheduler: alert check failed: %s", exc)
     except Exception as exc:  # noqa: BLE001
-        _last_run["at"] = datetime.now(timezone.utc).isoformat()
+        _last_run["at"] = datetime.now(UTC).isoformat()
         _last_run["error"] = f"{type(exc).__name__}: {exc}"
         log.exception("scheduler: scrape failed")
 

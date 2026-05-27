@@ -356,6 +356,7 @@ main#results, main.page {
 .badge.remote-remote { background: var(--moss); color: var(--paper); }
 .badge.remote-hybrid { background: var(--ochre); color: var(--paper); }
 .badge.remote-onsite { background: var(--plum); color: var(--paper); }
+.badge.salary { color: var(--moss); border: 1px solid var(--moss); background: transparent; font-variant-numeric: tabular-nums; }
 .tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-top: var(--sp-2); }
 .tag {
   font: var(--fs-xs)/1 var(--font-mono);

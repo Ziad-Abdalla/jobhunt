@@ -33,7 +33,15 @@
       {% if j.min_years is not none %}<span class="badge">{{ j.min_years }}+ yrs</span>{% endif %}
       {% if j.degree and j.degree != 'unknown' %}<span class="badge">{{ j.degree }}</span>{% endif %}
       {% if j.employment_type and j.employment_type != 'unknown' %}<span class="badge">{{ j.employment_type }}</span>{% endif %}
-      {% if j.salary_min or j.salary_max %}<span class="badge salary">{% if j.salary_min %}{{ "${:,}".format(j.salary_min) }}{% endif %}{% if j.salary_min and j.salary_max %}–{% endif %}{% if j.salary_max %}{{ "${:,}".format(j.salary_max) }}{% endif %}{% if j.salary_currency %} {{ j.salary_currency }}{% endif %}</span>{% endif %}
+      {% if j.salary_min or j.salary_max %}
+        <span class="badge salary" title="Annual salary">
+          {%- if j.salary_currency == "USD" or not j.salary_currency %}${% endif -%}
+          {%- if j.salary_min %}{{ "{:,}".format(j.salary_min) }}{% endif -%}
+          {%- if j.salary_min and j.salary_max %}–{% endif -%}
+          {%- if j.salary_max %}{{ "{:,}".format(j.salary_max) }}{% endif -%}
+          {%- if j.salary_currency and j.salary_currency != "USD" %} {{ j.salary_currency }}{% endif -%}
+        </span>
+      {% endif %}
     </div>
     {% if j.languages or j.skills %}
     <div class="tags">

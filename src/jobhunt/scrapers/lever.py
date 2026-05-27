@@ -6,7 +6,7 @@ Endpoint: https://api.lever.co/v0/postings/{company}?mode=json
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bs4 import BeautifulSoup
 
@@ -30,7 +30,7 @@ class LeverScraper(BaseScraper):
             if created := j.get("createdAt"):
                 # Lever uses ms since epoch.
                 try:
-                    posted_at = datetime.fromtimestamp(created / 1000, tz=timezone.utc)
+                    posted_at = datetime.fromtimestamp(created / 1000, tz=UTC)
                 except (ValueError, TypeError):
                     posted_at = None
             categories = j.get("categories", {}) or {}

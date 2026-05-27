@@ -7,7 +7,7 @@ so the user doesn't get pinged twice for the same posting.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -61,5 +61,5 @@ async def check_alerts() -> dict:
                 )
                 notified_total += 1
             ss.notified_job_ids = list(seen_ids | {m.id for m in new_matches})
-            ss.last_notified_at = datetime.now(timezone.utc)
+            ss.last_notified_at = datetime.now(UTC)
     return {"notified": notified_total, "searches": len(searches) if searches else 0}

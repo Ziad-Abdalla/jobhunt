@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import AsyncIterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from bs4 import BeautifulSoup
 
@@ -45,16 +45,16 @@ class WorkdayScraper(BaseScraper):
             return None
         text = posted_on.lower()
         if "today" in text:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
         if "yesterday" in text:
-            return datetime.now(timezone.utc) - timedelta(days=1)
+            return datetime.now(UTC) - timedelta(days=1)
         m = _DAYS_RE.search(text)
         if m:
             try:
                 days = int(m.group(1))
             except (ValueError, TypeError):
                 return None
-            return datetime.now(timezone.utc) - timedelta(days=days)
+            return datetime.now(UTC) - timedelta(days=days)
         return None
 
     @staticmethod

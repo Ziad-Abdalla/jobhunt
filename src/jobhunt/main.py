@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
@@ -20,8 +20,12 @@ from .models import CVProfile, Job, SavedSearch, ScrapeRun
 from .refresh import scrape_all
 from .sources_admin import (
     add_source as sources_add,
+)
+from .sources_admin import (
     available_source_types,
     list_all_sources,
+)
+from .sources_admin import (
     remove_source as sources_remove,
 )
 
@@ -36,7 +40,7 @@ def _localdate(dt: datetime | None, fmt: str = "%b %d, %Y") -> str:
     if dt is None:
         return ""
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.astimezone().strftime(fmt)
 
 
@@ -95,7 +99,7 @@ async def security_headers(request: Request, call_next):
 
 
 def _today() -> str:
-    return datetime.now(timezone.utc).strftime("%A, %B %d, %Y").upper()
+    return datetime.now(UTC).strftime("%A, %B %d, %Y").upper()
 
 
 @app.on_event("startup")
@@ -318,10 +322,10 @@ def health_page(request: Request) -> HTMLResponse:
                 .select_from(Job)
                 .where(Job.source == r.source)
             ).scalar_one()
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             started = r.started_at
             if started is not None and started.tzinfo is None:
-                started = started.replace(tzinfo=timezone.utc)
+                started = started.replace(tzinfo=UTC)
             age = (now - started) if started else timedelta(days=999)
             healthy = r.error is None and r.jobs_seen > 0 and age < timedelta(days=2)
             rows.append(

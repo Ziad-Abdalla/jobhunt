@@ -6,7 +6,7 @@ clearly-tagged postings — not a black-box ML score the user can't reason about
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def score_job(
@@ -21,8 +21,8 @@ def score_job(
     # Recency: 1.0 today, 0 at 30 days, linear.
     if posted_at:
         if posted_at.tzinfo is None:
-            posted_at = posted_at.replace(tzinfo=timezone.utc)
-        age_days = (datetime.now(timezone.utc) - posted_at).total_seconds() / 86400
+            posted_at = posted_at.replace(tzinfo=UTC)
+        age_days = (datetime.now(UTC) - posted_at).total_seconds() / 86400
         score += max(0.0, 1.0 - age_days / 30.0)
 
     # Description quality: longer JD is usually a sign the company actually wrote it.

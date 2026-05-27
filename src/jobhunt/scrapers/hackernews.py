@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bs4 import BeautifulSoup
 
@@ -64,7 +64,7 @@ class HackerNewsScraper(BaseScraper):
             posted_at: datetime | None = None
             if ts := child.get("created_at_i"):
                 try:
-                    posted_at = datetime.fromtimestamp(int(ts), tz=timezone.utc)
+                    posted_at = datetime.fromtimestamp(int(ts), tz=UTC)
                 except (ValueError, TypeError):
                     posted_at = None
             yield RawJob(
