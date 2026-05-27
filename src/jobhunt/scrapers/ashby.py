@@ -34,6 +34,23 @@ class AshbyScraper(BaseScraper):
                     posted_at = dateparser.isoparse(pub)
                 except (ValueError, TypeError):
                     posted_at = None
+            # Extract structured compensation data.
+            comp = j.get("compensation") or {}
+            comp_summary = (
+                comp.get("compensationTierSummary")
+                or comp.get("summaryText")
+                or ""
+            )
+            salary_min: int | None = None
+            salary_max: int | None = None
+            salary_currency = ""
+            if isinstance(comp.get("compensationTiers"), list):
+                for tier in comp["compensationTiers"]:
+                    salary_min = tier.get("min") or salary_min
+                    salary_max = tier.get("max") or salary_max
+                    salary_currency = tier.get("currency") or salary_currency
+                    break  # use first tier
+
             yield RawJob(
                 source=self.source,
                 source_id=str(j.get("id", "")),
@@ -43,9 +60,13 @@ class AshbyScraper(BaseScraper):
                 location=(j.get("location") or "").strip(),
                 description=description,
                 posted_at=posted_at,
+                employment_type=(j.get("employmentType") or "").strip(),
+                salary_min=salary_min,
+                salary_max=salary_max,
+                salary_currency=salary_currency,
                 extra={
                     "department": j.get("department"),
                     "team": j.get("team"),
-                    "employment_type": j.get("employmentType"),
+                    "compensation_summary": comp_summary or None,
                 },
             )

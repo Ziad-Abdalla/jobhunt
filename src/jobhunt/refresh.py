@@ -59,6 +59,10 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     )
     now = _utcnow()
 
+    # Prefer structured API data over heuristic extraction.
+    remote = raw.remote_structured if raw.remote_structured else ex.remote
+    employment_type = raw.employment_type if raw.employment_type else "unknown"
+
     if existing is None:
         job = Job(
             fingerprint=fp,
@@ -68,10 +72,14 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
             company=company,
             title=raw.title,
             location=raw.location,
-            remote=ex.remote,
+            remote=remote,
             level=ex.level,
             min_years=ex.min_years,
             degree=ex.degree,
+            employment_type=employment_type,
+            salary_min=raw.salary_min,
+            salary_max=raw.salary_max,
+            salary_currency=raw.salary_currency,
             skills=ex.skills,
             languages=ex.languages,
             description=raw.description,
@@ -89,10 +97,14 @@ def _persist(session: Session, raw: RawJob, company_override: str | None) -> boo
     existing.url = raw.url or existing.url
     existing.description = raw.description or existing.description
     existing.description_hash = description_hash(existing.description)
-    existing.remote = ex.remote
+    existing.remote = remote
     existing.level = ex.level
     existing.min_years = ex.min_years
     existing.degree = ex.degree
+    existing.employment_type = employment_type
+    existing.salary_min = raw.salary_min
+    existing.salary_max = raw.salary_max
+    existing.salary_currency = raw.salary_currency
     existing.skills = ex.skills
     existing.languages = ex.languages
     existing.score = score

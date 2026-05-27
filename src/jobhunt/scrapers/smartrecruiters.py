@@ -21,7 +21,7 @@ class SmartRecruitersScraper(BaseScraper):
     async def fetch(self) -> AsyncIterator[RawJob]:
         base = f"https://api.smartrecruiters.com/v1/companies/{self.board}/postings"
         limit = 100
-        max_pages = 2
+        max_pages = 20
         for page in range(max_pages):
             offset = page * limit
             list_url = f"{base}?offset={offset}&limit={limit}"

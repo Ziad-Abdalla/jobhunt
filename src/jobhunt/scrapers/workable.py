@@ -24,7 +24,7 @@ class WorkableScraper(BaseScraper):
             f"https://apply.workable.com/api/v3/accounts/{self.board}/jobs"
         )
         seen = 0
-        max_jobs = 50
+        max_jobs = 500
         while url and seen < max_jobs:
             resp = await self.client.get(url)
             resp.raise_for_status()
@@ -68,9 +68,9 @@ class WorkableScraper(BaseScraper):
                     location=location.strip(),
                     description=description,
                     posted_at=posted_at,
+                    employment_type=(j.get("employment_type") or "").strip(),
                     extra={
                         "department": j.get("department"),
-                        "employment_type": j.get("employment_type"),
                     },
                 )
                 seen += 1

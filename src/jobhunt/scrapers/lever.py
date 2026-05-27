@@ -41,9 +41,9 @@ class LeverScraper(BaseScraper):
                 location=location.strip(),
                 description=description,
                 posted_at=posted_at,
+                employment_type=(categories.get("commitment") or "").strip(),
                 extra={
                     "team": categories.get("team"),
-                    "commitment": categories.get("commitment"),
                     "department": categories.get("department"),
                 },
             )

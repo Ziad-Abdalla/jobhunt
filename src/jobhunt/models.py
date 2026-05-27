@@ -33,6 +33,11 @@ class Job(Base):
     level: Mapped[str] = mapped_column(String(16), default="unknown", index=True)
     min_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
     degree: Mapped[str] = mapped_column(String(16), default="unknown", index=True)
+    employment_type: Mapped[str] = mapped_column(String(32), default="unknown", index=True)
+
+    salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    salary_currency: Mapped[str] = mapped_column(String(8), default="")
 
     skills: Mapped[list[str]] = mapped_column(JSON, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, default=list)

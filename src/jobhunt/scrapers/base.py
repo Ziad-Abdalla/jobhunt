@@ -22,6 +22,13 @@ class RawJob:
     posted_at: datetime | None = None
     extra: dict = field(default_factory=dict)
 
+    # Structured fields — populated when the API provides them directly.
+    employment_type: str = ""  # full-time, part-time, contract, internship
+    salary_min: int | None = None
+    salary_max: int | None = None
+    salary_currency: str = ""
+    remote_structured: str = ""  # when the API gives us remote/onsite/hybrid directly
+
 
 class BaseScraper(abc.ABC):
     source: str = ""  # subclasses override

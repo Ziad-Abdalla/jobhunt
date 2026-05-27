@@ -48,8 +48,8 @@ class RecruiteeScraper(BaseScraper):
                 location=location.strip(),
                 description=description,
                 posted_at=posted_at,
+                employment_type=(j.get("employment_type_code") or "").strip(),
                 extra={
-                    "employment_type_code": j.get("employment_type_code"),
                     "min_hours": j.get("min_hours"),
                     "max_hours": j.get("max_hours"),
                 },

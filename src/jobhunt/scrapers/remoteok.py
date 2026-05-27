@@ -6,6 +6,7 @@ RemoteOK asks for a UA other than the default httpx one.
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 from datetime import datetime
 
@@ -13,6 +14,10 @@ from bs4 import BeautifulSoup
 from dateutil import parser as dateparser
 
 from .base import BaseScraper, RawJob
+
+_SALARY_RE = re.compile(
+    r"\$?\s*([\d,]+)\s*(?:[-–—to]+)\s*\$?\s*([\d,]+)", re.IGNORECASE
+)
 
 
 class RemoteOKScraper(BaseScraper):
@@ -40,6 +45,23 @@ class RemoteOKScraper(BaseScraper):
                     posted_at = dateparser.isoparse(pub)
                 except (ValueError, TypeError):
                     posted_at = None
+            # Parse salary string (e.g. "$60,000 - $90,000").
+            salary_raw = j.get("salary") or ""
+            salary_min: int | None = None
+            salary_max: int | None = None
+            salary_currency = ""
+            if salary_raw:
+                m = _SALARY_RE.search(salary_raw)
+                if m:
+                    try:
+                        salary_min = int(m.group(1).replace(",", ""))
+                        salary_max = int(m.group(2).replace(",", ""))
+                    except (ValueError, TypeError):
+                        pass
+                # RemoteOK salaries are USD unless stated otherwise.
+                if salary_min is not None or salary_max is not None:
+                    salary_currency = "USD"
+
             yield RawJob(
                 source=self.source,
                 source_id=str(j.get("id", "")),
@@ -49,5 +71,9 @@ class RemoteOKScraper(BaseScraper):
                 location=(j.get("location") or "Remote").strip(),
                 description=description,
                 posted_at=posted_at,
-                extra={"tags": j.get("tags", []), "salary": j.get("salary")},
+                remote_structured="remote",
+                salary_min=salary_min,
+                salary_max=salary_max,
+                salary_currency=salary_currency,
+                extra={"tags": j.get("tags", [])},
             )

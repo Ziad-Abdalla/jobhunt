@@ -63,5 +63,11 @@
 # - { source: workday, board: "tenant/wd5/Site", company: <Display> }
 
 # --- Wide-net firehoses ---
-- { source: remoteok,   board: dev,    company: "(RemoteOK feed)" }
-- { source: hackernews, board: latest, company: "(HN Who is Hiring)" }
+- { source: remoteok,      board: dev,          company: "(RemoteOK feed)" }
+- { source: hackernews,    board: latest,       company: "(HN Who is Hiring)" }
+- { source: simplifyjobs,  board: internships,  company: "(SimplifyJobs Internships)" }
+- { source: simplifyjobs,  board: new-grad,     company: "(SimplifyJobs New Grad)" }
+- { source: arbeitnow,     board: "",            company: "(Arbeitnow EU Jobs)" }
+- { source: jobicy,        board: "",            company: "(Jobicy Remote Jobs)" }
+- { source: himalayas,     board: "",            company: "(Himalayas Remote Jobs)" }
+- { source: themuse,       board: "",            company: "(The Muse Jobs)" }

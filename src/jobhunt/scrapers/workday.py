@@ -74,40 +74,61 @@ class WorkdayScraper(BaseScraper):
         tenant, subdomain, site = self._parse_board()
         host = f"https://{tenant}.{subdomain}.myworkdayjobs.com"
         list_url = f"{host}/wday/cxs/{tenant}/{site}/jobs"
-        body = {"appliedFacets": {}, "limit": _PAGE_LIMIT, "offset": 0, "searchText": ""}
 
-        resp = await self.client.post(list_url, json=body)
-        resp.raise_for_status()
-        data = resp.json()
+        _MAX_TOTAL = 500
+        offset = 0
+        total_collected = 0
 
-        postings = (data.get("jobPostings") or [])[:_PAGE_LIMIT]
-        for j in postings:
-            external_path = j.get("externalPath") or ""
-            url = f"{host}/en-US/{site}{external_path}"
-            source_id = external_path.rsplit("/", 1)[-1] or external_path
+        while total_collected < _MAX_TOTAL:
+            body = {
+                "appliedFacets": {},
+                "limit": _PAGE_LIMIT,
+                "offset": offset,
+                "searchText": "",
+            }
+            resp = await self.client.post(list_url, json=body)
+            resp.raise_for_status()
+            data = resp.json()
 
-            description = ""
-            if external_path:
-                detail_url = f"{host}/wday/cxs/{tenant}/{site}{external_path}"
-                try:
-                    d_resp = await self.client.get(detail_url)
-                    if d_resp.status_code == 200:
-                        description = self._extract_description(d_resp.json())
-                except (ValueError, TypeError):
-                    description = ""
+            postings = data.get("jobPostings") or []
+            if not postings:
+                break
 
-            if not description:
-                bullets = j.get("bulletFields") or []
-                description = "\n".join(str(b) for b in bullets if b)
+            for j in postings:
+                if total_collected >= _MAX_TOTAL:
+                    break
+                external_path = j.get("externalPath") or ""
+                url = f"{host}/en-US/{site}{external_path}"
+                source_id = external_path.rsplit("/", 1)[-1] or external_path
 
-            yield RawJob(
-                source=self.source,
-                source_id=str(source_id),
-                url=url,
-                company=tenant.replace("-", " ").title(),
-                title=(j.get("title") or "").strip(),
-                location=(j.get("locationsText") or "").strip(),
-                description=description,
-                posted_at=self._parse_posted_on(j.get("postedOn")),
-                extra={"bullet_fields": j.get("bulletFields") or []},
-            )
+                description = ""
+                if external_path:
+                    detail_url = f"{host}/wday/cxs/{tenant}/{site}{external_path}"
+                    try:
+                        d_resp = await self.client.get(detail_url)
+                        if d_resp.status_code == 200:
+                            description = self._extract_description(d_resp.json())
+                    except (ValueError, TypeError):
+                        description = ""
+
+                if not description:
+                    bullets = j.get("bulletFields") or []
+                    description = "\n".join(str(b) for b in bullets if b)
+
+                yield RawJob(
+                    source=self.source,
+                    source_id=str(source_id),
+                    url=url,
+                    company=tenant.replace("-", " ").title(),
+                    title=(j.get("title") or "").strip(),
+                    location=(j.get("locationsText") or "").strip(),
+                    description=description,
+                    posted_at=self._parse_posted_on(j.get("postedOn")),
+                    extra={"bullet_fields": j.get("bulletFields") or []},
+                )
+                total_collected += 1
+
+            # Stop if we got fewer results than requested (last page).
+            if len(postings) < _PAGE_LIMIT:
+                break
+            offset += _PAGE_LIMIT
