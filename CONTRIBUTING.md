@@ -28,11 +28,15 @@ pytest -q
 ## Adding a new ATS adapter
 
 Each scraper subclasses `BaseScraper` and lives in `src/jobhunt/scrapers/`.
-Look at `greenhouse.py` for the simplest example. You'll need:
+Look at `greenhouse.py` (simple ATS) or `jobicy.py` (aggregator with salary)
+for examples. You'll need:
 
-- A public, no-auth API.
+- A public, no-auth API (or free-tier with key).
 - A test in `tests/test_<source>.py` using `respx` to mock HTTP.
 - Registration in `src/jobhunt/scrapers/__init__.py`.
+- Use structured fields on `RawJob` when the API provides them:
+  `employment_type`, `salary_min`, `salary_max`, `salary_currency`,
+  `remote_structured`.
 
 Please confirm that scraping the ATS at low frequency does not violate their
 ToS (`/robots.txt`, terms page) before submitting.

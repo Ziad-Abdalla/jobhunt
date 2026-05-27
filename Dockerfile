@@ -59,8 +59,7 @@ USER jobhunt
 
 EXPOSE 8765
 
-# The app doesn't yet have a /api/healthz route, so probe the index instead.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl --fail --silent --show-error http://127.0.0.1:8765/ || exit 1
+    CMD curl --fail --silent --show-error http://127.0.0.1:8765/api/healthz || exit 1
 
 CMD ["jobhunt", "serve"]
