@@ -114,6 +114,25 @@ def _on_shutdown() -> None:
     sched_module.stop()
 
 
+def _safe_int(val: str | int | None) -> int | None:
+    """Convert a query param that might be an empty string to int or None."""
+    if val is None or val == "":
+        return None
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_float(val: str | float | None) -> float | None:
+    if val is None or val == "":
+        return None
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return None
+
+
 def _query_from_request(
     q: str,
     company: str,
@@ -121,16 +140,16 @@ def _query_from_request(
     remote: str,
     level: str,
     degree: str,
-    max_years: int | None,
+    max_years: str | int | None,
     languages: list[str] | None,
     skills: list[str] | None,
-    posted_within_days: int | None,
+    posted_within_days: str | int | None,
     sort: str,
-    limit: int,
-    offset: int,
-    min_cv_match: float | None = None,
+    limit: str | int,
+    offset: str | int,
+    min_cv_match: str | float | None = None,
     employment_type: str = "",
-    min_salary: int | None = None,
+    min_salary: str | int | None = None,
     visa_sponsorship: str = "",
 ) -> JobQuery:
     return JobQuery(
@@ -140,17 +159,17 @@ def _query_from_request(
         remote=remote.strip(),
         level=level.strip(),
         degree=degree.strip(),
-        max_years=max_years,
+        max_years=_safe_int(max_years),
         languages=tuple(s.lower() for s in (languages or []) if s),
         skills=tuple(s.lower() for s in (skills or []) if s),
-        posted_within_days=posted_within_days,
+        posted_within_days=_safe_int(posted_within_days),
         employment_type=employment_type.strip(),
-        min_salary=min_salary,
+        min_salary=_safe_int(min_salary),
         visa_sponsorship=visa_sponsorship.strip(),
-        min_cv_match=min_cv_match,
+        min_cv_match=_safe_float(min_cv_match),
         sort=sort or "score",
-        limit=max(1, min(limit, 200)),
-        offset=max(0, offset),
+        limit=max(1, min(_safe_int(limit) or 50, 200)),
+        offset=max(0, _safe_int(offset) or 0),
     )
 
 
@@ -185,13 +204,13 @@ def jobs(
     remote: str = "",
     level: str = "",
     degree: str = "",
-    max_years: int | None = None,
+    max_years: str = "",
     languages: list[str] = Query(default=[]),
     skills: list[str] = Query(default=[]),
-    posted_within_days: int | None = None,
-    min_cv_match: float | None = None,
+    posted_within_days: str = "",
+    min_cv_match: str = "",
     employment_type: str = "",
-    min_salary: int | None = None,
+    min_salary: str = "",
     visa_sponsorship: str = "",
     sort: str = "score",
     limit: int = 50,
@@ -230,13 +249,13 @@ def api_jobs(
     remote: str = "",
     level: str = "",
     degree: str = "",
-    max_years: int | None = None,
+    max_years: str = "",
     languages: list[str] = Query(default=[]),
     skills: list[str] = Query(default=[]),
-    posted_within_days: int | None = None,
-    min_cv_match: float | None = None,
+    posted_within_days: str = "",
+    min_cv_match: str = "",
     employment_type: str = "",
-    min_salary: int | None = None,
+    min_salary: str = "",
     visa_sponsorship: str = "",
     sort: str = "score",
     limit: int = 50,
