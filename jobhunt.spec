@@ -8,7 +8,7 @@
 # equivalent) automatically.
 
 # ruff: noqa
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
@@ -24,6 +24,7 @@ a = Analysis(
     + collect_data_files("uvicorn", include_py_files=False)
     + collect_data_files("apscheduler", include_py_files=False),
     hiddenimports=[
+        # jobhunt scrapers (dynamically loaded via registry)
         "jobhunt.scrapers.greenhouse",
         "jobhunt.scrapers.lever",
         "jobhunt.scrapers.ashby",
@@ -41,16 +42,43 @@ a = Analysis(
         "jobhunt.scrapers.jooble",
         "jobhunt.scrapers.arbeitsagentur",
         "jobhunt.scrapers.reed",
-        "uvicorn.logging",
-        "uvicorn.loops",
-        "uvicorn.loops.auto",
-        "uvicorn.protocols",
-        "uvicorn.protocols.http",
-        "uvicorn.protocols.http.auto",
-        "uvicorn.protocols.websockets",
-        "uvicorn.protocols.websockets.auto",
-        "uvicorn.lifespan",
-        "uvicorn.lifespan.on",
+        # jobhunt internal modules (imported by string or lazily)
+        "jobhunt.main",
+        "jobhunt.cli",
+        "jobhunt.config",
+        "jobhunt.db",
+        "jobhunt.models",
+        "jobhunt.filters",
+        "jobhunt.refresh",
+        "jobhunt.extract",
+        "jobhunt.dedup",
+        "jobhunt.scoring",
+        "jobhunt.salary_estimator",
+        "jobhunt.scheduler",
+        "jobhunt.notifications",
+        "jobhunt.alerts",
+        "jobhunt.sources_admin",
+        # uvicorn internals (needed for frozen binary)
+    ]
+    + collect_submodules("uvicorn")
+    + [
+        # multipart (file uploads)
+        "multipart",
+        # pydantic internals
+        "pydantic",
+        "pydantic_settings",
+        "pydantic_core",
+        # email-validator used by pydantic
+        "email_validator",
+        # httpx + httpcore for scraping
+        "httpx",
+        "httpcore",
+        "h11",
+        "anyio",
+        "anyio._backends._asyncio",
+        "sniffio",
+        # sqlalchemy
+        "sqlalchemy.dialects.sqlite",
     ],
     hookspath=[],
     runtime_hooks=[],

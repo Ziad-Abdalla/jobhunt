@@ -13,13 +13,12 @@
 
   <main class="page">
     <h1>CV Match</h1>
-    <p>Drop a CV — PDF, DOCX, or TXT. It is parsed and embedded with <code>sentence-transformers/all-MiniLM-L6-v2</code> on this machine. Every job in your database is then scored by cosine similarity. <strong>Nothing leaves this machine.</strong></p>
+    <p>Upload your CV and every job gets a match score. Sort or filter by how well each job fits your experience. Everything stays on your machine — nothing is uploaded anywhere.</p>
 
     {% if not cv_available %}
       <div class="alert">
-        <strong>Optional dependency missing.</strong>
-        Install with <code>uv pip install -e ".[match]"</code>.
-        {% if cv.error %}<br><span class="muted">{{ cv.error }}</span>{% endif %}
+        <strong>CV matching requires an extra download (~500 MB).</strong>
+        Run <code>uv tool install --reinstall "git+https://github.com/Abdalla2004-collab/Jobhunt.git[match]"</code> to enable it.
       </div>
     {% endif %}
 

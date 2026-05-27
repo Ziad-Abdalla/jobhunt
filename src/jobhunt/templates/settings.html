@@ -12,66 +12,92 @@
 <body data-page="settings">
   {% include "_nav.html" %}
 
-  <main class="page" style="max-width:720px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+  <main class="page" style="max-width:680px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
     <h1>Settings</h1>
 
     <h2>About</h2>
-    <table class="health-table" style="max-width:480px;">
-      <tr><td style="color:var(--muted);font-weight:600;">Version</td><td>{{ version }}</td></tr>
-      <tr><td style="color:var(--muted);font-weight:600;">Python</td><td>{{ python_version }}</td></tr>
-      <tr><td style="color:var(--muted);font-weight:600;">Platform</td><td>{{ platform }}</td></tr>
-      <tr><td style="color:var(--muted);font-weight:600;">Installed via</td><td>{{ install_method }}</td></tr>
-      <tr><td style="color:var(--muted);font-weight:600;">Data directory</td><td style="word-break:break-all;font-family:var(--font-mono);font-size:var(--fs-xs);">{{ data_dir }}</td></tr>
-    </table>
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <table class="health-table" style="margin:0;">
+        <tr><td style="color:var(--text-3);font-weight:600;width:140px;">Version</td><td>{{ version }}</td></tr>
+        <tr><td style="color:var(--text-3);font-weight:600;">Platform</td><td>{{ platform }}</td></tr>
+        <tr><td style="color:var(--text-3);font-weight:600;">Installed via</td><td>{{ install_method }}</td></tr>
+        <tr><td style="color:var(--text-3);font-weight:600;">Data folder</td><td style="word-break:break-all;font-family:var(--font-mono);font-size:var(--fs-xs);">{{ data_dir }}</td></tr>
+      </table>
+    </div>
 
     <h2>Updates</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
-      <p style="margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2);">
-        Check if a newer version of jobhunt is available and install it.
+      <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+        Check for a newer version and install it automatically.
       </p>
       <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
         <button id="update-btn" type="button">Check for updates</button>
         <span id="update-spinner" class="spinner" style="display:none;" aria-hidden="true"></span>
       </div>
       <div id="update-result" style="margin-top:var(--sp-3);display:none;">
-        <p id="update-message" style="margin:0;font:var(--fs-sm)/1.5 var(--font-body);color:var(--ink-2);white-space:pre-wrap;"></p>
-        <a id="update-download" href="#" target="_blank" rel="noopener" style="display:none;margin-top:var(--sp-2);">
-          <button type="button" class="ghost">Download new version</button>
+        <p id="update-message" style="margin:0;color:var(--text-2);white-space:pre-wrap;"></p>
+        <a id="update-download" href="#" target="_blank" rel="noopener" style="display:none;margin-top:var(--sp-3);">
+          <button type="button">Download new version</button>
         </a>
       </div>
     </div>
 
     <h2>Data</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
-      <p style="margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2);">
-        Delete all scraped job data. Your saved searches and CV are kept.
-        Jobs will be re-scraped the next time you click "Refresh sources".
+      <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+        Delete all scraped jobs. Your saved searches and CV are kept. Jobs come back on the next refresh.
       </p>
-      <button id="clear-btn" type="button" class="danger">Clear job database</button>
-      <p id="clear-status" style="margin:var(--sp-2) 0 0;font:var(--fs-sm)/1.5 var(--font-body);color:var(--ink-2);"></p>
+      <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
+        <button id="clear-btn" type="button" class="danger">Clear all jobs</button>
+        <span id="clear-status" style="color:var(--text-2);"></span>
+      </div>
     </div>
 
     <h2>Uninstall</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
-      <p style="margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2);">
-        Remove jobhunt from your system.
-      </p>
-      <button id="uninstall-btn" type="button" class="ghost">Show uninstall instructions</button>
-      <p id="uninstall-status" style="margin:var(--sp-2) 0 0;font:var(--fs-sm)/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;display:none;"></p>
+      {% if install_method == 'binary' %}
+        <p style="margin:0;color:var(--text-2);">
+          To uninstall, just delete the jobhunt file you downloaded. Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
+        </p>
+      {% elif install_method == 'uv' %}
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+          To uninstall, run this in your terminal:
+        </p>
+        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);font-size:var(--fs-sm);">uv tool uninstall jobhunt</code>
+        <p style="margin:var(--sp-3) 0 0;color:var(--text-3);font-size:var(--fs-sm);">
+          Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
+        </p>
+      {% elif install_method == 'pipx' %}
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+          To uninstall, run this in your terminal:
+        </p>
+        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);font-size:var(--fs-sm);">pipx uninstall jobhunt</code>
+        <p style="margin:var(--sp-3) 0 0;color:var(--text-3);font-size:var(--fs-sm);">
+          Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
+        </p>
+      {% else %}
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+          To uninstall, run this in your terminal:
+        </p>
+        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);font-size:var(--fs-sm);">pip uninstall jobhunt</code>
+        <p style="margin:var(--sp-3) 0 0;color:var(--text-3);font-size:var(--fs-sm);">
+          Your job data is in <code>{{ data_dir }}</code> — delete that folder too for a clean removal.
+        </p>
+      {% endif %}
     </div>
 
     <h2>Links</h2>
-    <ul style="list-style:none;padding:0;margin:0;">
-      <li style="padding:var(--sp-2) 0;border-bottom:1px dashed var(--rule);">
-        <a href="https://github.com/Abdalla2004-collab/Jobhunt" target="_blank" rel="noopener">GitHub repository</a>
-      </li>
-      <li style="padding:var(--sp-2) 0;border-bottom:1px dashed var(--rule);">
-        <a href="https://github.com/Abdalla2004-collab/Jobhunt/issues" target="_blank" rel="noopener">Report a bug</a>
-      </li>
-      <li style="padding:var(--sp-2) 0;">
-        <a href="https://github.com/Abdalla2004-collab/Jobhunt/releases" target="_blank" rel="noopener">All releases</a>
-      </li>
-    </ul>
+    <div style="display:flex;gap:var(--sp-3);flex-wrap:wrap;">
+      <a href="https://github.com/Abdalla2004-collab/Jobhunt" target="_blank" rel="noopener">
+        <button type="button" class="ghost">GitHub</button>
+      </a>
+      <a href="https://github.com/Abdalla2004-collab/Jobhunt/issues" target="_blank" rel="noopener">
+        <button type="button" class="ghost">Report a bug</button>
+      </a>
+      <a href="https://github.com/Abdalla2004-collab/Jobhunt/releases" target="_blank" rel="noopener">
+        <button type="button" class="ghost">All releases</button>
+      </a>
+    </div>
   </main>
 
   <script>
@@ -80,7 +106,6 @@
 
     document.addEventListener("DOMContentLoaded", function () {
 
-      // ── Update button ──
       var updateBtn = document.getElementById("update-btn");
       var updateSpinner = document.getElementById("update-spinner");
       var updateResult = document.getElementById("update-result");
@@ -115,13 +140,12 @@
         });
       }
 
-      // ── Clear data button ──
       var clearBtn = document.getElementById("clear-btn");
       var clearStatus = document.getElementById("clear-status");
 
       if (clearBtn) {
         clearBtn.addEventListener("click", async function () {
-          if (!window.confirm("Delete all scraped jobs? They will be re-scraped on next refresh.")) return;
+          if (!window.confirm("Delete all scraped jobs? They will come back on the next refresh.")) return;
           clearBtn.disabled = true;
           clearStatus.textContent = "";
           try {
@@ -132,27 +156,6 @@
             clearStatus.textContent = "Error: " + e.message;
           } finally {
             clearBtn.disabled = false;
-          }
-        });
-      }
-
-      // ── Uninstall button ──
-      var uninstallBtn = document.getElementById("uninstall-btn");
-      var uninstallStatus = document.getElementById("uninstall-status");
-
-      if (uninstallBtn) {
-        uninstallBtn.addEventListener("click", async function () {
-          uninstallBtn.disabled = true;
-          try {
-            var r = await fetch("/api/uninstall", { method: "POST" });
-            var j = await r.json();
-            uninstallStatus.textContent = j.message || "";
-            uninstallStatus.style.display = "block";
-          } catch (e) {
-            uninstallStatus.textContent = "Error: " + e.message;
-            uninstallStatus.style.display = "block";
-          } finally {
-            uninstallBtn.disabled = false;
           }
         });
       }

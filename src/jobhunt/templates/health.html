@@ -13,7 +13,7 @@
 
   <main class="page">
     <h1>Source Health</h1>
-    <p>Per-board scrape outcomes and self-update status. Anything red has not produced a successful pull in the last 48 hours.</p>
+    <p>Shows which job sources are working and which need attention. Red means the source hasn't returned results in 48 hours.</p>
 
     <h2>Self-update</h2>
     <section class="scheduler-card">
@@ -23,7 +23,7 @@
         </p>
       {% else %}
         <p><strong class="warn">Not running.</strong>
-          Set <code>JOBHUNT_REFRESH_INTERVAL_MINUTES</code> &gt; 0 and restart, or POST <code>/api/scheduler/start?interval_minutes=360</code>.
+          Start jobhunt with <code>jobhunt --schedule 360</code> to auto-refresh every 6 hours.
         </p>
       {% endif %}
       {% if scheduler.last_run.at %}

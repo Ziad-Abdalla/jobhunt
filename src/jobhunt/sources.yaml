@@ -71,8 +71,7 @@
 - { source: greenhouse, board: webflow,            company: Webflow }
 - { source: greenhouse, board: zscaler,            company: Zscaler }
 
-# --- Lever boards (verified 2026-05-27) ---
-- { source: lever, board: netflix,    company: Netflix }
+# --- Lever boards ---
 - { source: lever, board: spotify,    company: Spotify }
 
 # --- Ashby boards (verified 2026-05-27) ---
@@ -83,7 +82,6 @@
 - { source: ashby, board: replit,        company: Replit }
 - { source: ashby, board: ramp,          company: Ramp }
 - { source: ashby, board: openai,        company: OpenAI }
-- { source: ashby, board: ashby,         company: Ashby }
 - { source: ashby, board: notion,        company: Notion }
 - { source: ashby, board: cohere,        company: Cohere }
 - { source: ashby, board: anyscale,      company: Anyscale }

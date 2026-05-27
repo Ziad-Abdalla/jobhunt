@@ -13,7 +13,7 @@
 
   <main class="page">
     <h1>Saved Searches</h1>
-    <p>Each saved search is a standing column. After every scrape, fresh matches fire a desktop notification (via <code>notify-send</code>, <code>osascript</code> or PowerShell), each posting only once.</p>
+    <p>Save a set of filters and get a desktop notification whenever new matching jobs appear. Each job is only alerted once.</p>
 
     <h2>New / update</h2>
     <section class="form-card">
@@ -62,7 +62,7 @@
     </section>
 
     <h2>Active</h2>
-    {% if not searches %}<p class="empty">None yet — your dispatch boxes are empty.</p>{% endif %}
+    {% if not searches %}<p class="empty">No saved searches yet. Create one above to get notified about new jobs.</p>{% endif %}
     <ol class="alert-list">
       {% for s in searches %}
       <li>

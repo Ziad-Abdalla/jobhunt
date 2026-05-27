@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import socket
+import sys
 import threading
 import time
 import webbrowser
@@ -14,6 +15,8 @@ from . import __version__
 from .config import settings
 from .db import db_session, init_db
 from .refresh import scrape_all
+
+_FROZEN = getattr(sys, "frozen", False)
 
 app = typer.Typer(invoke_without_command=True, help="jobhunt — local job board aggregator.")
 
@@ -76,12 +79,20 @@ def serve(
     if schedule > 0:
         import os
         os.environ["JOBHUNT_REFRESH_INTERVAL_MINUTES"] = str(schedule)
-    uvicorn.run(
-        "jobhunt.main:app",
-        host=host or settings.host,
-        port=port or settings.port,
-        reload=reload,
-    )
+    if _FROZEN or not reload:
+        from .main import app as webapp
+        uvicorn.run(
+            webapp,
+            host=host or settings.host,
+            port=port or settings.port,
+        )
+    else:
+        uvicorn.run(
+            "jobhunt.main:app",
+            host=host or settings.host,
+            port=port or settings.port,
+            reload=True,
+        )
 
 
 @app.command(name="app")
@@ -111,12 +122,11 @@ def app_mode(
             daemon=True,
         ).start()
 
-    uvicorn.run(
-        "jobhunt.main:app",
-        host="127.0.0.1",
-        port=chosen,
-        log_level="warning",
-    )
+    if _FROZEN:
+        from .main import app as webapp
+        uvicorn.run(webapp, host="127.0.0.1", port=chosen, log_level="warning")
+    else:
+        uvicorn.run("jobhunt.main:app", host="127.0.0.1", port=chosen, log_level="warning")
 
 
 @app.command()
