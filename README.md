@@ -5,100 +5,65 @@
 
 **Search thousands of real job openings — locally, privately, with great filters.**
 
-No account needed. No data leaves your machine. Just download, run, and search.
+No account needed. No data leaves your machine.
 
-[Features](#what-it-does) · [How it works](#how-it-works) · [Privacy](#privacy)
-</div>
+<br>
 
----
+**[Get jobhunt](https://abdalla2004-collab.github.io/Jobhunt/)** — auto-detects your OS, one command to install.
 
-## Download
+<br>
 
-Pick your system. One click installs everything and opens jobhunt in your browser.
+Or install right now:
 
-<div align="center">
-<table>
-<tr>
-<th align="center" width="33%">Windows</th>
-<th align="center" width="33%">macOS</th>
-<th align="center" width="33%">Linux</th>
-</tr>
-<tr>
-<td align="center">
-
-**[Download for Windows](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-windows.bat)**
-
-Double-click the file.
-
-</td>
-<td align="center">
-
-**[Download for Mac](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-mac.command)**
-
-Double-click the file.
-
-</td>
-<td align="center">
-
-**[Download for Linux](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/install-linux.sh)**
-
-Run: `bash install-linux.sh`
-
-</td>
-</tr>
-</table>
-</div>
-
-Each installer is a tiny script (~1 KB) that installs [uv](https://github.com/astral-sh/uv)
-(a trusted package manager), then installs jobhunt from [PyPI](https://pypi.org/project/jobhunt-app/),
-and opens it. You can [read the source](scripts/) before running.
-
-> **Windows note:** You may see "Windows protected your PC" — click
-> **More info > Run anyway**. This is normal for any script not from the Microsoft Store.
-
-### Alternative: one-line terminal install
-
-```bash
+```
 pip install jobhunt-app && jobhunt
 ```
 
-Or with uv/pipx:
-```bash
-uv tool install jobhunt-app && jobhunt
-```
-
-### Updating
-
-```
-jobhunt update
-```
-
-Or click **Check for updates** in the Settings tab.
-
-### Uninstalling
-
-```
-uv tool uninstall jobhunt-app
-```
-
-Or check the **Settings** tab for the exact command.
+</div>
 
 ---
 
 ## What it does
 
-- **17 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+- **17 job boards**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
   Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs, Arbeitnow, Jobicy,
-  Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble (69 countries), Reed (UK).
-- **15 stackable filters**: keyword, company, location, remote/hybrid/onsite,
-  level, job type, salary, degree, experience, languages, skills, date,
-  visa sponsorship, CV match, and sort order.
-- **Salary on every job**: real data where available, plus a self-calibrating estimator.
-- **CV match**: upload your CV and sort jobs by how well they fit your experience.
-- **Saved searches**: get desktop notifications when new matching jobs appear.
-- **Auto-refresh**: re-scrape every N hours in the background.
-- **Add companies**: from the Sources tab — no config files needed.
-- **Settings page**: update, clear data, uninstall — all from the UI.
+  Himalayas, TheMuse, Arbeitsagentur, Jooble, Reed
+- **15 filters**: keyword, company, location, remote/hybrid/onsite, level,
+  job type, salary, degree, experience, languages, skills, date, visa, CV match, sort
+- **Salary on every job**: real data + self-calibrating estimator
+- **CV match**: upload your CV, sort jobs by fit
+- **Saved searches**: desktop notifications on new matching jobs
+- **Auto-refresh**: re-scrape in the background every N hours
+- **Settings page**: update, clear data, and uninstall from the UI
+
+## Install
+
+**Windows** (open PowerShell, paste this):
+```powershell
+irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
+```
+
+**macOS / Linux** (open Terminal, paste this):
+```bash
+curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
+```
+
+**Already have pip?**
+```bash
+pip install jobhunt-app
+```
+
+Then run `jobhunt`. Your browser opens. That's it.
+
+### Manage
+
+| Action | How |
+|--------|-----|
+| **Update** | `jobhunt update` or Settings tab > Check for updates |
+| **Uninstall** | `uv tool uninstall jobhunt-app` or see Settings tab |
+| **Clear data** | Settings tab > Clear all jobs |
+| **Auto-refresh** | `jobhunt --schedule 360` (every 6 hours) |
+| **Check sources** | `jobhunt doctor` |
 
 ## How it works
 
@@ -106,25 +71,18 @@ Companies use applicant-tracking systems (Greenhouse, Lever, Ashby, etc.)
 with stable public APIs. jobhunt reads from those APIs, stores everything
 locally, and gives you a search UI with filters and a CV matcher.
 
-It does **not** scrape LinkedIn or Indeed.
+Does **not** scrape LinkedIn or Indeed.
 
 ## Privacy
 
-- Everything runs on your machine. Nothing is uploaded.
-- No telemetry, analytics, or update pings.
-- The UI only listens on `127.0.0.1` (your machine, not your network).
-- Your data is at: `~/.local/share/jobhunt/` (Linux), `~/Library/Application Support/jobhunt/` (Mac), `%APPDATA%\jobhunt\` (Windows). Run `jobhunt info` to check.
+Everything runs on your machine. No telemetry, analytics, or update pings.
+The UI only listens on `127.0.0.1`. Your data is stored locally:
 
-## Commands
-
-```bash
-jobhunt                  # start + open browser
-jobhunt --schedule 360   # auto-refresh every 6 hours
-jobhunt update           # update to latest
-jobhunt doctor           # check which sources work
-jobhunt match-cv my.pdf  # score jobs against your CV
-jobhunt info             # show file paths
-```
+| OS | Path |
+|----|------|
+| Windows | `%APPDATA%\jobhunt\` |
+| macOS | `~/Library/Application Support/jobhunt/` |
+| Linux | `~/.local/share/jobhunt/` |
 
 ## For developers
 
@@ -132,12 +90,11 @@ jobhunt info             # show file paths
 git clone https://github.com/Abdalla2004-collab/Jobhunt && cd Jobhunt
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-pytest -q      # 69 unit tests
-jobhunt        # run locally
+pytest -q && jobhunt
 ```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guide.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT
