@@ -13,17 +13,14 @@
 #
 # To uninstall:
 #   uv tool uninstall jobhunt
-[CmdletBinding()]
-param()
-
 $ErrorActionPreference = 'Stop'
 
 $Repo    = 'Abdalla2004-collab/Jobhunt'
 $Package = "git+https://github.com/$Repo.git"
 
-function Info($msg)  { Write-Host "  → $msg" -ForegroundColor Cyan }
-function Ok($msg)    { Write-Host "  ✓ $msg" -ForegroundColor Green }
-function Fail($msg)  { Write-Host "  ✗ $msg" -ForegroundColor Red; exit 1 }
+function Info($msg)  { Write-Host "  -> $msg" -ForegroundColor Cyan }
+function Ok($msg)    { Write-Host "  OK $msg" -ForegroundColor Green }
+function Fail($msg)  { Write-Host "  FAIL $msg" -ForegroundColor Red; exit 1 }
 
 function Refresh-Path {
     $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
@@ -31,8 +28,23 @@ function Refresh-Path {
 
 Write-Host ""
 Write-Host "  Installing jobhunt"
-Write-Host "  ──────────────────"
+Write-Host "  ------------------"
 Write-Host ""
+
+# ── Step 0: check git ───────────────────────────────────────────────────────
+
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Write-Host "  Git is required but not found." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Install Git for Windows from: https://git-scm.com/download/win"
+    Write-Host "  Then re-run this script."
+    Write-Host ""
+    Write-Host "  Alternatively, download the standalone binary:"
+    Write-Host "  https://github.com/$Repo/releases/latest/download/jobhunt-windows-x86_64.exe"
+    Write-Host ""
+    exit 1
+}
 
 # ── Step 1: uv ──────────────────────────────────────────────────────────────
 
@@ -43,7 +55,7 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     Ok "uv is already installed ($uvVer)"
 } else {
     Info "Installing uv (open-source Python package manager by Astral)..."
-    Info "Source: https://astral.sh/uv — widely trusted, MIT-licensed."
+    Info "Source: https://astral.sh/uv -- widely trusted, MIT-licensed."
     Write-Host ""
     try {
         powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" 2>$null
@@ -52,7 +64,6 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     }
     Refresh-Path
     if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-        # Try the common default location directly.
         $uvBin = Join-Path $env:USERPROFILE '.local\bin'
         if (Test-Path (Join-Path $uvBin 'uv.exe')) {
             $env:Path = "$uvBin;$env:Path"
@@ -67,18 +78,25 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 
 Info "Installing jobhunt into its own isolated environment..."
 
-# Run uv tool install. Stderr output (progress) is normal — suppress it so
-# PowerShell doesn't show scary red text.
 $prev = $ErrorActionPreference
 $ErrorActionPreference = 'SilentlyContinue'
 $output = & uv tool install $Package 2>&1 | Out-String
+$exitCode = $LASTEXITCODE
 $ErrorActionPreference = $prev
 
 if ($output -match 'already installed') {
-    Info "jobhunt is already installed — upgrading to latest..."
+    Info "jobhunt is already installed -- upgrading to latest..."
     $ErrorActionPreference = 'SilentlyContinue'
-    & uv tool upgrade jobhunt 2>&1 | Out-Null
+    & uv tool install --reinstall --upgrade $Package 2>&1 | Out-Null
     $ErrorActionPreference = $prev
+} elseif ($exitCode -ne 0) {
+    Write-Host ""
+    Write-Host "  Installation failed. Output:" -ForegroundColor Red
+    Write-Host $output
+    Write-Host ""
+    Write-Host "  Try downloading the standalone binary instead:"
+    Write-Host "  https://github.com/$Repo/releases/latest/download/jobhunt-windows-x86_64.exe"
+    exit 1
 }
 Ok "jobhunt installed"
 
@@ -86,7 +104,6 @@ Ok "jobhunt installed"
 
 Refresh-Path
 
-# uv tool install puts executables in its own bin directory. Ask uv where.
 $toolBin = (& uv tool dir --bin 2>$null)
 if ($toolBin -and (Test-Path $toolBin)) {
     if ($env:Path -notlike "*$toolBin*") {
@@ -95,30 +112,30 @@ if ($toolBin -and (Test-Path $toolBin)) {
 }
 
 if (Get-Command jobhunt -ErrorAction SilentlyContinue) {
-    Ok "Ready — you can run 'jobhunt' right now in this window"
+    Ok "Ready -- you can run 'jobhunt' right now in this window"
 } else {
     Write-Host ""
-    Info "Almost done — close this window and open a new PowerShell,"
+    Info "Almost done -- close this window and open a new PowerShell,"
     Info "then run: jobhunt"
 }
 
 Write-Host ""
-Write-Host "  ┌──────────────────────────────────────────────┐"
-Write-Host "  │                                              │"
-Write-Host "  │   All done. To launch jobhunt, just run:     │"
-Write-Host "  │                                              │"
-Write-Host "  │       jobhunt                                │"
-Write-Host "  │                                              │"
-Write-Host "  │   It starts a local server and opens your    │"
-Write-Host "  │   browser. Nothing leaves your machine.      │"
-Write-Host "  │                                              │"
-Write-Host "  │   To update later:                           │"
-Write-Host "  │                                              │"
-Write-Host "  │       jobhunt update                         │"
-Write-Host "  │                                              │"
-Write-Host "  │   To uninstall:                              │"
-Write-Host "  │                                              │"
-Write-Host "  │       uv tool uninstall jobhunt              │"
-Write-Host "  │                                              │"
-Write-Host "  └──────────────────────────────────────────────┘"
+Write-Host "  +----------------------------------------------+"
+Write-Host "  |                                              |"
+Write-Host "  |   All done. To launch jobhunt, just run:     |"
+Write-Host "  |                                              |"
+Write-Host "  |       jobhunt                                |"
+Write-Host "  |                                              |"
+Write-Host "  |   It starts a local server and opens your    |"
+Write-Host "  |   browser. Nothing leaves your machine.      |"
+Write-Host "  |                                              |"
+Write-Host "  |   To update later:                           |"
+Write-Host "  |                                              |"
+Write-Host "  |       jobhunt update                         |"
+Write-Host "  |                                              |"
+Write-Host "  |   To uninstall:                              |"
+Write-Host "  |                                              |"
+Write-Host "  |       uv tool uninstall jobhunt              |"
+Write-Host "  |                                              |"
+Write-Host "  +----------------------------------------------+"
 Write-Host ""

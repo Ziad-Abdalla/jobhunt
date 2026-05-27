@@ -25,21 +25,28 @@ No terminal needed. Download the file for your computer, open it, done.
 <div align="center">
 <table>
 <tr>
-<td align="center" width="33%">
+<td align="center" width="25%">
 
 **Windows**
 
 [Download jobhunt.exe](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-windows-x86_64.exe)
 
 </td>
-<td align="center" width="33%">
+<td align="center" width="25%">
 
-**macOS**
+**macOS (Apple Silicon)**
 
 [Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-arm64)
 
 </td>
-<td align="center" width="33%">
+<td align="center" width="25%">
+
+**macOS (Intel)**
+
+[Download jobhunt](https://github.com/Abdalla2004-collab/Jobhunt/releases/latest/download/jobhunt-macos-x86_64)
+
+</td>
+<td align="center" width="25%">
 
 **Linux**
 
@@ -52,11 +59,19 @@ No terminal needed. Download the file for your computer, open it, done.
 
 Double-click the file. Your browser opens to jobhunt. That's it.
 
-> Your OS may show a security prompt ("unrecognized publisher") — this
-> happens with every free open-source app. It's not a malware warning.
-> Click **More info → Run anyway** (Windows) or **Open** (macOS).
+> **Windows:** you may see "Windows protected your PC" — click **More info
+> → Run anyway**. This happens with every free open-source app that hasn't
+> paid for code signing.
+>
+> **macOS:** right-click the file → Open (or System Settings → Privacy &
+> Security → Open Anyway). macOS blocks unsigned apps by default.
+>
+> **Linux:** you may need to make the file executable first:
+> `chmod +x jobhunt-linux-x86_64` then `./jobhunt-linux-x86_64`
 
 ### Option B: One-line install (recommended, auto-updates)
+
+Requires [Git](https://git-scm.com/) to be installed.
 
 **Linux / macOS:**
 ```bash
@@ -77,24 +92,32 @@ isolated environment. Nothing touches your system. You can
 
 ### Updating
 
+From the terminal:
 ```
 jobhunt update
 ```
 
+Or open the **Settings** tab in the web UI and click **Check for updates**.
+
 ### Uninstalling
 
+From the terminal:
 ```
 uv tool uninstall jobhunt
 ```
 
-Removes jobhunt and its isolated environment. Nothing else is touched.
+Or open the **Settings** tab in the web UI — it shows the exact command for
+your install method.
+
+Removes jobhunt and its isolated environment. Your job data stays in your
+data directory (see [Where your data lives](#where-your-data-lives)) — delete
+that folder too if you want a clean removal.
 
 ### What happens on first launch
 
 A friendly empty page that says **"Your paper is blank."** Click the big
-**Pull listings now** button. The app reaches out to a handful of public
-company career pages and pulls down ~5,000 real job postings. Takes about a
-minute.
+**Pull listings now** button. The app reaches out to public company career
+pages and pulls down thousands of real job postings. Takes about a minute.
 
 After that, the filters do the rest. Sort by relevance, narrow to remote roles,
 add language tags, set a maximum years of experience — all without a page
@@ -123,7 +146,7 @@ uv tool install git+https://github.com/Abdalla2004-collab/Jobhunt.git
 pipx install git+https://github.com/Abdalla2004-collab/Jobhunt.git
 ```
 
-Update: `uv tool upgrade jobhunt` or `pipx upgrade jobhunt`.
+Update: `jobhunt update` or `uv tool upgrade jobhunt`.
 
 </details>
 
@@ -141,29 +164,65 @@ Update: `git pull && docker compose up --build -d`.
 
 </details>
 
+<details>
+<summary>Troubleshooting</summary>
+
+**"command not found" after install:**
+Your shell doesn't see `~/.local/bin`. Add this to your `~/.bashrc` or `~/.zshrc`:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+Then reopen your terminal.
+
+**Windows: "irm is not recognized":**
+You need PowerShell 5.1+ (built into Windows 10/11). Don't use Command Prompt
+(cmd.exe). Search for "PowerShell" in the Start menu.
+
+**Windows: "execution of scripts is disabled":**
+Run PowerShell as Administrator and type:
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**macOS: "jobhunt can't be opened because it is from an unidentified developer":**
+Right-click the file → Open, or: System Settings → Privacy & Security → scroll
+down → click "Open Anyway".
+
+**Binary doesn't start / crashes immediately:**
+Try the terminal install instead (Option B). If you need help, open an issue:
+https://github.com/Abdalla2004-collab/Jobhunt/issues
+
+</details>
+
 ---
 
 ## What it does
 
-- Searches across **9 real job boards**: Greenhouse, Lever, Ashby, Workable,
-  SmartRecruiters, Recruitee, Workday, RemoteOK, and Hacker News' monthly
-  "Who is Hiring?" thread.
-- Strong filters: keyword, company, location, work mode (remote/hybrid/onsite),
-  level (intern → principal), degree required, max years of experience,
-  programming languages, skills, posted within N days, and a CV-match score.
+- Searches across **17 job board adapters**: Greenhouse, Lever, Ashby, Workable,
+  SmartRecruiters, Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs,
+  Arbeitnow, Jobicy, Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble
+  (69 countries), and Reed.co.uk (UK).
+- **15 filters**: keyword, company, location, work mode (remote/hybrid/onsite),
+  level (intern to principal), job type, minimum salary, degree, max years of
+  experience, programming languages, skills, posted within, visa sponsorship,
+  CV match score, and sort order. All stackable.
+- **Salary on every job**: 100% salary coverage — real salary data where
+  available, plus a self-calibrating estimator for the rest.
 - **CV match** (optional): drop in your PDF/DOCX/TXT and every job gets a
-  similarity score. Sort by match. Filter to ≥ 70 %. Stop scrolling junk.
+  similarity score. Sort by match. Filter to >= 70 %. Stop scrolling junk.
 - **Saved searches**: define a filter set once, get a desktop notification
   whenever a new matching job appears. Each posting is alerted at most once.
 - **Self-updating**: tell it to refresh every N minutes; it runs in the
   background while the app is open. No cron jobs.
 - **Add your own companies**: pop over to the Sources tab and add any
   company's career-page slug. No YAML editing required.
+- **Settings page**: check for updates, clear data, and get uninstall
+  instructions — all from the web UI.
 
 ## Screenshots
 
-> Run `jobhunt` and visit `http://127.0.0.1:8765`. Five pages: Search,
-> Alerts, CV Match, Sources, Source Health.
+> Run `jobhunt` and visit `http://127.0.0.1:8765`. Six pages: Search,
+> Alerts, CV Match, Sources, Source Health, Settings.
 
 ## How it works
 
@@ -208,22 +267,23 @@ jobhunt --version
 
 ## Filters in detail
 
-| Filter        | What it does |
-|---------------|--------------|
-| keyword       | free text across title, company, description |
-| company       | substring of company name |
-| location      | substring of location |
-| work mode     | remote / hybrid / onsite |
-| level         | intern, entry, junior, mid, senior, staff, principal, lead |
-| job type      | full-time, part-time, contract, internship |
-| min salary    | minimum annual salary (real or estimated) |
-| degree        | none, bachelors, masters, phd |
-| max years     | excludes jobs whose minimum YoE exceeds this |
-| languages     | comma list — `python`, `go`, `typescript`, … |
-| skills        | comma list — `react`, `aws`, `kubernetes`, … |
-| posted within | 1 / 7 / 14 / 30 days |
-| min CV match  | when a CV is loaded, hide anything below the threshold |
-| sort          | relevance / posted date / last seen / CV match |
+| Filter             | What it does |
+|--------------------|--------------|
+| keyword            | free text across title, company, description |
+| company            | substring of company name |
+| location           | substring of location |
+| work mode          | remote / hybrid / onsite |
+| level              | intern, entry, junior, mid, senior, staff, principal, lead |
+| job type           | full-time, part-time, contract, internship |
+| min salary         | minimum annual salary (real or estimated) |
+| degree             | none, bachelors, masters, phd |
+| max years          | excludes jobs whose minimum YoE exceeds this |
+| languages          | comma list — `python`, `go`, `typescript`, ... |
+| skills             | comma list — `react`, `aws`, `kubernetes`, ... |
+| posted within      | 1 / 7 / 14 / 30 days |
+| visa sponsorship   | yes / no |
+| min CV match       | when a CV is loaded, hide anything below the threshold |
+| sort               | relevance / posted date / last seen / CV match |
 
 ## CV match (optional)
 
@@ -300,13 +360,14 @@ src/jobhunt/
 ├── scoring.py         transparent relevance score
 ├── extract.py         skill/level/remote/YoE extractors
 ├── dedup.py           fingerprint + normalization
+├── salary_estimator.py self-calibrating salary estimation
 ├── scheduler.py       APScheduler self-update
 ├── notifications.py   cross-platform desktop notify
 ├── alerts.py          saved-search alert engine
 ├── cv.py              CV parse + embed + cosine match
 ├── sources_admin.py   in-UI source management
-├── scrapers/          9 source adapters
-├── templates/         Jinja2 — masthead + 5 pages
+├── scrapers/          17 source adapters
+├── templates/         Jinja2 — masthead + 6 pages
 ├── static/            style.css, app.js, htmx.min.js (vendored)
 └── sources.yaml       default board list
 ```
@@ -314,12 +375,14 @@ src/jobhunt/
 ## Tests
 
 ```bash
-pytest -q     # 37 tests
+pytest -q     # 69 unit tests + 11 browser E2E tests
 ```
 
 Includes a real end-to-end CV pipeline test with three synthetic CVs
 (junior Python, senior ML, frontend React) against a synthetic job corpus.
 Each CV correctly ranks its expected role at #1.
+
+Browser E2E tests (requires Playwright): `pytest -m e2e`
 
 ## License
 

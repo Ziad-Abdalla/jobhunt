@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JOBHUNT_", env_file=".env", extra="ignore")
 
     db_path: Path = Field(default_factory=_default_db_path)
-    user_agent: str = "jobhunt/0.1 (+https://github.com/Abdalla2004-collab/Jobhunt)"
+    user_agent: str = "jobhunt/0.3 (+https://github.com/Abdalla2004-collab/Jobhunt)"
     request_timeout: float = 20.0
     concurrency: int = 4
     stale_after_days: int = 14

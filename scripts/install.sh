@@ -28,6 +28,19 @@ echo "  Installing jobhunt"
 echo "  ──────────────────"
 echo ""
 
+# ── Step 0: check git ───────────────────────────────────────────────────────
+
+if ! command -v git >/dev/null 2>&1; then
+    fail "Git is required but not found. Install it first:"
+    echo "  Linux (Debian/Ubuntu): sudo apt install git"
+    echo "  Linux (Fedora):        sudo dnf install git"
+    echo "  macOS:                 xcode-select --install"
+    echo ""
+    echo "  Or download the standalone binary instead:"
+    echo "  https://github.com/$REPO/releases/latest"
+    exit 1
+fi
+
 # ── Step 1: uv ───────────────────────────────────────────────────────────────
 
 if command -v uv >/dev/null 2>&1; then
@@ -49,9 +62,10 @@ fi
 # ── Step 2: jobhunt ──────────────────────────────────────────────────────────
 
 info "Installing jobhunt into its own isolated environment..."
-if uv tool install "$PACKAGE" 2>&1 | grep -q "already installed"; then
+output=$(uv tool install "$PACKAGE" 2>&1) || true
+if echo "$output" | grep -q "already installed"; then
     info "jobhunt is already installed — upgrading to latest..."
-    uv tool upgrade jobhunt >/dev/null 2>&1 || uv tool install --reinstall "$PACKAGE" >/dev/null 2>&1
+    uv tool install --reinstall --upgrade "$PACKAGE" >/dev/null 2>&1 || true
 fi
 ok "jobhunt installed"
 

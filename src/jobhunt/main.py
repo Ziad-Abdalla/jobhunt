@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 
+from . import __version__
 from . import scheduler as sched_module
 from .alerts import check_alerts
 from .config import settings
@@ -46,7 +47,7 @@ def _localdate(dt: datetime | None, fmt: str = "%b %d, %Y") -> str:
 
 templates.env.filters["localdate"] = _localdate
 
-app = FastAPI(title="jobhunt", version="0.1.0")
+app = FastAPI(title="jobhunt", version=__version__)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
@@ -552,12 +553,240 @@ def sources_remove_route(source: str, board: str) -> RedirectResponse:
     return RedirectResponse("/sources", status_code=303)
 
 
+# ---------- settings page ----------
+
+
+_GITHUB_REPO = "Abdalla2004-collab/Jobhunt"
+
+
+def _detect_install_method() -> str:
+    """Detect how jobhunt was installed."""
+    import shutil
+    import sys
+
+    if getattr(sys, "frozen", False):
+        return "binary"
+    if shutil.which("uv"):
+        return "uv"
+    if shutil.which("pipx"):
+        return "pipx"
+    return "pip"
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request) -> HTMLResponse:
+    import platform
+
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "nav": "settings",
+            "today": _today(),
+            "version": __version__,
+            "python_version": platform.python_version(),
+            "platform": f"{platform.system()} {platform.machine()}",
+            "data_dir": str(settings.data_dir),
+            "db_path": str(settings.db_path),
+            "sources_file": str(settings.sources_file),
+            "local_sources_file": str(settings.local_sources_file),
+            "install_method": _detect_install_method(),
+        },
+    )
+
+
+@app.get("/api/check-update")
+def api_check_update() -> JSONResponse:
+    """Check GitHub for a newer release without installing anything."""
+    import httpx
+
+    try:
+        resp = httpx.get(
+            f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest",
+            headers={"Accept": "application/vnd.github+json"},
+            timeout=10,
+            follow_redirects=True,
+        )
+        if resp.status_code == 404:
+            return JSONResponse({"ok": True, "update_available": False,
+                                 "message": f"You are on v{__version__}. No releases found."})
+        resp.raise_for_status()
+        data = resp.json()
+        latest_tag = data.get("tag_name", "").lstrip("v")
+        current_parts = tuple(int(x) for x in __version__.split("."))
+        try:
+            latest_parts = tuple(int(x) for x in latest_tag.split("."))
+        except (ValueError, AttributeError):
+            latest_parts = (0, 0, 0)
+        if latest_parts > current_parts:
+            return JSONResponse({
+                "ok": True, "update_available": True,
+                "latest": latest_tag, "current": __version__,
+                "url": data.get("html_url", ""),
+                "message": f"Update available: v{latest_tag} (you have v{__version__})",
+            })
+        return JSONResponse({
+            "ok": True, "update_available": False,
+            "latest": latest_tag, "current": __version__,
+            "message": f"You are on the latest version (v{__version__}).",
+        })
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse({"ok": False, "message": f"Could not check for updates: {exc}"})
+
+
+@app.post("/api/update")
+def api_update() -> JSONResponse:
+    """Update jobhunt. For uv/pipx installs, runs the upgrade command.
+
+    For binary installs, returns the download URL so the frontend can
+    offer a direct download link.
+    """
+    import platform
+    import shutil
+    import subprocess
+
+    method = _detect_install_method()
+
+    if method == "binary":
+        # Binary users: check for new release and provide download link.
+        import httpx
+
+        try:
+            resp = httpx.get(
+                f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest",
+                headers={"Accept": "application/vnd.github+json"},
+                timeout=10,
+                follow_redirects=True,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            latest_tag = data.get("tag_name", "").lstrip("v")
+            current_parts = tuple(int(x) for x in __version__.split("."))
+            try:
+                latest_parts = tuple(int(x) for x in latest_tag.split("."))
+            except (ValueError, AttributeError):
+                latest_parts = (0, 0, 0)
+            if latest_parts <= current_parts:
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Already on the latest version (v{__version__}).",
+                })
+            # Find the right asset for this platform.
+            system = platform.system().lower()
+            machine = platform.machine().lower()
+            suffix = ""
+            if system == "windows":
+                suffix = "windows-x86_64.exe"
+            elif system == "darwin":
+                suffix = "macos-arm64" if "arm" in machine or "aarch" in machine else "macos-x86_64"
+            else:
+                suffix = "linux-x86_64"
+            download_url = ""
+            for asset in data.get("assets", []):
+                if asset["name"].endswith(suffix):
+                    download_url = asset["browser_download_url"]
+                    break
+            if download_url:
+                msg = (
+                    f"v{latest_tag} is available. "
+                    "Download the new binary, replace this one, and restart."
+                )
+                return JSONResponse({
+                    "ok": True,
+                    "message": msg,
+                    "download_url": download_url,
+                    "latest": latest_tag,
+                })
+            msg = (
+                f"v{latest_tag} is available but no binary found "
+                f"for {system}/{machine}. "
+                f"Download from: {data.get('html_url', '')}"
+            )
+            return JSONResponse({"ok": True, "message": msg})
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({"ok": False, "message": f"Could not check for updates: {exc}"})
+
+    elif method == "uv":
+        uv = shutil.which("uv")
+        result = subprocess.run(
+            [uv, "tool", "install", "--reinstall", "--upgrade",
+             f"git+https://github.com/{_GITHUB_REPO}.git"],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode == 0:
+            msg = result.stdout.strip() or "jobhunt updated. Restart to use the new version."
+            return JSONResponse({"ok": True, "message": msg})
+        return JSONResponse({"ok": False, "message": result.stderr.strip() or "Update failed."})
+
+    elif method == "pipx":
+        pipx = shutil.which("pipx")
+        result = subprocess.run(
+            [pipx, "upgrade", "jobhunt"],
+            capture_output=True, text=True, timeout=120,
+        )
+        msg = result.stdout.strip() or result.stderr.strip() or "done"
+        return JSONResponse({"ok": result.returncode == 0, "message": msg})
+
+    else:
+        return JSONResponse({
+            "ok": False,
+            "message": "Could not determine install method. Download the latest from: "
+                       f"https://github.com/{_GITHUB_REPO}/releases/latest",
+        })
+
+
+@app.post("/api/uninstall")
+def api_uninstall() -> JSONResponse:
+    """Return uninstall instructions appropriate for the install method."""
+    method = _detect_install_method()
+    data_msg = (
+        f"\n\nYour job data is in:\n  {settings.data_dir}\n"
+        "Delete that folder too for a clean removal."
+    )
+
+    if method == "binary":
+        return JSONResponse({
+            "ok": True,
+            "message": "Delete the jobhunt file you downloaded. That's it." + data_msg,
+        })
+    elif method == "uv":
+        return JSONResponse({
+            "ok": True,
+            "message": "Run this in your terminal:\n\n  uv tool uninstall jobhunt" + data_msg,
+        })
+    elif method == "pipx":
+        return JSONResponse({
+            "ok": True,
+            "message": "Run this in your terminal:\n\n  pipx uninstall jobhunt" + data_msg,
+        })
+    return JSONResponse({
+        "ok": True,
+        "message": "Run this in your terminal:\n\n  pip uninstall jobhunt" + data_msg,
+    })
+
+
+@app.post("/api/clear-data")
+def api_clear_data() -> JSONResponse:
+    """Delete the local database. Jobs will be re-scraped on next refresh."""
+    import os
+
+    db = settings.db_path
+    if db.exists():
+        os.remove(db)
+        init_db()
+        return JSONResponse({
+            "ok": True,
+            "message": "Database cleared. Pull listings to re-populate.",
+        })
+    return JSONResponse({"ok": True, "message": "Database already empty."})
+
+
 # ---------- meta ----------
 
 
 @app.get("/api/healthz")
 def healthz() -> dict:
-    return {"ok": True, "version": "0.1.0"}
+    return {"ok": True, "version": __version__}
 
 
 @app.get("/api/scheduler")

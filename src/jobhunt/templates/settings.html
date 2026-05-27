@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-page="settings">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:720px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Settings</h1>
+
+    <h2>About</h2>
+    <table class="health-table" style="max-width:480px;">
+      <tr><td style="color:var(--muted);font-weight:600;">Version</td><td>{{ version }}</td></tr>
+      <tr><td style="color:var(--muted);font-weight:600;">Python</td><td>{{ python_version }}</td></tr>
+      <tr><td style="color:var(--muted);font-weight:600;">Platform</td><td>{{ platform }}</td></tr>
+      <tr><td style="color:var(--muted);font-weight:600;">Installed via</td><td>{{ install_method }}</td></tr>
+      <tr><td style="color:var(--muted);font-weight:600;">Data directory</td><td style="word-break:break-all;font-family:var(--font-mono);font-size:var(--fs-xs);">{{ data_dir }}</td></tr>
+    </table>
+
+    <h2>Updates</h2>
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <p style="margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2);">
+        Check if a newer version of jobhunt is available and install it.
+      </p>
+      <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
+        <button id="update-btn" type="button">Check for updates</button>
+        <span id="update-spinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+      </div>
+      <div id="update-result" style="margin-top:var(--sp-3);display:none;">
+        <p id="update-message" style="margin:0;font:var(--fs-sm)/1.5 var(--font-body);color:var(--ink-2);white-space:pre-wrap;"></p>
+        <a id="update-download" href="#" target="_blank" rel="noopener" style="display:none;margin-top:var(--sp-2);">
+          <button type="button" class="ghost">Download new version</button>
+        </a>
+      </div>
+    </div>
+
+    <h2>Data</h2>
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <p style="margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2);">
+        Delete all scraped job data. Your saved searches and CV are kept.
+        Jobs will be re-scraped the next time you click "Refresh sources".
+      </p>
+      <button id="clear-btn" type="button" class="danger">Clear job database</button>
+      <p id="clear-status" style="margin:var(--sp-2) 0 0;font:var(--fs-sm)/1.5 var(--font-body);color:var(--ink-2);"></p>
+    </div>
+
+    <h2>Uninstall</h2>
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <p style="margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2);">
+        Remove jobhunt from your system.
+      </p>
+      <button id="uninstall-btn" type="button" class="ghost">Show uninstall instructions</button>
+      <p id="uninstall-status" style="margin:var(--sp-2) 0 0;font:var(--fs-sm)/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;display:none;"></p>
+    </div>
+
+    <h2>Links</h2>
+    <ul style="list-style:none;padding:0;margin:0;">
+      <li style="padding:var(--sp-2) 0;border-bottom:1px dashed var(--rule);">
+        <a href="https://github.com/Abdalla2004-collab/Jobhunt" target="_blank" rel="noopener">GitHub repository</a>
+      </li>
+      <li style="padding:var(--sp-2) 0;border-bottom:1px dashed var(--rule);">
+        <a href="https://github.com/Abdalla2004-collab/Jobhunt/issues" target="_blank" rel="noopener">Report a bug</a>
+      </li>
+      <li style="padding:var(--sp-2) 0;">
+        <a href="https://github.com/Abdalla2004-collab/Jobhunt/releases" target="_blank" rel="noopener">All releases</a>
+      </li>
+    </ul>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+      // ── Update button ──
+      var updateBtn = document.getElementById("update-btn");
+      var updateSpinner = document.getElementById("update-spinner");
+      var updateResult = document.getElementById("update-result");
+      var updateMessage = document.getElementById("update-message");
+      var updateDownload = document.getElementById("update-download");
+
+      if (updateBtn) {
+        updateBtn.addEventListener("click", async function () {
+          var was = updateBtn.textContent;
+          updateBtn.disabled = true;
+          updateBtn.textContent = "checking...";
+          updateSpinner.style.display = "inline-block";
+          updateResult.style.display = "none";
+          updateDownload.style.display = "none";
+          try {
+            var r = await fetch("/api/update", { method: "POST" });
+            var j = await r.json();
+            updateMessage.textContent = j.message || "Done.";
+            updateResult.style.display = "block";
+            if (j.download_url) {
+              updateDownload.href = j.download_url;
+              updateDownload.style.display = "inline-block";
+            }
+          } catch (e) {
+            updateMessage.textContent = "Error: " + e.message;
+            updateResult.style.display = "block";
+          } finally {
+            updateBtn.disabled = false;
+            updateBtn.textContent = was;
+            updateSpinner.style.display = "none";
+          }
+        });
+      }
+
+      // ── Clear data button ──
+      var clearBtn = document.getElementById("clear-btn");
+      var clearStatus = document.getElementById("clear-status");
+
+      if (clearBtn) {
+        clearBtn.addEventListener("click", async function () {
+          if (!window.confirm("Delete all scraped jobs? They will be re-scraped on next refresh.")) return;
+          clearBtn.disabled = true;
+          clearStatus.textContent = "";
+          try {
+            var r = await fetch("/api/clear-data", { method: "POST" });
+            var j = await r.json();
+            clearStatus.textContent = j.message || "Done.";
+          } catch (e) {
+            clearStatus.textContent = "Error: " + e.message;
+          } finally {
+            clearBtn.disabled = false;
+          }
+        });
+      }
+
+      // ── Uninstall button ──
+      var uninstallBtn = document.getElementById("uninstall-btn");
+      var uninstallStatus = document.getElementById("uninstall-status");
+
+      if (uninstallBtn) {
+        uninstallBtn.addEventListener("click", async function () {
+          uninstallBtn.disabled = true;
+          try {
+            var r = await fetch("/api/uninstall", { method: "POST" });
+            var j = await r.json();
+            uninstallStatus.textContent = j.message || "";
+            uninstallStatus.style.display = "block";
+          } catch (e) {
+            uninstallStatus.textContent = "Error: " + e.message;
+            uninstallStatus.style.display = "block";
+          } finally {
+            uninstallBtn.disabled = false;
+          }
+        });
+      }
+
+    });
+  })();
+  </script>
+</body>
+</html>
