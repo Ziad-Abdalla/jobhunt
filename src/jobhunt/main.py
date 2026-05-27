@@ -309,6 +309,51 @@ def api_jobs(
 # ---------- local jobs page ----------
 
 
+_REGION_MAP: dict[str, list[str]] = {
+    # UK areas → broader search terms
+    "whitechapel": ["whitechapel", "london", "tower hamlets", "east london"],
+    "canary wharf": ["canary wharf", "london", "tower hamlets"],
+    "shoreditch": ["shoreditch", "london", "hackney"],
+    "soho": ["soho", "london", "westminster"],
+    "city of london": ["city of london", "london"],
+    "london": ["london", "uk", "united kingdom", "england"],
+    "manchester": ["manchester", "uk", "united kingdom", "england"],
+    "birmingham": ["birmingham", "uk", "united kingdom", "england"],
+    "leeds": ["leeds", "uk", "united kingdom", "england"],
+    "bristol": ["bristol", "uk", "united kingdom", "england"],
+    "edinburgh": ["edinburgh", "uk", "united kingdom", "scotland"],
+    "glasgow": ["glasgow", "uk", "united kingdom", "scotland"],
+    "cambridge": ["cambridge", "uk", "united kingdom", "england"],
+    "oxford": ["oxford", "uk", "united kingdom", "england"],
+    "reading": ["reading", "uk", "united kingdom", "england"],
+    "cardiff": ["cardiff", "uk", "united kingdom", "wales"],
+    "belfast": ["belfast", "uk", "united kingdom", "northern ireland"],
+    "liverpool": ["liverpool", "uk", "united kingdom", "england"],
+    "sheffield": ["sheffield", "uk", "united kingdom", "england"],
+    "newcastle": ["newcastle", "uk", "united kingdom", "england"],
+    "nottingham": ["nottingham", "uk", "united kingdom", "england"],
+    "brighton": ["brighton", "uk", "united kingdom", "england"],
+    "uk": ["uk", "united kingdom", "england", "london"],
+    # German areas
+    "stuttgart": ["stuttgart", "baden-württemberg", "germany", "deutschland"],
+    "berlin": ["berlin", "germany", "deutschland"],
+    "munich": ["munich", "münchen", "bavaria", "bayern", "germany"],
+    "münchen": ["münchen", "munich", "bavaria", "bayern", "germany"],
+    "hamburg": ["hamburg", "germany", "deutschland"],
+    "frankfurt": ["frankfurt", "hessen", "germany", "deutschland"],
+    "cologne": ["cologne", "köln", "nordrhein-westfalen", "germany"],
+    "köln": ["köln", "cologne", "nordrhein-westfalen", "germany"],
+    "düsseldorf": ["düsseldorf", "nordrhein-westfalen", "germany"],
+    "dortmund": ["dortmund", "nordrhein-westfalen", "germany"],
+    "leipzig": ["leipzig", "sachsen", "germany", "deutschland"],
+    "dresden": ["dresden", "sachsen", "germany", "deutschland"],
+    "hannover": ["hannover", "niedersachsen", "germany", "deutschland"],
+    "nürnberg": ["nürnberg", "nuremberg", "bavaria", "bayern", "germany"],
+    "germany": ["germany", "deutschland", "berlin", "münchen"],
+    "deutschland": ["deutschland", "germany", "berlin", "münchen"],
+}
+
+
 @app.get("/local", response_class=HTMLResponse)
 def local_jobs(
     request: Request,
@@ -316,47 +361,39 @@ def local_jobs(
     level: str = "",
     employment_type: str = "",
     min_salary: str = "",
+    max_experience: str = "",
 ) -> HTMLResponse:
     """Entry-level jobs near a location (UK/Germany focused)."""
     jobs: list[Job] = []
     total = 0
-    if location.strip():
+    loc_input = location.strip()
+
+    if loc_input:
         from sqlalchemy import or_
 
-        loc = location.strip().lower()
-        _UK_REGIONS = {
-            "london": ["london", "uk", "united kingdom", "england"],
-            "manchester": ["manchester", "uk", "united kingdom", "england"],
-            "birmingham": ["birmingham", "uk", "united kingdom", "england"],
-            "whitechapel": ["london", "whitechapel", "tower hamlets", "east london"],
-            "canary wharf": ["london", "canary wharf", "tower hamlets"],
-        }
-        _DE_REGIONS = {
-            "stuttgart": ["stuttgart", "baden-württemberg", "germany", "deutschland"],
-            "berlin": ["berlin", "germany", "deutschland"],
-            "munich": ["munich", "münchen", "bavaria", "bayern", "germany"],
-            "hamburg": ["hamburg", "germany", "deutschland"],
-            "frankfurt": ["frankfurt", "hessen", "germany", "deutschland"],
-        }
+        loc = loc_input.lower()
         search_terms = [loc]
-        for mapping in (_UK_REGIONS, _DE_REGIONS):
-            if loc in mapping:
-                search_terms.extend(mapping[loc])
+        if loc in _REGION_MAP:
+            search_terms.extend(_REGION_MAP[loc])
         search_terms = list(dict.fromkeys(search_terms))
 
         with db_session() as s:
             loc_filters = [Job.location.ilike(f"%{t}%") for t in search_terms]
             stmt = select(Job).where(or_(*loc_filters))
+
             if level:
                 stmt = stmt.where(Job.level == level)
+
+            max_exp = _safe_int(max_experience)
+            if max_exp is not None:
+                stmt = stmt.where(
+                    or_(Job.min_years.is_(None), Job.min_years <= max_exp)
+                )
             else:
                 stmt = stmt.where(
-                    or_(
-                        Job.level.in_(["intern", "entry", "junior", "mid"]),
-                        Job.min_years.is_(None),
-                        Job.min_years <= 2,
-                    )
+                    or_(Job.min_years.is_(None), Job.min_years <= 2)
                 )
+
             if employment_type:
                 stmt = stmt.where(Job.employment_type == employment_type)
             sal = _safe_int(min_salary)
@@ -364,13 +401,13 @@ def local_jobs(
                 stmt = stmt.where(
                     Job.salary_max.is_not(None), Job.salary_max >= sal
                 )
-            stmt = stmt.order_by(Job.score.desc(), Job.posted_at.desc().nullslast())
+            stmt = stmt.order_by(
+                Job.posted_at.desc().nullslast(), Job.score.desc()
+            )
             total = s.execute(
-                select(func.count()).select_from(
-                    stmt.subquery()
-                )
+                select(func.count()).select_from(stmt.subquery())
             ).scalar_one()
-            jobs = list(s.execute(stmt.limit(100)).scalars().all())
+            jobs = list(s.execute(stmt.limit(200)).scalars().all())
 
     return templates.TemplateResponse(
         request,
@@ -380,10 +417,11 @@ def local_jobs(
             "today": _today(),
             "jobs": jobs,
             "total": total,
-            "location": location.strip(),
+            "location": loc_input,
             "level": level,
             "employment_type": employment_type,
             "min_salary": min_salary,
+            "max_experience": max_experience,
         },
     )
 

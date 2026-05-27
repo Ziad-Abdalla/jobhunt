@@ -42,6 +42,17 @@
           </select>
         </label>
         <label style="min-width:100px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Max experience
+          <select name="max_experience">
+            <option value="0" {% if max_experience == '0' %}selected{% endif %}>No experience (0 yrs)</option>
+            <option value="1" {% if max_experience == '1' %}selected{% endif %}>Up to 1 year</option>
+            <option value="2" {% if not max_experience or max_experience == '2' %}selected{% endif %}>Up to 2 years</option>
+            <option value="3" {% if max_experience == '3' %}selected{% endif %}>Up to 3 years</option>
+            <option value="5" {% if max_experience == '5' %}selected{% endif %}>Up to 5 years</option>
+            <option value="" {% if max_experience == '' %}selected{% endif %}>Any</option>
+          </select>
+        </label>
+        <label style="min-width:100px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
           Min salary
           <input type="number" name="min_salary" value="{{ min_salary or '' }}" min="0" step="5000" placeholder="any" />
         </label>
