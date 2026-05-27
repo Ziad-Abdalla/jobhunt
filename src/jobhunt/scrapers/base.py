@@ -28,6 +28,7 @@ class RawJob:
     salary_max: int | None = None
     salary_currency: str = ""
     remote_structured: str = ""  # when the API gives us remote/onsite/hybrid directly
+    visa_sponsorship: str = ""   # "yes", "no", or "" (unknown)
 
 
 class BaseScraper(abc.ABC):

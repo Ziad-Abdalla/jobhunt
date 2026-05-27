@@ -62,6 +62,14 @@ class SimplifyJobsScraper(BaseScraper):
 
             etype = "Internship" if self.board == "internships" else "Full-time"
 
+            raw_sponsor = (entry.get("sponsorship") or "").lower()
+            if "offer" in raw_sponsor and "not" not in raw_sponsor:
+                visa = "yes"
+            elif "not" in raw_sponsor:
+                visa = "no"
+            else:
+                visa = ""
+
             yield RawJob(
                 source=self.source,
                 source_id=str(entry.get("id", "")),
@@ -73,9 +81,9 @@ class SimplifyJobsScraper(BaseScraper):
                 posted_at=posted_at,
                 employment_type=etype,
                 remote_structured="remote" if is_remote else "",
+                visa_sponsorship=visa,
                 extra={
                     "board": self.board,
-                    "sponsorship": entry.get("sponsorship"),
                     "terms": entry.get("terms"),
                     "category": entry.get("category"),
                     "company_url": entry.get("company_url"),

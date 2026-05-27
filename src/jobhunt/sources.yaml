@@ -4,7 +4,7 @@
 #
 # Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
 # recruitee, workday, remoteok, hackernews, simplifyjobs, arbeitnow, jobicy,
-# himalayas, themuse
+# himalayas, themuse, jooble, arbeitsagentur, reed
 #
 # Tip: many companies are on more than one ATS over time. If a board 404s,
 # remove that line or try a different ATS for the same company.
@@ -64,3 +64,17 @@
 - { source: jobicy,        board: "",            company: "(Jobicy Remote Jobs)" }
 - { source: himalayas,     board: "",            company: "(Himalayas Remote Jobs)" }
 - { source: themuse,       board: "",            company: "(The Muse Jobs)" }
+
+# --- Country-specific boards ---
+- { source: arbeitsagentur, board: "Software Engineer", company: "(Germany - Arbeitsagentur)" }
+- { source: arbeitsagentur, board: "Entwickler",        company: "(Germany - Arbeitsagentur)" }
+
+# --- API-key-required (set JOBHUNT_JOOBLE_API_KEY / JOBHUNT_REED_API_KEY) ---
+- { source: jooble, board: "UK",        company: "(Jooble UK)" }
+- { source: jooble, board: "Egypt",     company: "(Jooble Egypt)" }
+- { source: jooble, board: "Qatar",     company: "(Jooble Qatar)" }
+- { source: jooble, board: "Australia", company: "(Jooble Australia)" }
+- { source: jooble, board: "Malaysia",  company: "(Jooble Malaysia)" }
+- { source: jooble, board: "Germany",   company: "(Jooble Germany)" }
+- { source: reed,   board: "software engineer", company: "(Reed UK)" }
+- { source: reed,   board: "developer",         company: "(Reed UK)" }

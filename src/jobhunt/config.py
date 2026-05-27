@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     notify_method: str = "auto"
     notify_batch_max: int = 5
 
+    jooble_api_key: str = ""
+    reed_api_key: str = ""
+
     @property
     def db_url(self) -> str:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

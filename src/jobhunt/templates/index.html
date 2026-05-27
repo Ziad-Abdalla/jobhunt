@@ -84,6 +84,18 @@
           <input type="number" name="min_salary" min="0" step="10000" placeholder="e.g. 80000" />
         </label>
 
+        <fieldset>
+          <legend>Visa sponsorship</legend>
+          {% for value, count in facets.visa_sponsorship %}
+            {% if value != "unknown" %}
+            <label class="radio">
+              <input type="radio" name="visa_sponsorship" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
+            </label>
+            {% endif %}
+          {% endfor %}
+          <label class="radio"><input type="radio" name="visa_sponsorship" value="" checked /> any</label>
+        </fieldset>
+
         <label data-hint="Filter out jobs that demand more experience than this. Roles without a stated minimum always pass through.">Max years of experience
           <input type="number" name="max_years" min="0" max="20" placeholder="e.g. 3" />
         </label>

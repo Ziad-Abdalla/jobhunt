@@ -165,6 +165,7 @@ def _persist(
             salary_min=salary_min,
             salary_max=salary_max,
             salary_currency=salary_currency,
+            visa_sponsorship=raw.visa_sponsorship or "unknown",
             salary_estimated=salary_estimated,
             skills=ex.skills,
             languages=ex.languages,
@@ -192,6 +193,8 @@ def _persist(
     existing.salary_max = salary_max if salary_max is not None else existing.salary_max
     existing.salary_currency = salary_currency or existing.salary_currency
     existing.salary_estimated = salary_estimated
+    if raw.visa_sponsorship:
+        existing.visa_sponsorship = raw.visa_sponsorship
     existing.skills = ex.skills
     existing.languages = ex.languages
     existing.score = score

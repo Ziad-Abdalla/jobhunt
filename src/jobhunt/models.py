@@ -40,6 +40,8 @@ class Job(Base):
     salary_currency: Mapped[str] = mapped_column(String(8), default="")
     salary_estimated: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    visa_sponsorship: Mapped[str] = mapped_column(String(32), default="unknown", index=True)
+
     skills: Mapped[list[str]] = mapped_column(JSON, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, default=list)
 

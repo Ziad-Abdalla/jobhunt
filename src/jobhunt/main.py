@@ -131,6 +131,7 @@ def _query_from_request(
     min_cv_match: float | None = None,
     employment_type: str = "",
     min_salary: int | None = None,
+    visa_sponsorship: str = "",
 ) -> JobQuery:
     return JobQuery(
         q=q.strip(),
@@ -145,6 +146,7 @@ def _query_from_request(
         posted_within_days=posted_within_days,
         employment_type=employment_type.strip(),
         min_salary=min_salary,
+        visa_sponsorship=visa_sponsorship.strip(),
         min_cv_match=min_cv_match,
         sort=sort or "score",
         limit=max(1, min(limit, 200)),
@@ -190,6 +192,7 @@ def jobs(
     min_cv_match: float | None = None,
     employment_type: str = "",
     min_salary: int | None = None,
+    visa_sponsorship: str = "",
     sort: str = "score",
     limit: int = 50,
     offset: int = 0,
@@ -200,6 +203,7 @@ def jobs(
         min_cv_match=min_cv_match,
         employment_type=employment_type,
         min_salary=min_salary,
+        visa_sponsorship=visa_sponsorship,
     )
     with db_session() as s:
         rows = search(s, query)
@@ -233,6 +237,7 @@ def api_jobs(
     min_cv_match: float | None = None,
     employment_type: str = "",
     min_salary: int | None = None,
+    visa_sponsorship: str = "",
     sort: str = "score",
     limit: int = 50,
     offset: int = 0,
@@ -243,6 +248,7 @@ def api_jobs(
         min_cv_match=min_cv_match,
         employment_type=employment_type,
         min_salary=min_salary,
+        visa_sponsorship=visa_sponsorship,
     )
     with db_session() as s:
         rows = search(s, query)
@@ -270,6 +276,7 @@ def api_jobs(
                     "salary_max": j.salary_max,
                     "salary_currency": j.salary_currency,
                     "salary_estimated": j.salary_estimated,
+                    "visa_sponsorship": j.visa_sponsorship,
                     "score": j.score,
                     "cv_match": j.cv_match,
                 }

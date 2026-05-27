@@ -33,6 +33,7 @@
       {% if j.min_years is not none %}<span class="badge">{{ j.min_years }}+ yrs</span>{% endif %}
       {% if j.degree and j.degree != 'unknown' %}<span class="badge">{{ j.degree }}</span>{% endif %}
       {% if j.employment_type and j.employment_type != 'unknown' %}<span class="badge">{{ j.employment_type }}</span>{% endif %}
+      {% if j.visa_sponsorship == 'yes' %}<span class="badge" style="color:var(--moss)">visa sponsor</span>{% endif %}
       {% if j.salary_min or j.salary_max %}
         <span class="badge salary{% if j.salary_estimated %} estimated{% endif %}" title="{{ 'Estimated from role level and location' if j.salary_estimated else 'From job posting' }}">
           {%- if j.salary_estimated %}~{% endif -%}

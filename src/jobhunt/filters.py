@@ -25,6 +25,7 @@ class JobQuery:
     posted_within_days: int | None = None
     employment_type: str = ""        # full-time | part-time | contract | internship
     min_salary: int | None = None     # minimum annual salary
+    visa_sponsorship: str = ""        # yes | no | ""
     min_cv_match: float | None = None  # 0..1
     limit: int = 50
     offset: int = 0
@@ -57,6 +58,8 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
         stmt = stmt.where(Job.employment_type.ilike(f"%{q.employment_type}%"))
     if q.min_salary is not None:
         stmt = stmt.where(Job.salary_max.is_not(None), Job.salary_max >= q.min_salary)
+    if q.visa_sponsorship:
+        stmt = stmt.where(Job.visa_sponsorship == q.visa_sponsorship)
     if q.posted_within_days is not None:
         cutoff = datetime.now(UTC) - timedelta(days=q.posted_within_days)
         stmt = stmt.where(or_(Job.posted_at.is_(None), Job.posted_at >= cutoff))
@@ -105,6 +108,7 @@ def facets(session: Session) -> dict[str, list[tuple[str, int]]]:
         (Job.degree, "degree"),
         (Job.source, "source"),
         (Job.employment_type, "employment_type"),
+        (Job.visa_sponsorship, "visa_sponsorship"),
     ):
         rows = session.execute(
             select(col, func.count()).group_by(col).order_by(func.count().desc())
