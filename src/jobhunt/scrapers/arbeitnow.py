@@ -30,6 +30,12 @@ class ArbeitnowScraper(BaseScraper):
             if self.board:
                 params["employment_type"] = self.board
             resp = await self.client.get(_BASE_URL, params=params)
+            # Arbeitnow's free API rate-limits pagination — 403 / 429 mid-walk
+            # means "you've had enough" rather than a real error. Stop
+            # iterating instead of bubbling an exception that would kill the
+            # whole nightly refresh.
+            if resp.status_code in (403, 429):
+                return
             resp.raise_for_status()
             payload = resp.json()
 

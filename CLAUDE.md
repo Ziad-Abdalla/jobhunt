@@ -19,6 +19,24 @@ Resume anchor: [`docs/internal/SESSION_LOG.md`](docs/internal/SESSION_LOG.md) �
 first. Owner-side action checklist for each session lives in `docs/sessions/`.
 A session **must** end by appending a SESSION_LOG entry (see `docs/internal/SESSION_LOG.md` for the template).
 
+## Long-term maintenance
+External sources rot — APIs expire, ATS slugs change, free tiers tighten.
+Two paired artefacts keep the data layer healthy:
+
+- **`docs/MAINTENANCE.md`** — the rulebook. Source taxonomy, failure
+  modes, repair decision tree, free-API trust hierarchy, chronological
+  audit log. Read first when investigating "why no jobs in country X?"
+  or before adding a new source.
+- **`.claude/skills/source-maintenance/SKILL.md`** — paired AI workflow
+  that runs the rulebook end-to-end. Triggers on phrases like "check our
+  sources", "what's broken", "find new APIs", "source maintenance". On
+  each run it: detects broken sources via `jobhunt doctor --json`,
+  diagnoses via the decision tree, researches replacements, applies +
+  verifies the changes, appends to the audit log.
+
+The skill is Claude-Code-specific; the rulebook is plain markdown so any
+AI agent (or human contributor) can follow it. Both ship with the repo.
+
 ## Key rules
 - **No inline `<script>` tags** — CSP is `script-src 'self'`. All JS in `static/app.js`.
 - **Filters must be fixed dropdowns**, not dynamic radio buttons from DB facets.

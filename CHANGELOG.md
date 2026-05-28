@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.9.1] — 2026-05-28
+
+### Fixed
+- **Removed the Find a Job (DWP) scraper.** The DWP deprecated the
+  `?format=rss` query parameter and every URL now returns HTML; the
+  scraper was silently returning 0 jobs across all 19 default entries
+  shipped in v0.9.0. Caught by the new source-maintenance skill on its
+  first run. UK non-tech coverage is now via Reed broader keywords
+  (cleaning, warehouse, retail, kitchen, delivery, reception, customer
+  service, care, security) which is more reliable but does require the
+  free Reed API key entered on the Settings page.
+- **Arbeitnow scraper is now resilient to pagination rate-limits.** It
+  was raising on 403/429 mid-walk and killing the nightly refresh;
+  treats it as end-of-feed instead.
+
+### Added
+- **`docs/MAINTENANCE.md`** — durable maintenance handbook covering
+  source failure modes, repair decision tree, free-API trust hierarchy,
+  per-country coverage map, and the chronological audit log.
+- **`.claude/skills/source-maintenance/SKILL.md`** — a paired AI
+  skill that runs the maintenance workflow end-to-end on demand.
+- **`jobhunt doctor --json`** — machine-readable health output for
+  scripted maintenance.
+
 ## [0.9.0] — 2026-05-28
 
 ### Added

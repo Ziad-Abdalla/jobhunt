@@ -197,29 +197,22 @@
 - { source: jooble, board: "software developer|Germany",         company: "(Jooble Germany)" }
 
 # ═══════════════════════════════════════════════════════════════════
-#  UK — Find a Job (DWP, free, no API key — strong non-tech coverage
-#  for the /local page: cleaning, retail, warehouse, hospitality, care)
+#  UK — non-tech / zero-experience coverage via Reed broader keywords.
+#  Reed has the widest UK reach across cleaning, retail, hospitality,
+#  warehouse, care, customer service, driving. Free API key required;
+#  the user enters it on the Settings page.
+#
+#  (We previously pulled this via the DWP Find a Job RSS feed, but DWP
+#  deprecated `?format=rss` and now returns HTML for every request.
+#  Audit-log entry: docs/MAINTENANCE.md §10.)
 # ═══════════════════════════════════════════════════════════════════
 
-# Zero-experience generalists across major UK cities.
-- { source: findajob, board: "|London",      company: "(Find a Job — London)" }
-- { source: findajob, board: "|Manchester",  company: "(Find a Job — Manchester)" }
-- { source: findajob, board: "|Birmingham",  company: "(Find a Job — Birmingham)" }
-- { source: findajob, board: "|Leeds",       company: "(Find a Job — Leeds)" }
-- { source: findajob, board: "|Bristol",     company: "(Find a Job — Bristol)" }
-- { source: findajob, board: "|Glasgow",     company: "(Find a Job — Glasgow)" }
-- { source: findajob, board: "|Edinburgh",   company: "(Find a Job — Edinburgh)" }
-- { source: findajob, board: "|Liverpool",   company: "(Find a Job — Liverpool)" }
-- { source: findajob, board: "|Newcastle",   company: "(Find a Job — Newcastle)" }
-- { source: findajob, board: "|Cardiff",     company: "(Find a Job — Cardiff)" }
-
-# Category-targeted UK pulls so /local has rich non-tech data.
-- { source: findajob, board: "cleaner|United Kingdom",          company: "(Find a Job — Cleaning)" }
-- { source: findajob, board: "warehouse|United Kingdom",        company: "(Find a Job — Warehouse)" }
-- { source: findajob, board: "retail assistant|United Kingdom", company: "(Find a Job — Retail)" }
-- { source: findajob, board: "kitchen|United Kingdom",          company: "(Find a Job — Kitchen)" }
-- { source: findajob, board: "delivery driver|United Kingdom",  company: "(Find a Job — Delivery)" }
-- { source: findajob, board: "receptionist|United Kingdom",     company: "(Find a Job — Reception)" }
-- { source: findajob, board: "customer service|United Kingdom", company: "(Find a Job — Customer Service)" }
-- { source: findajob, board: "care assistant|United Kingdom",   company: "(Find a Job — Care)" }
-- { source: findajob, board: "security|United Kingdom",         company: "(Find a Job — Security)" }
+- { source: reed, board: "cleaner",          company: "(Reed UK — Cleaning)" }
+- { source: reed, board: "warehouse",        company: "(Reed UK — Warehouse)" }
+- { source: reed, board: "retail assistant", company: "(Reed UK — Retail)" }
+- { source: reed, board: "kitchen porter",   company: "(Reed UK — Kitchen)" }
+- { source: reed, board: "delivery driver",  company: "(Reed UK — Delivery)" }
+- { source: reed, board: "receptionist",     company: "(Reed UK — Reception)" }
+- { source: reed, board: "customer service", company: "(Reed UK — Customer Service)" }
+- { source: reed, board: "care assistant",   company: "(Reed UK — Care)" }
+- { source: reed, board: "security officer", company: "(Reed UK — Security)" }

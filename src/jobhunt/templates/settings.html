@@ -29,16 +29,26 @@
         </label>
         <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
           Jooble API key
-          <input type="text" name="jooble_api_key" value="{{ jooble_api_key }}" placeholder="Free at jooble.org/api/about" />
+          {% if jooble_api_key %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
+          <input type="text" name="jooble_api_key" value="{{ jooble_api_key }}" placeholder="Paste your Jooble API key here" />
           <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
-            Unlocks jobs in 69 countries. <a href="https://jooble.org/api/about" target="_blank" rel="noopener">Get a free key here.</a>
+            Unlocks jobs in 69 countries.
+            <a href="https://jooble.org/api/about" target="_blank" rel="noopener">
+              <button type="button" class="ghost" style="font-size:var(--fs-xs);padding:2px 8px;">Get a free key →</button>
+            </a>
+            Sign up, copy your key, paste it above, click Save.
           </span>
         </label>
         <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
           Reed API key
-          <input type="text" name="reed_api_key" value="{{ reed_api_key }}" placeholder="Free at reed.co.uk/developers" />
+          {% if reed_api_key %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
+          <input type="text" name="reed_api_key" value="{{ reed_api_key }}" placeholder="Paste your Reed API key here" />
           <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
-            Unlocks UK jobs from Reed.co.uk. <a href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">Get a free key here.</a>
+            Unlocks UK jobs from Reed.co.uk (all sectors, incl. non-tech for the Local Jobs page).
+            <a href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">
+              <button type="button" class="ghost" style="font-size:var(--fs-xs);padding:2px 8px;">Get a free key →</button>
+            </a>
+            Sign up, copy your key, paste it above, click Save.
           </span>
         </label>
         <button type="submit" style="align-self:flex-start;">Save</button>

@@ -233,9 +233,14 @@ def list_sources() -> None:
 
 
 @app.command()
-def doctor() -> None:
+def doctor(
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit a machine-readable JSON report (used by the source-maintenance skill).",
+    ),
+) -> None:
     """Check all sources and report which ones need attention."""
     import asyncio
+    import json as _json
 
     import httpx
 
@@ -245,15 +250,20 @@ def doctor() -> None:
 
     init_db()
     sources = load_sources()
-    typer.echo(f"checking {len(sources)} sources...\n")
+    if not json_output:
+        typer.echo(f"checking {len(sources)} sources...\n")
 
-    async def check_source(spec: dict) -> tuple[str, str, str]:
+    async def check_source(spec: dict) -> dict:
         name = spec.get("source", "?")
         board = spec.get("board", "")
         company = spec.get("company", board)
         cls = SCRAPER_REGISTRY.get(name)
         if cls is None:
-            return (company, "error", f"unknown source type: {name}")
+            return {
+                "source": name, "board": board, "company": company,
+                "status": "error", "jobs_seen": 0,
+                "detail": f"unknown source type: {name}",
+            }
         headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}
         async with httpx.AsyncClient(
             headers=headers, timeout=15, follow_redirects=True,
@@ -262,30 +272,54 @@ def doctor() -> None:
                 scraper = cls(client=client, board=board)
                 jobs = [j async for j in scraper.fetch()]
                 if not jobs:
-                    return (company, "warn", f"0 jobs returned ({name}/{board})")
-                return (company, "ok", f"{len(jobs)} jobs")
+                    return {
+                        "source": name, "board": board, "company": company,
+                        "status": "warn", "jobs_seen": 0,
+                        "detail": "0 jobs returned",
+                    }
+                return {
+                    "source": name, "board": board, "company": company,
+                    "status": "ok", "jobs_seen": len(jobs),
+                    "detail": f"{len(jobs)} jobs",
+                }
             except Exception as exc:  # noqa: BLE001
-                return (company, "error", f"{type(exc).__name__}: {exc}")
+                return {
+                    "source": name, "board": board, "company": company,
+                    "status": "error", "jobs_seen": 0,
+                    "detail": f"{type(exc).__name__}: {exc}",
+                }
 
-    async def run_all() -> list[tuple[str, str, str]]:
+    async def run_all() -> list[dict]:
         return await asyncio.gather(*[check_source(s) for s in sources])
 
     results = asyncio.run(run_all())
-    ok = [(c, m) for c, s, m in results if s == "ok"]
-    warn = [(c, m) for c, s, m in results if s == "warn"]
-    errors = [(c, m) for c, s, m in results if s == "error"]
+    ok = [r for r in results if r["status"] == "ok"]
+    warn = [r for r in results if r["status"] == "warn"]
+    errors = [r for r in results if r["status"] == "error"]
 
-    for company, msg in ok:
-        typer.echo(f"  ok    {company:30s} {msg}")
-    for company, msg in warn:
-        typer.echo(f"  WARN  {company:30s} {msg}")
-    for company, msg in errors:
-        typer.echo(f"  FAIL  {company:30s} {msg}")
+    if json_output:
+        # Stable schema for the source-maintenance skill to consume.
+        typer.echo(_json.dumps({
+            "total": len(results),
+            "ok": len(ok),
+            "warn": len(warn),
+            "error": len(errors),
+            "results": results,
+        }, indent=2))
+        return
+
+    for r in ok:
+        typer.echo(f"  ok    {r['company']:30s} {r['detail']}")
+    for r in warn:
+        typer.echo(f"  WARN  {r['company']:30s} {r['detail']} ({r['source']}/{r['board']})")
+    for r in errors:
+        typer.echo(f"  FAIL  {r['company']:30s} {r['detail']}")
 
     typer.echo(f"\n{len(ok)} ok · {len(warn)} warnings · {len(errors)} errors")
     if errors:
         typer.echo("\nFailed sources may have changed their careers page URL.")
-        typer.echo("Remove them: edit src/jobhunt/sources.yaml or use the Sources page in the UI.")
+        typer.echo("Fix automatically: ask Claude 'run the source-maintenance skill'.")
+        typer.echo("Fix manually: edit src/jobhunt/sources.yaml or use the Sources page in the UI.")
 
 
 @app.command()

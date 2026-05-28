@@ -51,7 +51,7 @@ def test_classify_description_fallback() -> None:
 def _seed(session, **kwargs) -> Job:
     job = Job(
         fingerprint=kwargs["fingerprint"],
-        source="findajob",
+        source="reed",
         source_id=kwargs["fingerprint"],
         url=f"https://example.com/{kwargs['fingerprint']}",
         company=kwargs.get("company", "Acme"),
