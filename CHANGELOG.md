@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.2] — 2026-05-28
+
+### Added
+- **Auto-disable broken sources.** After three consecutive scrape
+  failures (HTTP error or zero jobs returned), a source is silently
+  skipped on the next refresh until something changes — preventing
+  wasted requests on dead URLs and reducing log noise. A single
+  successful scrape re-enables the source automatically. Defensive
+  counterpart to the `source-maintenance` skill's research role.
+- **Source health badge on the Settings page.** Shows "X offline · Y
+  returning no jobs of N checked", with a link to the per-source detail
+  page. Lets the owner spot decay before users do.
+- **`GET /api/sources/health`** — JSON summary `{offline, attention,
+  total}` for scripted consumption.
+
+### Changed
+- `scrape_all()` return value now includes a `skipped` count.
+
 ## [0.9.1] — 2026-05-28
 
 ### Fixed

@@ -74,6 +74,37 @@
       </div>
     </div>
 
+    <h2>Sources</h2>
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      {% if source_health.total > 0 %}
+        {% if source_health.offline > 0 or source_health.attention > 0 %}
+          <p style="margin:0 0 var(--sp-2);color:var(--text-2);">
+            {% if source_health.offline > 0 %}
+              <span style="font-weight:600;color:#c00;">{{ source_health.offline }} offline</span>
+              {% if source_health.attention > 0 %} · {% endif %}
+            {% endif %}
+            {% if source_health.attention > 0 %}
+              <span style="font-weight:600;color:#aa6500;">{{ source_health.attention }} returning no jobs</span>
+            {% endif %}
+            of {{ source_health.total }} checked.
+          </p>
+          <p style="margin:0 0 var(--sp-3);color:var(--text-3);font-size:var(--fs-xs);">
+            jobhunt auto-skips a source after 3 consecutive failures. To investigate manually, see the
+            <a href="/health">Source Health page</a> or run <code>jobhunt doctor</code> in a terminal.
+          </p>
+        {% else %}
+          <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+            All {{ source_health.total }} sources reporting healthy.
+            <a href="/health">View details</a>.
+          </p>
+        {% endif %}
+      {% else %}
+        <p style="margin:0 0 var(--sp-3);color:var(--text-3);">
+          No source data yet — run a refresh from the main page first.
+        </p>
+      {% endif %}
+    </div>
+
     <h2>Data</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
       <p style="margin:0 0 var(--sp-3);color:var(--text-2);">

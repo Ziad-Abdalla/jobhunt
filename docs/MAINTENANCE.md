@@ -13,6 +13,21 @@
 
 ---
 
+## 0. The defensive/offensive split
+
+This handbook is paired with two automatic mechanisms in the app:
+
+- **Defensive (in-app):** `scrape_all()` auto-skips any source that has
+  failed three consecutive scrapes — no human or AI required. The
+  Settings page surfaces the count. This stops the bleed.
+- **Offensive (paired skill):** the `source-maintenance` skill at
+  `.claude/skills/source-maintenance/SKILL.md` researches replacements,
+  discovers new free APIs, and adds them.
+
+Run the skill periodically; the app handles routine decay on its own.
+
+---
+
 ## 1. Why sources rot (the failure modes we plan for)
 
 | Failure | Symptom | Detection |

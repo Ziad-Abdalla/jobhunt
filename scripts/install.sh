@@ -11,7 +11,7 @@ set -euo pipefail
 # Floor version: re-running with an older floor would still let uv pick
 # whatever is cached. Bumping this every release guarantees the user gets
 # the new wheel even if their cache holds the previous one.
-PKG_SPEC="jobhunt-app>=0.9.1"
+PKG_SPEC="jobhunt-app>=0.9.2"
 
 echo ""
 echo "  ============================="

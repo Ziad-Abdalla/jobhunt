@@ -946,6 +946,43 @@ def _save_user_env(data: dict[str, str]) -> None:
     path.write_text("\n".join(lines) + "\n" if lines else "")
 
 
+def _source_health_summary() -> dict:
+    """Return a compact (offline, attention, total) tuple based on the
+    latest scrape per source/board. Drives the Settings page badge."""
+    offline = 0
+    attention = 0
+    total = 0
+    try:
+        with db_session() as s:
+            sq = (
+                select(
+                    ScrapeRun.source,
+                    ScrapeRun.board,
+                    func.max(ScrapeRun.started_at).label("latest"),
+                )
+                .group_by(ScrapeRun.source, ScrapeRun.board)
+                .subquery()
+            )
+            rows = s.execute(
+                select(ScrapeRun)
+                .join(
+                    sq,
+                    (ScrapeRun.source == sq.c.source)
+                    & (ScrapeRun.board == sq.c.board)
+                    & (ScrapeRun.started_at == sq.c.latest),
+                )
+            ).scalars().all()
+            total = len(rows)
+            for r in rows:
+                if r.error:
+                    offline += 1
+                elif r.jobs_seen == 0:
+                    attention += 1
+    except Exception as exc:  # noqa: BLE001
+        log.warning("source health summary failed: %s", exc)
+    return {"offline": offline, "attention": attention, "total": total}
+
+
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request) -> HTMLResponse:
     import platform
@@ -967,8 +1004,16 @@ def settings_page(request: Request) -> HTMLResponse:
             "jooble_api_key": settings.jooble_api_key,
             "reed_api_key": settings.reed_api_key,
             "user_location": settings.user_location,
+            "source_health": _source_health_summary(),
         },
     )
+
+
+@app.get("/api/sources/health")
+def api_sources_health() -> JSONResponse:
+    """JSON source-health summary; used by the Settings page + the
+    source-maintenance skill for scripted decisions."""
+    return JSONResponse(_source_health_summary())
 
 
 @app.post("/api/settings/save")

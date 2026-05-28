@@ -254,6 +254,35 @@ async def _run_scraper(
             return (source, [], f"{type(exc).__name__}: {exc}")
 
 
+_AUTO_DISABLE_AFTER = 3  # consecutive failed scrapes before we skip a source
+
+
+def _disabled_sources(session: Session) -> set[tuple[str, str]]:
+    """Return (source, board) pairs that have failed _AUTO_DISABLE_AFTER
+    consecutive scrapes — these are presumed dead and skipped on the next
+    refresh until something changes. Defensive half of the maintenance
+    hybrid: stop wasting requests on URLs that 404, while the
+    source-maintenance skill researches a replacement."""
+    from collections import defaultdict
+
+    recent: dict[tuple[str, str], list[ScrapeRun]] = defaultdict(list)
+    rows = session.execute(
+        select(ScrapeRun).order_by(ScrapeRun.started_at.desc()).limit(2000)
+    ).scalars().all()
+    for r in rows:
+        key = (r.source, r.board or "")
+        if len(recent[key]) < _AUTO_DISABLE_AFTER:
+            recent[key].append(r)
+
+    disabled: set[tuple[str, str]] = set()
+    for key, runs in recent.items():
+        if len(runs) < _AUTO_DISABLE_AFTER:
+            continue  # not enough history
+        if all(r.error or r.jobs_seen == 0 for r in runs):
+            disabled.add(key)
+    return disabled
+
+
 async def scrape_all() -> dict:
     init_db()
     sources = load_sources()
@@ -266,6 +295,26 @@ async def scrape_all() -> dict:
 
     if not sources:
         return {"sources": 0, "added": 0, "seen": 0, "removed": 0}
+
+    # Filter out sources that have failed three scrapes in a row — they're
+    # almost certainly dead, and continuing to hit their URLs wastes time
+    # and triggers more 4xx noise in logs. Re-enables automatically on the
+    # next refresh once a single scrape returns ≥1 job.
+    with db_session() as s:
+        disabled = _disabled_sources(s)
+    skipped = 0
+    if disabled:
+        active = []
+        for spec in sources:
+            key = (spec.get("source", "?"), str(spec.get("board", "")))
+            if key in disabled:
+                skipped += 1
+                continue
+            active.append(spec)
+        if skipped:
+            log.info("auto-disabled %d sources after %d consecutive failures",
+                     skipped, _AUTO_DISABLE_AFTER)
+        sources = active
 
     headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}
     sem = asyncio.Semaphore(settings.concurrency)
@@ -306,7 +355,13 @@ async def scrape_all() -> dict:
 
         removed = sweep_stale(session)
 
-    return {"sources": len(sources), "added": added, "seen": seen, "removed": removed}
+    return {
+        "sources": len(sources),
+        "added": added,
+        "seen": seen,
+        "removed": removed,
+        "skipped": skipped,
+    }
 
 
 def sweep_stale(session: Session) -> int:
