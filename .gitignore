@@ -10,9 +10,14 @@ venv/
 dist/
 build/
 
-# Local data — never commit a user's scraped database, CV, or cache
+# Local data — never commit a user's scraped database, CV, or cache.
+# Includes SQLite WAL sidecar files (added v0.10.4 after they leaked in
+# v0.10.3 when WAL mode was enabled).
 data/*.db
 data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/bounties.json
 data/cache/
 data/cv/
 *.sqlite
