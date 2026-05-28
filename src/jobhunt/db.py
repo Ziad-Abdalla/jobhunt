@@ -154,10 +154,92 @@ def _maybe_start_backfill() -> None:
     _BACKFILL_THREAD_STARTED = True
 
 
+_FTS_AVAILABLE: bool | None = None
+
+
+def has_fts5() -> bool:
+    """True when the SQLite build supports FTS5 (it does in every wheel
+    Python ships on macOS/Windows/Linux since 3.7). Cached after first call."""
+    global _FTS_AVAILABLE
+    if _FTS_AVAILABLE is not None:
+        return _FTS_AVAILABLE
+    try:
+        with _engine.begin() as conn:
+            conn.execute(text(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS _fts5_probe "
+                "USING fts5(x)"
+            ))
+            conn.execute(text("DROP TABLE _fts5_probe"))
+        _FTS_AVAILABLE = True
+    except Exception:  # noqa: BLE001
+        _FTS_AVAILABLE = False
+    return _FTS_AVAILABLE
+
+
+def _setup_fts() -> None:
+    """Create the jobs_fts virtual table + sync triggers. Idempotent.
+
+    Schema: a 3-column FTS5 index over (title, company, description), with
+    `content='jobs'` so we don't double-store the text — FTS5 just maintains
+    the inverted index that points back at the jobs rowid. Triggers keep it
+    in sync on INSERT / UPDATE / DELETE. On first setup we bulk-rebuild from
+    the existing rows."""
+    if not has_fts5():
+        log.info("SQLite build lacks FTS5; keyword search will use LIKE")
+        return
+
+    insp = inspect(_engine)
+    if not insp.has_table("jobs"):
+        return
+
+    with _engine.begin() as conn:
+        # Virtual table (FTS5 doesn't show up in insp.has_table reliably
+        # — use sqlite_master directly).
+        existing = conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='jobs_fts'"
+        )).scalar_one_or_none()
+        if not existing:
+            conn.execute(text(
+                "CREATE VIRTUAL TABLE jobs_fts USING fts5("
+                "title, company, description, content='jobs', content_rowid='id', "
+                "tokenize='porter unicode61'"
+                ")"
+            ))
+            # Bulk-rebuild from existing rows.
+            conn.execute(text(
+                "INSERT INTO jobs_fts(rowid, title, company, description) "
+                "SELECT id, title, company, description FROM jobs"
+            ))
+            log.info("FTS5 index built over jobs table")
+
+        # Triggers — idempotent CREATE IF NOT EXISTS.
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS jobs_ai AFTER INSERT ON jobs BEGIN
+              INSERT INTO jobs_fts(rowid, title, company, description)
+              VALUES (new.id, new.title, new.company, new.description);
+            END;
+        """))
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS jobs_ad AFTER DELETE ON jobs BEGIN
+              INSERT INTO jobs_fts(jobs_fts, rowid, title, company, description)
+              VALUES('delete', old.id, old.title, old.company, old.description);
+            END;
+        """))
+        conn.execute(text("""
+            CREATE TRIGGER IF NOT EXISTS jobs_au AFTER UPDATE ON jobs BEGIN
+              INSERT INTO jobs_fts(jobs_fts, rowid, title, company, description)
+              VALUES('delete', old.id, old.title, old.company, old.description);
+              INSERT INTO jobs_fts(rowid, title, company, description)
+              VALUES (new.id, new.title, new.company, new.description);
+            END;
+        """))
+
+
 def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)
     _normalize_employment_types()
+    _setup_fts()
     _maybe_start_backfill()
 
 

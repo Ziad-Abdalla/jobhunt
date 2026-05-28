@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — help</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
+  <script src="/static/app.js?v={{ version }}" defer></script>
+</head>
+<body data-page="help">
+  <a href="#main" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" onfocus="this.style.left='8px';this.style.width='auto';this.style.height='auto'">Skip to main content</a>
+  {% include "_nav.html" %}
+
+  <main id="main" class="page" style="max-width:800px;margin:0 auto;padding:var(--sp-5) var(--sp-6);" tabindex="-1">
+    <h1>Help</h1>
+    <p class="muted">Quick answers to the things people ask. If you're stuck, the
+      <a href="https://github.com/Abdalla2004-collab/Jobhunt/issues" target="_blank" rel="noopener">GitHub issues page</a>
+      is the right place to ask for help.</p>
+
+    <h2>Getting started</h2>
+    <details open>
+      <summary><strong>What is jobhunt?</strong></summary>
+      <p>A local-first job search app. It pulls listings from 130+ company
+        career pages, normalises them, and gives you a fast filtered search.
+        Nothing leaves your machine — no accounts, no telemetry, no cloud.</p>
+    </details>
+
+    <details>
+      <summary><strong>Why are some jobs marked with a ~ before the salary?</strong></summary>
+      <p>Companies don't always publish a salary. When that happens, jobhunt
+        shows an <em>estimate</em> based on the level + region of similar
+        jobs in your database. The <code>~</code> prefix tells you it's
+        estimated rather than published.</p>
+    </details>
+
+    <details>
+      <summary><strong>Why does Local Jobs default to cleaning / retail / warehouse?</strong></summary>
+      <p>The Local Jobs page is for zero-experience work near you. Most
+        people who need a job nearby want non-tech roles you can start
+        without prior experience. Toggle <strong>What kind of work →
+        Tech / software</strong> if you want the software path instead.</p>
+    </details>
+
+    <h2>Filters explained</h2>
+    <details>
+      <summary><strong>Career stage vs Job type</strong></summary>
+      <p><strong>Career stage</strong> is permanent-role seniority — entry,
+        junior, mid, senior, staff, principal, lead. <strong>Job type</strong>
+        is the contract — full-time, part-time, contract, internship.
+        Internship lives in Job type, not Career stage.</p>
+    </details>
+
+    <details>
+      <summary><strong>Max years of experience</strong></summary>
+      <p>Hides any job whose stated minimum experience is higher than your
+        cap. Jobs without a stated minimum always pass through, so you'll
+        still see the unlabelled ones.</p>
+    </details>
+
+    <details>
+      <summary><strong>Languages / Skills</strong></summary>
+      <p>Comma-separated, case-insensitive. <code>python, typescript</code>
+        is two languages, not one phrase. The filter is exact-match on
+        tags extracted from the job description.</p>
+    </details>
+
+    <details>
+      <summary><strong>Min CV match</strong></summary>
+      <p>Only available after you upload a CV. The value is a 0–1
+        similarity score between your CV and the job. ≥0.5 is "decent
+        fit", ≥0.7 is "very strong". Upload at <a href="/cv">/cv</a>.</p>
+    </details>
+
+    <h2>API keys</h2>
+    <details>
+      <summary><strong>Do I need API keys?</strong></summary>
+      <p>No. jobhunt works without any keys — you'll still get 100+ job
+        sources. Keys unlock extra coverage:</p>
+      <ul>
+        <li><strong>Jooble</strong> — free, unlocks 69 countries of generalist data.</li>
+        <li><strong>Reed</strong> — free, unlocks UK Reed.co.uk (incl. non-tech for Local Jobs).</li>
+      </ul>
+      <p>Both at <a href="/settings">Settings</a>. After pasting a key click
+        <strong>Test keys</strong> to verify it works.</p>
+    </details>
+
+    <details>
+      <summary><strong>My key says "rejected (401)"</strong></summary>
+      <p>The provider says the key is invalid. Either you copied the wrong
+        thing, the key was revoked, or you're on a free-tier rate-limit
+        cooldown. Regenerate it at the provider's developer page and
+        paste the new key.</p>
+    </details>
+
+    <h2>Updates + uninstall</h2>
+    <details>
+      <summary><strong>How do I update jobhunt?</strong></summary>
+      <p>Open Settings, click <strong>Check for updates</strong>. If a new
+        version exists, an <strong>Install update</strong> button appears
+        — click it and restart jobhunt when prompted. Or re-run the
+        install command from your terminal; it's idempotent and forces a
+        fresh download.</p>
+    </details>
+
+    <details>
+      <summary><strong>How do I uninstall?</strong></summary>
+      <p>Open Settings, click <strong>Uninstall jobhunt</strong>. That's
+        it on Mac/Linux/Windows installs. Your saved data folder is left
+        alone — delete it manually for a fully clean removal.</p>
+    </details>
+
+    <h2>Troubleshooting</h2>
+    <details>
+      <summary><strong>"No jobs found" everywhere</strong></summary>
+      <p>You probably haven't refreshed yet. Click <strong>Refresh sources</strong>
+        in the top nav. The first refresh takes about a minute as it pulls
+        from every configured source.</p>
+    </details>
+
+    <details>
+      <summary><strong>"Internal server error" after clicking Update</strong></summary>
+      <p>Restart jobhunt — closing and reopening the window picks up the
+        new code. The install left files in a half-state and the running
+        process is still using the old code.</p>
+    </details>
+
+    <details>
+      <summary><strong>"X sources offline" on Settings</strong></summary>
+      <p>Some company career pages have moved. jobhunt auto-skips sources
+        that have failed three times in a row. Open <a href="/health">Source
+        Health</a> to see which ones, or wait — the project's
+        source-maintenance routine will repair them at the next release.</p>
+    </details>
+
+    <h2>Privacy + data</h2>
+    <details>
+      <summary><strong>Where is my data stored?</strong></summary>
+      <p>On your machine only. The path is shown on Settings → About.
+        Windows: <code>%APPDATA%\jobhunt</code>. macOS:
+        <code>~/Library/Application Support/jobhunt</code>. Linux:
+        <code>~/.local/share/jobhunt</code>.</p>
+    </details>
+
+    <details>
+      <summary><strong>Does jobhunt phone home?</strong></summary>
+      <p>No. There's no telemetry, no update pings, no analytics. The
+        only outbound traffic is to the job sites themselves when you
+        refresh. The web UI binds to 127.0.0.1 only — your machine, not
+        your local network.</p>
+    </details>
+  </main>
+</body>
+</html>

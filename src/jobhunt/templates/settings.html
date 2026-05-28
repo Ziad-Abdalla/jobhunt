@@ -51,7 +51,12 @@
             Sign up, copy your key, paste it above, click Save.
           </span>
         </label>
-        <button type="submit" style="align-self:flex-start;">Save</button>
+        <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
+          <button type="submit">Save</button>
+          <button type="button" id="test-keys-btn" class="ghost">Test keys</button>
+          <span id="test-keys-status" style="color:var(--text-2);font-size:var(--fs-xs);"></span>
+        </div>
+        <div id="test-keys-result" style="margin-top:var(--sp-2);display:none;font-size:var(--fs-xs);"></div>
       </form>
     </div>
 

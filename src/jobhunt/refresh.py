@@ -262,23 +262,41 @@ def _disabled_sources(session: Session) -> set[tuple[str, str]]:
     consecutive scrapes — these are presumed dead and skipped on the next
     refresh until something changes. Defensive half of the maintenance
     hybrid: stop wasting requests on URLs that 404, while the
-    source-maintenance skill researches a replacement."""
-    from collections import defaultdict
+    source-maintenance skill researches a replacement.
 
-    recent: dict[tuple[str, str], list[ScrapeRun]] = defaultdict(list)
-    rows = session.execute(
-        select(ScrapeRun).order_by(ScrapeRun.started_at.desc()).limit(2000)
-    ).scalars().all()
-    for r in rows:
-        key = (r.source, r.board or "")
-        if len(recent[key]) < _AUTO_DISABLE_AFTER:
-            recent[key].append(r)
+    Uses a window function so we always fetch the latest N rows *per
+    (source, board)*, never a global LIMIT — that guarantees behaviour is
+    independent of how many total scrape_runs the DB carries.
+    """
+    from sqlalchemy import text as _sql_text
+
+    rows = session.execute(_sql_text(f"""
+        SELECT source, board, error, jobs_seen
+        FROM (
+            SELECT
+                source,
+                COALESCE(board, '') AS board,
+                error,
+                jobs_seen,
+                ROW_NUMBER() OVER (
+                    PARTITION BY source, COALESCE(board, '')
+                    ORDER BY started_at DESC
+                ) AS rn
+            FROM scrape_runs
+        )
+        WHERE rn <= {_AUTO_DISABLE_AFTER}
+    """)).all()
+
+    from collections import defaultdict
+    grouped: dict[tuple[str, str], list[tuple[str | None, int]]] = defaultdict(list)
+    for source, board, error, jobs_seen in rows:
+        grouped[(source, board or "")].append((error, jobs_seen or 0))
 
     disabled: set[tuple[str, str]] = set()
-    for key, runs in recent.items():
+    for key, runs in grouped.items():
         if len(runs) < _AUTO_DISABLE_AFTER:
-            continue  # not enough history
-        if all(r.error or r.jobs_seen == 0 for r in runs):
+            continue
+        if all(error or jobs_seen == 0 for error, jobs_seen in runs):
             disabled.add(key)
     return disabled
 

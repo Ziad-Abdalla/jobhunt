@@ -228,6 +228,61 @@
       });
     }
 
+    // Test API keys — live validate Jooble + Reed without saving.
+    var testBtn = document.getElementById("test-keys-btn");
+    if (testBtn) {
+      var testStatus = document.getElementById("test-keys-status");
+      var testResult = document.getElementById("test-keys-result");
+      testBtn.addEventListener("click", async function () {
+        testBtn.disabled = true;
+        var was = testBtn.textContent;
+        testBtn.textContent = "testing...";
+        if (testStatus) testStatus.textContent = "";
+        if (testResult) {
+          while (testResult.firstChild) testResult.removeChild(testResult.firstChild);
+          testResult.style.display = "none";
+        }
+        try {
+          var form = testBtn.closest("form");
+          var fd = new FormData();
+          if (form) {
+            var jk = form.querySelector('input[name="jooble_api_key"]');
+            var rk = form.querySelector('input[name="reed_api_key"]');
+            if (jk) fd.append("jooble_api_key", jk.value || "");
+            if (rk) fd.append("reed_api_key", rk.value || "");
+          }
+          var r = await fetch("/api/settings/test-keys", { method: "POST", body: fd });
+          var j = await r.json();
+          if (testResult) {
+            var providers = [["jooble", "Jooble"], ["reed", "Reed"]];
+            for (var i = 0; i < providers.length; i++) {
+              var key = providers[i][0];
+              var label = providers[i][1];
+              var item = j[key] || {};
+              var row = document.createElement("div");
+              if (item.ok === true) {
+                row.style.color = "var(--green)";
+                row.textContent = "✓ " + label + ": " + (item.message || "ok");
+              } else if (item.ok === false) {
+                row.style.color = "#c00";
+                row.textContent = "✗ " + label + ": " + (item.message || "failed");
+              } else {
+                row.style.color = "var(--text-3)";
+                row.textContent = "— " + label + ": " + (item.message || "skipped");
+              }
+              testResult.appendChild(row);
+            }
+            testResult.style.display = "block";
+          }
+        } catch (e) {
+          if (testStatus) testStatus.textContent = "test failed: " + e.message;
+        } finally {
+          testBtn.disabled = false;
+          testBtn.textContent = was;
+        }
+      });
+    }
+
     // Clear all jobs
     var clearBtn = document.getElementById("clear-btn");
     if (clearBtn) {

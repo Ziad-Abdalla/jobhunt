@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.0] — 2026-05-28
+
+### Added
+- **FTS5 full-text search.** Keyword queries (`?q=`) now use SQLite's
+  FTS5 inverted index instead of a triple `LIKE %x%` scan — typically
+  10–100× faster at the 24k+ row scale jobhunt operates at. The index
+  is auto-created on startup, kept in sync via INSERT / UPDATE / DELETE
+  triggers, and falls back to LIKE on SQLite builds that lack FTS5.
+  User input is sanitised (FTS5 operators stripped, each term quoted as
+  a phrase) so neither garbage nor injection attempts can 5xx the API.
+- **`POST /api/settings/test-keys`** — live validation for Jooble +
+  Reed API keys with instant ✓/✗ feedback. The Settings page now has a
+  "Test keys" button next to Save; users no longer find out at the
+  next scrape that a key is invalid.
+- **In-app help page at `/help`.** Plain-English FAQ covering every
+  filter, the salary-estimate badge, the Local Jobs non-tech default,
+  API key setup, update + uninstall flows, troubleshooting common
+  errors, and the privacy posture. Linked from the main nav.
+- **Skip-link + ARIA labels** — minimum-viable accessibility pass on
+  the Help page and the global Refresh button.
+- **Richer `/api/healthz`** — now returns job count, source-health
+  summary, last refresh timestamp, and DB size on disk. A single
+  request gives the full operational picture for monitoring scripts.
+
+### Changed
+- `_disabled_sources` now uses a `ROW_NUMBER()` window function to fetch
+  the latest N rows per (source, board), so the auto-disable decision
+  no longer depends on the global size of the scrape_runs table.
+
 ## [0.9.2] — 2026-05-28
 
 ### Added

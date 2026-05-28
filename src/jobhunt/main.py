@@ -1016,6 +1016,65 @@ def api_sources_health() -> JSONResponse:
     return JSONResponse(_source_health_summary())
 
 
+@app.post("/api/settings/test-keys")
+async def api_test_keys(
+    jooble_api_key: str = Form(""),
+    reed_api_key: str = Form(""),
+) -> JSONResponse:
+    """Validate API keys with a minimal live request. Users get instant
+    ✓/✗ feedback instead of finding out at the next scrape. Form fields
+    are optional — if the user omits them, we test the keys already
+    saved in settings."""
+    import httpx
+
+    jk = (jooble_api_key or settings.jooble_api_key or "").strip()
+    rk = (reed_api_key or settings.reed_api_key or "").strip()
+
+    async def test_jooble() -> dict:
+        if not jk:
+            return {"ok": None, "message": "no key set"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as c:
+                # POST a tiny query — Jooble responds with totalCount or 401.
+                r = await c.post(
+                    f"https://jooble.org/api/{jk}",
+                    json={"keywords": "developer", "location": "London", "page": "1"},
+                )
+            if r.status_code == 401:
+                return {"ok": False, "message": "key rejected (401) — regenerate at jooble.org/api/about"}
+            if r.status_code >= 400:
+                return {"ok": False, "message": f"Jooble returned HTTP {r.status_code}"}
+            data = r.json()
+            if not isinstance(data, dict) or "jobs" not in data:
+                return {"ok": False, "message": "unexpected response shape"}
+            return {"ok": True, "message": f"{len(data.get('jobs') or [])} jobs in test query"}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "message": f"{type(exc).__name__}: {exc}"}
+
+    async def test_reed() -> dict:
+        if not rk:
+            return {"ok": None, "message": "no key set"}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as c:
+                r = await c.get(
+                    "https://www.reed.co.uk/api/1.0/search",
+                    params={"keywords": "developer", "resultsToTake": 1},
+                    auth=httpx.BasicAuth(username=rk, password=""),
+                )
+            if r.status_code == 401:
+                return {"ok": False, "message": "key rejected (401) — regenerate at reed.co.uk/developers/jobseeker"}
+            if r.status_code >= 400:
+                return {"ok": False, "message": f"Reed returned HTTP {r.status_code}"}
+            data = r.json()
+            total = data.get("totalResults", 0) if isinstance(data, dict) else 0
+            return {"ok": True, "message": f"{total:,} jobs accessible"}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "message": f"{type(exc).__name__}: {exc}"}
+
+    jooble_result, reed_result = await asyncio.gather(test_jooble(), test_reed())
+    return JSONResponse({"jooble": jooble_result, "reed": reed_result})
+
+
 @app.post("/api/settings/save")
 def api_save_settings(
     jooble_api_key: str = Form(""),
@@ -1354,9 +1413,54 @@ def api_clear_data() -> JSONResponse:
 # ---------- meta ----------
 
 
+@app.get("/help", response_class=HTMLResponse)
+def help_page(request: Request) -> HTMLResponse:
+    """In-app help: shortcuts to common questions, troubleshooting, what
+    each filter means. The non-technical user's safety net."""
+    return templates.TemplateResponse(
+        request,
+        "help.html",
+        {"nav": "help", "today": _today()},
+    )
+
+
 @app.get("/api/healthz")
 def healthz() -> dict:
-    return {"ok": True, "version": __version__}
+    """Operational status. Designed for both human curl + scripted
+    monitoring. Adds counts the Settings page already shows so a single
+    request gives a full picture."""
+    import os as _os
+
+    sources_health = _source_health_summary()
+    job_count = 0
+    last_refresh: str | None = None
+    db_bytes = 0
+    try:
+        with db_session() as s:
+            job_count = s.execute(
+                select(func.count()).select_from(Job)
+            ).scalar_one()
+            row = s.execute(
+                select(ScrapeRun.started_at)
+                .order_by(ScrapeRun.started_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            if row is not None:
+                if row.tzinfo is None:
+                    row = row.replace(tzinfo=UTC)
+                last_refresh = row.isoformat()
+        if settings.db_path.exists():
+            db_bytes = _os.path.getsize(settings.db_path)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("healthz stats failed: %s", exc)
+    return {
+        "ok": True,
+        "version": __version__,
+        "jobs": job_count,
+        "sources": sources_health,
+        "last_refresh": last_refresh,
+        "db_bytes": db_bytes,
+    }
 
 
 @app.get("/api/scheduler")

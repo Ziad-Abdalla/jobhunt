@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -32,16 +33,56 @@ class JobQuery:
     sort: str = "score"           # score | posted | seen | cv
 
 
+_FTS_SAFE_TERM = re.compile(r"[^A-Za-z0-9À-￿#+]+")
+
+
+def _fts_query(q: str) -> str | None:
+    """Convert a free-text user query into a safe FTS5 expression.
+
+    Strategy: split on whitespace, strip FTS5 metacharacters from each term
+    (FTS5 treats `-` `:` `^` etc. as operators which can blow up on user
+    input), quote each remaining term to make it a phrase, AND them
+    together. Returns None if nothing usable remains.
+    """
+    parts: list[str] = []
+    for raw in (q or "").split():
+        # Drop anything that isn't alphanumeric / safe punctuation. Keeps
+        # `#` and `+` so terms like `c++` survive.
+        cleaned = _FTS_SAFE_TERM.sub("", raw)
+        if len(cleaned) >= 2:
+            parts.append(f'"{cleaned}"')
+    if not parts:
+        return None
+    return " ".join(parts)
+
+
 def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
     if q.q:
-        like = f"%{q.q.lower()}%"
-        stmt = stmt.where(
-            or_(
-                Job.title.ilike(like),
-                Job.company.ilike(like),
-                Job.description.ilike(like),
+        # Prefer FTS5 when available — 10-100× faster than triple-LIKE at
+        # 24k+ rows. Falls back to LIKE if the SQLite build lacks FTS5 or
+        # the cleaned query is empty.
+        from .db import has_fts5
+        from sqlalchemy import literal
+
+        fts_q = _fts_query(q.q) if has_fts5() else None
+        if fts_q:
+            # `jobs_fts` is the virtual index; rowid maps back to jobs.id.
+            stmt = stmt.where(
+                Job.id.in_(
+                    __import__("sqlalchemy").text(
+                        "SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH :fts"
+                    ).bindparams(fts=fts_q)
+                )
             )
-        )
+        else:
+            like = f"%{q.q.lower()}%"
+            stmt = stmt.where(
+                or_(
+                    Job.title.ilike(like),
+                    Job.company.ilike(like),
+                    Job.description.ilike(like),
+                )
+            )
     if q.company:
         stmt = stmt.where(Job.company.ilike(f"%{q.company}%"))
     if q.location:
