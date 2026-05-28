@@ -5141,18 +5141,6 @@
     ]
   },
   {
-    "name": "Monzo Public Bug Bounty Program",
-    "url": "https://www.intigriti.com/programs/monzobank/monzopublicbugbountyprogram/detail",
-    "platform": "intigriti",
-    "domains": [
-      "*.monzo.com",
-      "*.prod-ffs.io",
-      "co.uk.getmondo",
-      "www.monzo.com",
-      "monzo.com"
-    ]
-  },
-  {
     "name": "MoonPay ",
     "url": "https://hackerone.com/moonpay",
     "platform": "hackerone",
