@@ -1,11 +1,17 @@
 """Tests for the auto-disable mechanism: a source that has failed 3 scrapes
 in a row should be skipped on the next refresh, and surface in the
-/api/sources/health summary."""
+/api/sources/health summary.
+
+Each test uses a `cleanup` autouse fixture that scrubs the test sources
+both before and after, so a previous failure leaving rows behind never
+affects the next run.
+"""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from jobhunt.db import db_session, init_db
@@ -13,11 +19,29 @@ from jobhunt.main import app
 from jobhunt.models import ScrapeRun
 from jobhunt.refresh import _AUTO_DISABLE_AFTER, _disabled_sources
 
+_TEST_SOURCES = (
+    "test-broken", "test-half-broken", "test-flaky", "test-silent",
+)
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_test_sources():
+    """Wipe any leftover test rows before AND after each test so pollution
+    from a prior failure can't make the next run flaky."""
+    init_db()
+    with db_session() as s:
+        s.query(ScrapeRun).filter(ScrapeRun.source.in_(_TEST_SOURCES)).delete()
+    yield
+    with db_session() as s:
+        s.query(ScrapeRun).filter(ScrapeRun.source.in_(_TEST_SOURCES)).delete()
+
 
 def _seed_runs(session, source: str, board: str, n: int,
-               jobs_seen: int = 0, error: str | None = "fail") -> None:
-    """Append n scrape_runs for (source, board) at increasing timestamps."""
-    base = datetime.now(UTC) - timedelta(days=n)
+               jobs_seen: int = 0, error: str | None = "fail",
+               start_offset_days: int = 0) -> None:
+    """Append n scrape_runs at increasing timestamps. start_offset_days
+    lets a test mix old + new seed rows in a deterministic order."""
+    base = datetime.now(UTC) - timedelta(days=n + start_offset_days)
     for i in range(n):
         session.add(ScrapeRun(
             source=source,
@@ -32,62 +56,48 @@ def _seed_runs(session, source: str, board: str, n: int,
 
 
 def test_disabled_after_three_consecutive_failures() -> None:
-    init_db()
     with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-broken").delete()
         _seed_runs(s, "test-broken", "co", n=_AUTO_DISABLE_AFTER, error="HTTPError 404")
     with db_session() as s:
         disabled = _disabled_sources(s)
     assert ("test-broken", "co") in disabled
-    with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-broken").delete()
 
 
 def test_not_disabled_with_fewer_failures() -> None:
-    init_db()
     with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-half-broken").delete()
         _seed_runs(s, "test-half-broken", "co",
                    n=_AUTO_DISABLE_AFTER - 1, error="HTTPError 404")
     with db_session() as s:
         disabled = _disabled_sources(s)
     assert ("test-half-broken", "co") not in disabled
-    with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-half-broken").delete()
 
 
 def test_not_disabled_when_any_recent_run_succeeded() -> None:
     """A single success in the recent window re-enables the source."""
-    init_db()
     with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-flaky").delete()
-        _seed_runs(s, "test-flaky", "co", n=2, error="HTTPError 503")
-        _seed_runs(s, "test-flaky", "co", n=1, jobs_seen=42, error=None)
+        # 2 old failures, then 1 recent success.
+        _seed_runs(s, "test-flaky", "co", n=2,
+                   error="HTTPError 503", start_offset_days=5)
+        _seed_runs(s, "test-flaky", "co", n=1,
+                   jobs_seen=42, error=None, start_offset_days=0)
     with db_session() as s:
         disabled = _disabled_sources(s)
     assert ("test-flaky", "co") not in disabled
-    with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-flaky").delete()
 
 
 def test_disabled_when_zero_jobs_no_error() -> None:
-    """A scraper that returns 0 jobs for 3 consecutive runs gets disabled —
-    silent decay is the more dangerous mode."""
-    init_db()
+    """3 consecutive zero-job runs (no exception) is still 'silent decay'
+    and triggers auto-disable — the more dangerous failure mode."""
     with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-silent").delete()
         _seed_runs(s, "test-silent", "co",
                    n=_AUTO_DISABLE_AFTER, jobs_seen=0, error=None)
     with db_session() as s:
         disabled = _disabled_sources(s)
     assert ("test-silent", "co") in disabled
-    with db_session() as s:
-        s.query(ScrapeRun).filter(ScrapeRun.source == "test-silent").delete()
 
 
 def test_sources_health_endpoint() -> None:
-    """The /api/sources/health endpoint returns the offline/attention/total
-    summary the Settings page badge uses."""
+    """JSON shape contract for the Settings-page badge + skill."""
     client = TestClient(app)
     r = client.get("/api/sources/health")
     assert r.status_code == 200
@@ -97,7 +107,6 @@ def test_sources_health_endpoint() -> None:
 
 
 def test_settings_page_shows_sources_section() -> None:
-    """The Settings page renders the new Sources section."""
     client = TestClient(app)
     r = client.get("/settings")
     assert r.status_code == 200

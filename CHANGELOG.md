@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.10.1] — 2026-05-28
+
+### Fixed
+- **SQLite "database is locked" errors under concurrent writes.** The
+  category-backfill background thread + an incoming request could
+  contend on the same SQLite file. Now: WAL journal mode (readers go
+  through while one writer works), `synchronous=NORMAL` (safe with WAL,
+  noticeably faster commits), 30s busy-timeout (writers wait quietly
+  instead of erroring). `check_same_thread=False` on the connection so
+  the backfill thread can share the engine. End-to-end: 5/5 stress-runs
+  of the full test suite green where 2/5 had been flaky before.
+- Hardened the auto-disable test fixture: autouse cleanup before AND
+  after each test so a previous failure leaving rows can't pollute the
+  next run.
+
 ## [0.10.0] — 2026-05-28
 
 ### Added

@@ -4,7 +4,7 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from .config import settings
@@ -12,7 +12,28 @@ from .models import Base
 
 log = logging.getLogger(__name__)
 
-_engine = create_engine(settings.db_url, future=True)
+# SQLite gets locked when multiple writers contend (e.g. the category
+# backfill background thread vs an incoming request). A 30s busy-timeout
+# makes the second writer wait quietly instead of raising
+# OperationalError("database is locked"). WAL journal mode lets readers
+# proceed concurrently with that one writer — strictly better for our
+# read-heavy + occasional-bulk-write workload.
+_engine = create_engine(
+    settings.db_url,
+    future=True,
+    connect_args={"timeout": 30, "check_same_thread": False},
+)
+
+
+@event.listens_for(_engine, "connect")
+def _set_sqlite_pragmas(dbapi_connection, _record):  # type: ignore[no-untyped-def]
+    cur = dbapi_connection.cursor()
+    cur.execute("PRAGMA journal_mode=WAL")
+    cur.execute("PRAGMA synchronous=NORMAL")  # safe with WAL, faster commits
+    cur.execute("PRAGMA busy_timeout=30000")
+    cur.close()
+
+
 _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False, future=True)
 
 
