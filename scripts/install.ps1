@@ -55,8 +55,14 @@ Write-Host "  $ver installed" -ForegroundColor Green
 $desktop = [Environment]::GetFolderPath('Desktop')
 $shell = New-Object -ComObject WScript.Shell
 
-# Use a clean globe/search icon from Windows system icons
-$iconPath = "$env:SystemRoot\System32\imageres.dll,14"
+# Find the custom icon from the installed package
+$pkgDir = & python3 -c "import jobhunt; print(jobhunt.__file__.replace('__init__.py',''))" 2>$null
+$customIcon = Join-Path $pkgDir 'static\jobhunt.ico'
+if (Test-Path $customIcon) {
+    $iconPath = $customIcon
+} else {
+    $iconPath = "$env:SystemRoot\System32\imageres.dll,14"
+}
 
 # Desktop shortcut
 $lnk = $shell.CreateShortcut((Join-Path $desktop 'jobhunt.lnk'))
