@@ -42,6 +42,10 @@ class Job(Base):
 
     visa_sponsorship: Mapped[str] = mapped_column(String(32), default="unknown", index=True)
 
+    # Coarse classification for the /local page: 'tech' | 'nontech' | 'other'.
+    # Computed by extract.classify_category during persistence.
+    category: Mapped[str] = mapped_column(String(16), default="other", index=True)
+
     skills: Mapped[list[str]] = mapped_column(JSON, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, default=list)
 

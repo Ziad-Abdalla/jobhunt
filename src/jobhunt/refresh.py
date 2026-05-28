@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import db_session, init_db
 from .dedup import description_hash, fingerprint
-from .extract import extract
+from .extract import classify_category, extract
 from .models import Job, ScrapeRun
 from .salary_estimator import compute_ranges_from_db, estimate_salary
 from .scoring import score_job
@@ -177,6 +177,8 @@ def _persist(
         salary_currency = est.currency
         salary_estimated = True
 
+    category = classify_category(raw.title, raw.description)
+
     if existing is None:
         job = Job(
             fingerprint=fp,
@@ -196,6 +198,7 @@ def _persist(
             salary_currency=salary_currency,
             visa_sponsorship=raw.visa_sponsorship or "unknown",
             salary_estimated=salary_estimated,
+            category=category,
             skills=ex.skills,
             languages=ex.languages,
             description=raw.description,
@@ -226,6 +229,7 @@ def _persist(
         existing.visa_sponsorship = raw.visa_sponsorship
     existing.skills = ex.skills
     existing.languages = ex.languages
+    existing.category = category
     existing.score = score
     if raw.posted_at and not existing.posted_at:
         existing.posted_at = raw.posted_at

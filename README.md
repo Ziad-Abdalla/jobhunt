@@ -42,29 +42,38 @@ salary, degree, experience, languages, skills, posted date, visa sponsorship,
 CV match, sort order.
 
 ### Local Jobs
-Entry-level and junior roles near you. Type your city (London, Whitechapel,
-Stuttgart, Berlin, Manchester, etc.) and filter by level, job type, max
-experience (0-5 years), and salary. Focused on UK and Germany.
+Zero-experience local work near you — cleaning, retail, warehouse, hospitality,
+care, customer service, driving, reception, security. Type your city
+(Whitechapel, Manchester, Stuttgart, Berlin) and the page defaults to
+no-experience non-tech roles; flip the *What kind of work* dropdown to switch
+to tech / software or "any kind". Best UK and Germany coverage; UK government's
+Find a Job feed is included free, no API key needed.
 
 ### Freelance & Contract
 Contract, freelance, and temporary software roles. Filter by keyword, work
 mode, and salary. Sorted by most recently posted.
 
 ### Bug Bounty
-871 active bug bounty programs from HackerOne, Bugcrowd, Intigriti, and
-YesWeHack. Search by company or domain. Filter by platform.
+870+ active bug bounty programs from HackerOne, Bugcrowd, Intigriti, and
+YesWeHack. Search by company or domain. Filter by platform, by *Pays cash*
+vs *Cash or swag*, and sort by highest max payout, highest min payout, or
+most responsive (HackerOne response-efficiency %). Reward ranges come straight
+from the platform — never estimated.
 
 ---
 
 ## Features
 
-- **17 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+- **18 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
   Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs, Arbeitnow, Jobicy,
-  Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble (69 countries), Reed (UK)
+  Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble (69 countries), Reed (UK),
+  Find a Job (UK DWP — all sectors, no key)
 - **Intern/junior focused**: 3,300+ entry-level roles. Detects intern, graduate,
   trainee, apprentice, co-op, Ausbildung, Werkstudent, and "0-1 years" patterns.
 - **Salary on every job**: real data where available, plus a self-calibrating estimator.
 - **CV match**: upload your CV and sort jobs by how well they fit your experience.
+  Works without any extra install — keyword overlap by default, free
+  semantic-similarity upgrade via `jobhunt-app[match]`.
 - **Saved search alerts**: desktop notifications when new matching jobs appear.
 - **Settings page**: update, clear data, enter API keys, uninstall — all from the UI.
 - **Auto-refresh**: re-scrape every N hours in the background.
@@ -77,7 +86,7 @@ YesWeHack. Search by company or domain. Filter by platform.
 | **Update** | Settings tab > Check for updates, or re-run the install command |
 | **Clear jobs** | Settings tab > Clear all jobs |
 | **Add API keys** | Settings tab > Jooble / Reed keys (optional, unlocks more sources) |
-| **Uninstall** | Settings tab shows the command, or `uv tool uninstall jobhunt-app` |
+| **Uninstall** | Settings tab → **Uninstall jobhunt** button (one click) |
 | **Auto-refresh** | `jobhunt --schedule 360` (every 6 hours) |
 | **Check sources** | `jobhunt doctor` |
 

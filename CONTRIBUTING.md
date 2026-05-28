@@ -23,18 +23,24 @@ src/jobhunt/
 ├── salary_estimator.py Self-calibrating salary estimation
 ├── dedup.py           Fingerprint-based deduplication
 ├── bounties.py        Bug bounty program fetcher (GitHub data)
-├── scrapers/          17 ATS adapters
+├── scrapers/          18 ATS adapters (incl. findajob — UK DWP, free, no key)
 ├── templates/         Jinja2 (8 pages: index, local, freelance, bounties,
 │                       alerts, cv, sources, settings)
 ├── static/            style.css, app.js, htmx.min.js (vendored)
-└── sources.yaml       130+ default company boards
+└── sources.yaml       150+ default boards (incl. Find a Job non-tech entries)
 ```
 
 **4 sections in the app:**
-- **Jobs** — main search with all 15 filters
-- **Local Jobs** — UK/Germany entry-level by location + max experience
+- **Jobs** — main search with all 15 filters. Career stage and Job type are
+  intentionally separate: career stage = permanent-role seniority (entry → senior),
+  job type = contract type. Internship lives in *Job type*, not *Career stage*.
+- **Local Jobs** — **zero-experience local roles** (cleaning, retail, warehouse,
+  hospitality, care, customer service, driving). Tech is still selectable.
+  Defaults to `?category=nontech`. Backed by Find a Job + Reed + Jooble + Arbeitsagentur.
 - **Freelance** — contract/freelance roles
-- **Bug Bounty** — HackerOne/Bugcrowd/Intigriti/YesWeHack programs
+- **Bug Bounty** — HackerOne / Bugcrowd / Intigriti / YesWeHack programs with
+  real upstream reward data. We never estimate min/max amounts; if upstream is
+  silent, the UI omits the badge.
 
 ## Development setup
 

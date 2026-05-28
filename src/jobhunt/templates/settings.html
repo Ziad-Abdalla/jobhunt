@@ -5,9 +5,9 @@
   <title>jobhunt — settings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
   <script src="/static/htmx.min.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v={{ version }}" defer></script>
 </head>
 <body data-page="settings">
   {% include "_nav.html" %}
@@ -48,10 +48,12 @@
     <h2>Updates</h2>
     <div class="form-card" style="margin:0 0 var(--sp-5);">
       <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
-        Check for a newer version and install it.
+        Current version: <strong>v{{ version }}</strong>. Check shows what's available;
+        install runs the upgrade and asks you to restart.
       </p>
       <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
-        <button id="update-btn" type="button">Check for updates</button>
+        <button id="check-btn" type="button">Check for updates</button>
+        <button id="install-btn" type="button" style="display:none;">Install update</button>
         <span id="update-spinner" class="spinner" style="display:none;" aria-hidden="true"></span>
       </div>
       <div id="update-result" style="margin-top:var(--sp-3);display:none;">
@@ -87,15 +89,22 @@
     <div class="form-card" style="margin:0 0 var(--sp-5);">
       {% if install_method == 'binary' %}
         <p style="margin:0;color:var(--text-2);">Delete the jobhunt file you downloaded. Data is in <code>{{ data_dir }}</code>.</p>
-      {% elif install_method == 'uv' %}
-        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">Run this in your terminal:</p>
-        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);">uv tool uninstall jobhunt-app</code>
-      {% elif install_method == 'pipx' %}
-        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">Run this in your terminal:</p>
-        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);">pipx uninstall jobhunt-app</code>
       {% else %}
-        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">Run this in your terminal:</p>
-        <code style="display:block;padding:var(--sp-3);background:var(--bg-3);border-radius:var(--radius-sm);">pip uninstall jobhunt-app</code>
+        <p style="margin:0 0 var(--sp-3);color:var(--text-2);">
+          Removes jobhunt from your machine. Your saved data ({{ data_dir }})
+          stays unless you delete it manually.
+        </p>
+        <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
+          <button id="uninstall-btn" type="button" class="danger">Uninstall jobhunt</button>
+          <span id="uninstall-spinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+        </div>
+        <p id="uninstall-message" style="margin:var(--sp-3) 0 0;color:var(--text-2);white-space:pre-wrap;display:none;"></p>
+        <p style="margin:var(--sp-3) 0 0;font-size:var(--fs-xs);color:var(--text-3);">
+          Prefer the terminal? Run
+          {% if install_method == 'uv' %}<code>uv tool uninstall jobhunt-app</code>
+          {% elif install_method == 'pipx' %}<code>pipx uninstall jobhunt-app</code>
+          {% else %}<code>pip uninstall jobhunt-app</code>{% endif %}.
+        </p>
       {% endif %}
     </div>
 

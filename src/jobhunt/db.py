@@ -30,6 +30,7 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("salary_currency", "ALTER TABLE jobs ADD COLUMN salary_currency VARCHAR(8) DEFAULT ''"),
         ("salary_estimated", "ALTER TABLE jobs ADD COLUMN salary_estimated BOOLEAN DEFAULT 0"),
         ("visa_sponsorship", "ALTER TABLE jobs ADD COLUMN visa_sponsorship VARCHAR(32) DEFAULT 'unknown'"),
+        ("category", "ALTER TABLE jobs ADD COLUMN category VARCHAR(16) DEFAULT 'other'"),
     ],
     "scrape_runs": [
         ("board", "ALTER TABLE scrape_runs ADD COLUMN board VARCHAR(128) DEFAULT ''"),
@@ -74,10 +75,38 @@ def _normalize_employment_types() -> None:
                 )
 
 
+def _backfill_categories() -> None:
+    """One-time pass: classify existing 'other' rows by title.
+
+    Runs cheaply on startup; only touches jobs that haven't been classified
+    yet so subsequent boots are no-ops.
+    """
+    from .extract import classify_category
+
+    insp = inspect(_engine)
+    if not insp.has_table("jobs"):
+        return
+    with _engine.begin() as conn:
+        result = conn.execute(
+            text("SELECT id, title, description FROM jobs WHERE category = 'other' OR category IS NULL")
+        )
+        rows = result.fetchall()
+        if not rows:
+            return
+        for row_id, title, description in rows:
+            cat = classify_category(title or "", description or "")
+            if cat != "other":
+                conn.execute(
+                    text("UPDATE jobs SET category = :cat WHERE id = :id"),
+                    {"cat": cat, "id": row_id},
+                )
+
+
 def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)
     _normalize_employment_types()
+    _backfill_categories()
 
 
 @contextmanager

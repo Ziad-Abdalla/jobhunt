@@ -30,7 +30,11 @@
         var r = await fetch("/api/refresh", { method: "POST" });
         if (!r.ok) throw new Error("HTTP " + r.status);
         var j = await r.json();
-        var msg = "added " + j.added + " · saw " + j.seen + " · removed " + j.removed;
+        if (j.ok === false) {
+          setStatus(j.message || "refresh failed");
+          return;
+        }
+        var msg = "added " + (j.added || 0) + " · saw " + (j.seen || 0) + " · removed " + (j.removed || 0);
         if (j.alerts && typeof j.alerts.notified === "number" && j.alerts.notified > 0) {
           msg += " · " + j.alerts.notified + " alert" + (j.alerts.notified === 1 ? "" : "s") + " sent";
         }
@@ -41,7 +45,7 @@
           setTimeout(function () { location.reload(); }, 800);
         }
       } catch (e) {
-        setStatus("scrape failed: " + e.message);
+        setStatus("scrape failed: " + e.message + " — try again in a minute");
       } finally {
         document.body.classList.remove("results-loading");
         btn.disabled = false;
@@ -110,39 +114,116 @@
     });
   }
 
-  // ---------- settings page: update + clear buttons ----------
+  // ---------- settings page: check / install / uninstall / clear ----------
   function bindSettingsButtons() {
-    // Check for updates
-    var updateBtn = document.getElementById("update-btn");
-    if (updateBtn) {
-      var updateSpinner = document.getElementById("update-spinner");
-      var updateResult = document.getElementById("update-result");
-      var updateMessage = document.getElementById("update-message");
-      var updateDownload = document.getElementById("update-download");
+    var checkBtn = document.getElementById("check-btn");
+    var installBtn = document.getElementById("install-btn");
+    var spinner = document.getElementById("update-spinner");
+    var result = document.getElementById("update-result");
+    var message = document.getElementById("update-message");
+    var download = document.getElementById("update-download");
 
-      updateBtn.addEventListener("click", async function () {
-        var was = updateBtn.textContent;
-        updateBtn.disabled = true;
-        updateBtn.textContent = "checking...";
-        if (updateSpinner) updateSpinner.style.display = "inline-block";
-        if (updateResult) updateResult.style.display = "none";
-        if (updateDownload) updateDownload.style.display = "none";
+    function showSpinner(on) {
+      if (spinner) spinner.style.display = on ? "inline-block" : "none";
+    }
+    function showResult(text) {
+      if (message) message.textContent = text || "";
+      if (result) result.style.display = text ? "block" : "none";
+    }
+
+    if (checkBtn) {
+      checkBtn.addEventListener("click", async function () {
+        var was = checkBtn.textContent;
+        checkBtn.disabled = true;
+        checkBtn.textContent = "checking...";
+        showSpinner(true);
+        showResult("");
+        if (download) download.style.display = "none";
+        if (installBtn) installBtn.style.display = "none";
+        try {
+          // Passive check only — never installs.
+          var r = await fetch("/api/check-update", { method: "GET" });
+          var j = await r.json();
+          showResult(j.message || "");
+          if (j.update_available && installBtn) {
+            installBtn.style.display = "inline-block";
+          }
+          if (j.url && download) {
+            download.href = j.url;
+            download.style.display = "inline-block";
+          }
+        } catch (e) {
+          showResult("Couldn't check for updates: " + e.message + "\nTry again in a moment — your network might be flaky.");
+        } finally {
+          checkBtn.disabled = false;
+          checkBtn.textContent = was;
+          showSpinner(false);
+        }
+      });
+    }
+
+    if (installBtn) {
+      installBtn.addEventListener("click", async function () {
+        if (!window.confirm("Install the update now? jobhunt may need a restart after.")) return;
+        var was = installBtn.textContent;
+        installBtn.disabled = true;
+        installBtn.textContent = "installing...";
+        showSpinner(true);
         try {
           var r = await fetch("/api/update", { method: "POST" });
           var j = await r.json();
-          if (updateMessage) updateMessage.textContent = j.message || "Done.";
-          if (updateResult) updateResult.style.display = "block";
-          if (j.download_url && updateDownload) {
-            updateDownload.href = j.download_url;
-            updateDownload.style.display = "inline-block";
+          var note = j.message || "Done.";
+          if (j.ok) {
+            note += "\n\nRestart jobhunt to pick up the new version.";
+          }
+          showResult(note);
+          if (j.download_url && download) {
+            download.href = j.download_url;
+            download.style.display = "inline-block";
           }
         } catch (e) {
-          if (updateMessage) updateMessage.textContent = "Error: " + e.message;
-          if (updateResult) updateResult.style.display = "block";
+          showResult("Install failed: " + e.message);
         } finally {
-          updateBtn.disabled = false;
-          updateBtn.textContent = was;
-          if (updateSpinner) updateSpinner.style.display = "none";
+          installBtn.disabled = false;
+          installBtn.textContent = was;
+          showSpinner(false);
+        }
+      });
+    }
+
+    var uninstallBtn = document.getElementById("uninstall-btn");
+    var uninstallSpinner = document.getElementById("uninstall-spinner");
+    var uninstallMessage = document.getElementById("uninstall-message");
+    if (uninstallBtn) {
+      uninstallBtn.addEventListener("click", async function () {
+        if (!window.confirm("Uninstall jobhunt from your machine now?\nYour saved data won't be deleted.")) return;
+        var was = uninstallBtn.textContent;
+        uninstallBtn.disabled = true;
+        uninstallBtn.textContent = "uninstalling...";
+        if (uninstallSpinner) uninstallSpinner.style.display = "inline-block";
+        if (uninstallMessage) uninstallMessage.style.display = "none";
+        try {
+          var r = await fetch("/api/uninstall-now", { method: "POST" });
+          var j = await r.json();
+          if (uninstallMessage) {
+            uninstallMessage.textContent = j.message || "";
+            uninstallMessage.style.display = "block";
+          }
+          if (j.uninstalled) {
+            uninstallBtn.textContent = "uninstalled";
+          } else {
+            uninstallBtn.disabled = false;
+            uninstallBtn.textContent = was;
+          }
+        } catch (e) {
+          if (uninstallMessage) {
+            uninstallMessage.textContent = "Uninstall failed: " + e.message;
+            uninstallMessage.style.display = "block";
+          }
+          uninstallBtn.disabled = false;
+          uninstallBtn.textContent = was;
+        } finally {
+          if (uninstallSpinner) uninstallSpinner.style.display = "none";
         }
       });
     }

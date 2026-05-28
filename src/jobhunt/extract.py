@@ -156,6 +156,62 @@ _LOCATION_REMOTE_RE = re.compile(
     re.I,
 )
 
+# ---------------------------------------------------------------------------
+# Category — coarse classification used by the /local page to separate
+# software/IT roles ("tech") from everyday zero-experience jobs ("nontech")
+# like cleaning, retail, hospitality, warehouse, care, customer service.
+# Title-first heuristic with a description fallback. Returns "tech", "nontech",
+# or "other" when neither fires.
+# ---------------------------------------------------------------------------
+
+_TECH_TITLE_RE = re.compile(
+    r"\b(software|developer|engineer|programmer|sre|devops|sysadmin|"
+    r"data\s+(?:scientist|engineer|analyst)|ml\b|machine\s+learning|"
+    r"backend|front-?end|full-?stack|web\s+developer|mobile\s+developer|"
+    r"ios\s+developer|android\s+developer|qa\s+engineer|test\s+engineer|"
+    r"security\s+engineer|product\s+manager|technical\s+lead|cto|cio|"
+    r"information\s+(?:security|technology)|it\s+(?:support|technician)|"
+    r"cloud\s+(?:engineer|architect)|platform\s+engineer|infrastructure|"
+    r"firmware|hardware\s+engineer)\b",
+    re.I,
+)
+_NONTECH_TITLE_RE = re.compile(
+    r"\b(cleaner|cleaning|housekeep|janitor|caretaker|"
+    r"retail|cashier|shop\s+assistant|sales\s+assistant|store\s+(?:assistant|associate)|"
+    r"warehouse|picker|packer|forklift|stockroom|stocker|"
+    r"kitchen|chef|cook|line\s+cook|dishwasher|kp\b|kitchen\s+porter|"
+    r"barista|waiter|waitress|server|waiting\s+staff|bartender|host(?:ess)?|"
+    r"delivery\s+driver|courier|driver(?:'s)?\s+mate|hgv|lgv|van\s+driver|rider|"
+    r"customer\s+(?:service|assistant|advisor)|call\s+(?:centre|center)|"
+    r"receptionist|front\s+desk|concierge|"
+    r"security\s+(?:guard|officer)|door\s+supervisor|"
+    r"care\s+(?:assistant|worker|home)|carer|support\s+worker|healthcare\s+assistant|"
+    r"nursery|teaching\s+assistant|childcare|"
+    r"labourer|construction|builder|gardener|landscap(?:er|ing)|"
+    r"factory|production\s+operative|machine\s+operator|assembly|"
+    r"hospitality|housekeeper|cleaner|porter)\b",
+    re.I,
+)
+
+
+def classify_category(title: str, description: str = "") -> str:
+    """Return 'tech', 'nontech', or 'other' for a job posting.
+
+    Title is the strongest signal — "Cleaner" beats anything in the description.
+    Description is a tiebreaker when the title is ambiguous (e.g. "Assistant").
+    """
+    title = title or ""
+    if _TECH_TITLE_RE.search(title):
+        return "tech"
+    if _NONTECH_TITLE_RE.search(title):
+        return "nontech"
+    blob = description or ""
+    if _TECH_TITLE_RE.search(blob[:600]):
+        return "tech"
+    if _NONTECH_TITLE_RE.search(blob[:600]):
+        return "nontech"
+    return "other"
+
 
 def _parse_salary_number(raw: str) -> int | None:
     """Parse '120,000', '120k', '1.5k', '120.000' (EU) into an integer."""

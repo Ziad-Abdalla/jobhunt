@@ -79,7 +79,7 @@ def test_filter_inputs_present(browser_page):
 def test_filter_fieldsets_present(browser_page):
     pg, base = browser_page
     pg.goto(base, wait_until="networkidle")
-    for legend in ["Work mode", "Level"]:
+    for legend in ["Work mode", "Career stage"]:
         assert pg.query_selector(f'legend:has-text("{legend}")') is not None, f"Missing fieldset: {legend}"
     for label in ["Job type", "Degree required", "Visa sponsorship"]:
         el = pg.query_selector(f'label:has-text("{label}")')

@@ -5,8 +5,8 @@
   <title>jobhunt — CV match</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
-  <link rel="stylesheet" href="/static/style.css" />
-  <script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
+  <script src="/static/app.js?v={{ version }}" defer></script>
 </head>
 <body data-page="cv">
   {% include "_nav.html" %}
@@ -15,10 +15,13 @@
     <h1>CV Match</h1>
     <p>Upload your CV and every job gets a match score. Sort or filter by how well each job fits your experience. Everything stays on your machine — nothing is uploaded anywhere.</p>
 
-    {% if not cv_available %}
-      <div class="alert">
-        <strong>CV matching requires an extra download (~500 MB).</strong>
-        Run <code>uv tool install --reinstall "git+https://github.com/Abdalla2004-collab/Jobhunt.git[match]"</code> to enable it.
+    {% if cv.mode == 'keyword' and not cv.semantic_available %}
+      <div class="alert" role="status">
+        <strong>Fast mode active.</strong>
+        We're matching jobs against the skills + languages we detect in your CV.
+        For deeper semantic matching (understands "ReactJS dev" ≈ "front-end engineer"),
+        install the optional ML extras: <code>uv tool install --reinstall "jobhunt-app[match]"</code>.
+        Roughly 500 MB; everything still runs on your machine.
       </div>
     {% endif %}
 
@@ -28,7 +31,13 @@
         <ul>
           <li><b>File</b> {{ cv.filename }}</li>
           <li><b>Uploaded</b> {{ cv.uploaded_at }}</li>
-          <li><b>Model</b> {{ cv.model }}</li>
+          <li><b>Mode</b>
+            {% if cv.mode == 'semantic' %}
+              <span class="badge ok">semantic</span> ({{ cv.model }})
+            {% else %}
+              <span class="badge">keyword</span> ({{ cv.model }})
+            {% endif %}
+          </li>
           <li><b>Languages</b>
             {% for l in cv.languages %}<span class="tag lang">{{ l }}</span>{% endfor %}
             {% if not cv.languages %}<i class="muted">none detected</i>{% endif %}
@@ -49,16 +58,14 @@
       </section>
     {% endif %}
 
-    {% if cv_available %}
-      <h2>{% if cv.loaded %}Replace{% else %}Upload{% endif %} CV</h2>
-      <section class="form-card">
-        <form method="post" action="/cv/upload" enctype="multipart/form-data">
-          <label>File <input type="file" name="file" accept=".pdf,.docx,.txt" required /></label>
-          <button type="submit">Upload</button>
-        </form>
-        <p class="muted" style="margin-top:8px;font-size:12px;font-family:var(--font-mono)">accepted formats — pdf, docx, txt</p>
-      </section>
-    {% endif %}
+    <h2>{% if cv.loaded %}Replace{% else %}Upload{% endif %} CV</h2>
+    <section class="form-card">
+      <form method="post" action="/cv/upload" enctype="multipart/form-data">
+        <label>File <input type="file" name="file" accept=".pdf,.docx,.txt" required /></label>
+        <button type="submit">Upload</button>
+      </form>
+      <p class="muted" style="margin-top:8px;font-size:12px;font-family:var(--font-mono)">accepted formats — pdf, docx, txt</p>
+    </section>
   </main>
 </body>
 </html>

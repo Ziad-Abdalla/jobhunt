@@ -1,12 +1,15 @@
 """CV ingestion and semantic matching.
 
 Parses an uploaded CV (PDF/DOCX/TXT), runs it through the same keyword extractor
-used for job descriptions, computes a sentence-transformer embedding, and stores
-the result as a single-row profile. Each job in the DB then gets a cosine-similarity
-score against that embedding.
+used for job descriptions, computes a sentence-transformer embedding when
+``sentence-transformers`` is installed, and stores the result as a single-row
+profile.
 
-`sentence-transformers` is an OPTIONAL dependency. Everything except `embed_text`,
-`upload_cv`, and `match_all_jobs` works without it.
+If ``sentence-transformers`` is *not* installed the upload still works — we
+fall back to a fast keyword-overlap score driven by the same skills /
+languages list ``extract.py`` already uses. The user gets a usable CV match
+without a 500 MB ML download. Installing ``jobhunt-app[match]`` later upgrades
+the score to semantic cosine similarity transparently.
 """
 
 from __future__ import annotations
@@ -25,10 +28,16 @@ from .models import CVProfile, Job
 # Lazy module-level cache for the sentence-transformer model.
 _EMBED_MODEL: Any | None = None
 _EMBED_MODEL_NAME = "all-MiniLM-L6-v2"
-_INSTALL_HINT = (
-    'CV matching requires sentence-transformers. '
-    'Install with: uv pip install -e ".[match]"'
-)
+_KEYWORD_MODEL_NAME = "keyword-overlap-v1"
+
+
+def has_semantic_model() -> bool:
+    """True when sentence-transformers can be imported."""
+    try:
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +86,7 @@ def parse_cv(filename: str, content: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Embedding
+# Embedding (semantic — optional)
 # ---------------------------------------------------------------------------
 
 
@@ -85,34 +94,23 @@ def _load_model() -> Any:
     global _EMBED_MODEL
     if _EMBED_MODEL is not None:
         return _EMBED_MODEL
-    try:
-        from sentence_transformers import SentenceTransformer
-    except ImportError as exc:
-        raise ImportError(_INSTALL_HINT) from exc
+    from sentence_transformers import SentenceTransformer  # type: ignore[import-not-found]
+
     _EMBED_MODEL = SentenceTransformer(_EMBED_MODEL_NAME)
     return _EMBED_MODEL
 
 
 def embed_text(text: str) -> tuple[list[float], str]:
-    """Encode `text` with the cached sentence-transformer model.
-
-    Returns (embedding, model_name). Truncates input to ~5000 chars so we don't
-    feed the tokenizer a whole novel.
-    """
+    """Encode ``text`` with the sentence-transformer model. Caller must ensure
+    ``has_semantic_model()`` is True first."""
     model = _load_model()
     snippet = (text or "")[:5000]
     vec = model.encode(snippet, convert_to_numpy=False, show_progress_bar=False)
-    # `vec` may be a torch.Tensor or list-like; normalize to plain floats.
     try:
         values = vec.tolist()  # torch.Tensor / numpy.ndarray
     except AttributeError:
         values = list(vec)
     return [float(x) for x in values], _EMBED_MODEL_NAME
-
-
-# ---------------------------------------------------------------------------
-# Cosine similarity
-# ---------------------------------------------------------------------------
 
 
 def cosine(a: list[float], b: list[float]) -> float:
@@ -132,18 +130,65 @@ def cosine(a: list[float], b: list[float]) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Keyword fallback (always available)
+# ---------------------------------------------------------------------------
+
+
+def keyword_score(cv_skills: list[str], cv_languages: list[str],
+                  job_skills: list[str], job_languages: list[str]) -> float:
+    """Jaccard-ish overlap of CV vs job skills+languages, in [0, 1].
+
+    Weighted so language matches count slightly more than tool/skill matches —
+    a Python role for a Python CV should rank above a generic "has React"
+    overlap. Returns 0.0 if the CV has nothing detectable, which mirrors the
+    embedding path (no signal → 0 score).
+    """
+    cv_skill_set = {s.lower() for s in cv_skills if s}
+    cv_lang_set = {s.lower() for s in cv_languages if s}
+    job_skill_set = {s.lower() for s in job_skills if s}
+    job_lang_set = {s.lower() for s in job_languages if s}
+
+    if not cv_skill_set and not cv_lang_set:
+        return 0.0
+    if not job_skill_set and not job_lang_set:
+        return 0.0
+
+    lang_overlap = len(cv_lang_set & job_lang_set)
+    skill_overlap = len(cv_skill_set & job_skill_set)
+    job_demand = max(1, len(job_lang_set) * 2 + len(job_skill_set))
+    raw = (lang_overlap * 2 + skill_overlap) / job_demand
+    # Map [0, 1+] into a slightly compressed [0, 1] so single-skill matches
+    # don't immediately score 1.0.
+    return min(1.0, raw * 0.85)
+
+
+# ---------------------------------------------------------------------------
 # Upload / orchestration
 # ---------------------------------------------------------------------------
 
 
 def upload_cv(filename: str, content: bytes) -> dict:
-    """Parse a CV file, extract structured fields, embed it, and upsert id=1."""
+    """Parse a CV, extract structured fields, optionally embed, and upsert id=1.
+
+    Never raises on a missing optional ML dependency — falls back to keyword
+    scoring so the user never sees a "please install sentence-transformers"
+    error in the browser.
+    """
     text = parse_cv(filename, content)
     extracted = extract(text)
-    embedding, model_name = embed_text(text)
+
+    embedding: list[float] = []
+    model_name = _KEYWORD_MODEL_NAME
+    if has_semantic_model():
+        try:
+            embedding, model_name = embed_text(text)
+        except Exception:
+            # Fall back to keyword mode if the model fails to load (offline,
+            # disk full, corrupted download …). The upload still succeeds.
+            embedding = []
+            model_name = _KEYWORD_MODEL_NAME
 
     with db_session() as s:
-        # Delete any existing row, then insert with id=1.
         existing = s.get(CVProfile, 1)
         if existing is not None:
             s.delete(existing)
@@ -165,6 +210,7 @@ def upload_cv(filename: str, content: bytes) -> dict:
         "languages": list(extracted.languages),
         "text_chars": len(text),
         "embedding_dim": len(embedding),
+        "mode": "semantic" if embedding else "keyword",
     }
 
 
@@ -174,24 +220,46 @@ def upload_cv(filename: str, content: bytes) -> dict:
 
 
 def match_all_jobs() -> int:
-    """Recompute cv_match for every job in the DB. Returns the count updated."""
+    """Recompute cv_match for every job in the DB. Returns the count updated.
+
+    Uses semantic embeddings when the CV was uploaded with sentence-transformers
+    installed; otherwise falls back to keyword overlap. Either way, every job
+    gets a score in [0, 1].
+    """
     with db_session() as s:
         profile = s.get(CVProfile, 1)
-        if profile is None or not profile.embedding:
+        if profile is None:
             return 0
-        cv_vec = list(profile.embedding)
+        cv_vec = list(profile.embedding or [])
+        cv_skills = list(profile.detected_skills or [])
+        cv_languages = list(profile.detected_languages or [])
 
-    # Load job ids+text outside any write transaction so we don't hold a lock
-    # while the embedding model churns.
+    use_semantic = bool(cv_vec) and has_semantic_model()
+
     with db_session() as s:
-        rows = s.execute(select(Job.id, Job.title, Job.description)).all()
+        if use_semantic:
+            rows = s.execute(select(Job.id, Job.title, Job.description)).all()
+        else:
+            rows = s.execute(select(Job.id, Job.skills, Job.languages)).all()
 
     updated = 0
     batch: list[tuple[int, float]] = []
-    for job_id, title, description in rows:
-        body = f"{title or ''}\n{(description or '')[:3000]}"
-        job_vec, _ = embed_text(body)
-        score = cosine(cv_vec, job_vec)
+    for row in rows:
+        if use_semantic:
+            job_id, title, description = row
+            body = f"{title or ''}\n{(description or '')[:3000]}"
+            try:
+                job_vec, _ = embed_text(body)
+            except Exception:
+                # Single-job embedding failure shouldn't kill the whole pass.
+                continue
+            score = cosine(cv_vec, job_vec)
+        else:
+            job_id, skills, languages = row
+            score = keyword_score(
+                cv_skills, cv_languages,
+                list(skills or []), list(languages or []),
+            )
         batch.append((job_id, score))
         if len(batch) >= 100:
             _flush_match_batch(batch)
@@ -232,6 +300,8 @@ def cv_status() -> dict:
         ).all()
         matched_count = len(matched)
 
+        semantic_available = has_semantic_model()
+
         if profile is None:
             return {
                 "loaded": False,
@@ -241,11 +311,14 @@ def cv_status() -> dict:
                 "skills": [],
                 "languages": [],
                 "matched_jobs": matched_count,
+                "mode": "semantic" if semantic_available else "keyword",
+                "semantic_available": semantic_available,
             }
 
         uploaded_at_iso = (
             profile.uploaded_at.isoformat() if profile.uploaded_at is not None else None
         )
+        cv_mode = "semantic" if profile.embedding else "keyword"
         return {
             "loaded": True,
             "filename": profile.filename,
@@ -254,4 +327,6 @@ def cv_status() -> dict:
             "skills": list(profile.detected_skills or []),
             "languages": list(profile.detected_languages or []),
             "matched_jobs": matched_count,
+            "mode": cv_mode,
+            "semantic_available": semantic_available,
         }

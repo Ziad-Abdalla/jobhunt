@@ -2,6 +2,7 @@ from .arbeitnow import ArbeitnowScraper
 from .arbeitsagentur import ArbeitsagenturScraper
 from .ashby import AshbyScraper
 from .base import BaseScraper, RawJob
+from .findajob import FindAJobScraper
 from .greenhouse import GreenhouseScraper
 from .hackernews import HackerNewsScraper
 from .himalayas import HimalayasScraper
@@ -35,6 +36,7 @@ SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
     "jooble": JoobleScraper,
     "arbeitsagentur": ArbeitsagenturScraper,
     "reed": ReedScraper,
+    "findajob": FindAJobScraper,
 }
 
 __all__ = [
@@ -42,6 +44,7 @@ __all__ = [
     "ArbeitsagenturScraper",
     "AshbyScraper",
     "BaseScraper",
+    "FindAJobScraper",
     "GreenhouseScraper",
     "HackerNewsScraper",
     "HimalayasScraper",

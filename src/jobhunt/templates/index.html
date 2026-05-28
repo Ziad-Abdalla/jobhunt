@@ -5,9 +5,9 @@
   <title>jobhunt — search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
   <script src="/static/htmx.min.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v={{ version }}" defer></script>
 </head>
 <body data-page="search">
   {% include "_nav.html" %}
@@ -45,9 +45,13 @@
         </fieldset>
 
         <fieldset>
-          <legend>Level</legend>
+          <legend>Career stage</legend>
+          <p class="filter-hint" style="margin:0 0 8px;font-size:12px;color:var(--text-3);">
+            For internships specifically use the <b>Job type</b> filter below — this one is for permanent role seniority (graduate → senior).
+          </p>
           {% for value, count in facets.level %}
-            {% if value != "unknown" %}
+            {# Skip 'intern' so this filter and 'Job type → Internship' don't read as duplicates. #}
+            {% if value not in ("unknown", "intern") %}
             <label class="radio">
               <input type="radio" name="level" value="{{ value }}" /> {{ value }} <span class="count">{{ count }}</span>
             </label>
@@ -66,7 +70,7 @@
           </select>
         </label>
 
-        <label>Job type
+        <label data-hint="The contract type. Internship is here, not in Career stage.">Job type
           <select name="employment_type">
             <option value="" selected>any</option>
             <option value="Full-time">Full-time</option>

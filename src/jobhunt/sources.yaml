@@ -195,3 +195,31 @@
 - { source: jooble, board: "software developer|Malaysia",        company: "(Jooble Malaysia)" }
 - { source: jooble, board: "software engineer|Malaysia",         company: "(Jooble Malaysia)" }
 - { source: jooble, board: "software developer|Germany",         company: "(Jooble Germany)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  UK — Find a Job (DWP, free, no API key — strong non-tech coverage
+#  for the /local page: cleaning, retail, warehouse, hospitality, care)
+# ═══════════════════════════════════════════════════════════════════
+
+# Zero-experience generalists across major UK cities.
+- { source: findajob, board: "|London",      company: "(Find a Job — London)" }
+- { source: findajob, board: "|Manchester",  company: "(Find a Job — Manchester)" }
+- { source: findajob, board: "|Birmingham",  company: "(Find a Job — Birmingham)" }
+- { source: findajob, board: "|Leeds",       company: "(Find a Job — Leeds)" }
+- { source: findajob, board: "|Bristol",     company: "(Find a Job — Bristol)" }
+- { source: findajob, board: "|Glasgow",     company: "(Find a Job — Glasgow)" }
+- { source: findajob, board: "|Edinburgh",   company: "(Find a Job — Edinburgh)" }
+- { source: findajob, board: "|Liverpool",   company: "(Find a Job — Liverpool)" }
+- { source: findajob, board: "|Newcastle",   company: "(Find a Job — Newcastle)" }
+- { source: findajob, board: "|Cardiff",     company: "(Find a Job — Cardiff)" }
+
+# Category-targeted UK pulls so /local has rich non-tech data.
+- { source: findajob, board: "cleaner|United Kingdom",          company: "(Find a Job — Cleaning)" }
+- { source: findajob, board: "warehouse|United Kingdom",        company: "(Find a Job — Warehouse)" }
+- { source: findajob, board: "retail assistant|United Kingdom", company: "(Find a Job — Retail)" }
+- { source: findajob, board: "kitchen|United Kingdom",          company: "(Find a Job — Kitchen)" }
+- { source: findajob, board: "delivery driver|United Kingdom",  company: "(Find a Job — Delivery)" }
+- { source: findajob, board: "receptionist|United Kingdom",     company: "(Find a Job — Reception)" }
+- { source: findajob, board: "customer service|United Kingdom", company: "(Find a Job — Customer Service)" }
+- { source: findajob, board: "care assistant|United Kingdom",   company: "(Find a Job — Care)" }
+- { source: findajob, board: "security|United Kingdom",         company: "(Find a Job — Security)" }

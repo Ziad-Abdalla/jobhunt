@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -46,6 +47,7 @@ def _localdate(dt: datetime | None, fmt: str = "%b %d, %Y") -> str:
 
 
 templates.env.filters["localdate"] = _localdate
+templates.env.globals["version"] = __version__
 
 app = FastAPI(title="jobhunt", version=__version__)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
@@ -377,11 +379,23 @@ def local_jobs(
     employment_type: str = "",
     min_salary: str = "",
     max_experience: str = "",
+    category: str = "nontech",
 ) -> HTMLResponse:
-    """Entry-level jobs near a location (UK/Germany focused)."""
+    """Zero-experience jobs near a location.
+
+    Defaults to ``category=nontech`` (cleaning, retail, warehouse, hospitality,
+    care, customer service, driving …) — the kind of work anyone can start
+    without prior experience or a degree. Flip ``category=tech`` for the
+    entry-level software / IT path, or ``category=any`` for everything.
+    """
     jobs: list[Job] = []
     total = 0
+    nontech_total = 0
+    tech_total = 0
     loc_input = location.strip()
+    cat = (category or "nontech").lower()
+    if cat not in {"nontech", "tech", "any"}:
+        cat = "nontech"
 
     if loc_input:
         from sqlalchemy import or_
@@ -394,35 +408,59 @@ def local_jobs(
 
         with db_session() as s:
             loc_filters = [Job.location.ilike(f"%{t}%") for t in search_terms]
-            stmt = select(Job).where(or_(*loc_filters))
+            base = select(Job).where(or_(*loc_filters))
+
+            if cat == "nontech":
+                base = base.where(Job.category == "nontech")
+            elif cat == "tech":
+                base = base.where(Job.category == "tech")
 
             if level:
-                stmt = stmt.where(Job.level == level)
+                base = base.where(Job.level == level)
 
             max_exp = _safe_int(max_experience)
             if max_exp is not None:
-                stmt = stmt.where(
+                base = base.where(
                     or_(Job.min_years.is_(None), Job.min_years <= max_exp)
                 )
             else:
-                stmt = stmt.where(
+                base = base.where(
                     or_(Job.min_years.is_(None), Job.min_years <= 2)
                 )
 
             if employment_type:
-                stmt = stmt.where(Job.employment_type == employment_type)
+                base = base.where(Job.employment_type == employment_type)
             sal = _safe_int(min_salary)
             if sal:
-                stmt = stmt.where(
+                base = base.where(
                     Job.salary_max.is_not(None), Job.salary_max >= sal
                 )
-            stmt = stmt.order_by(
+            base = base.order_by(
                 Job.posted_at.desc().nullslast(), Job.score.desc()
             )
             total = s.execute(
-                select(func.count()).select_from(stmt.subquery())
+                select(func.count()).select_from(base.subquery())
             ).scalar_one()
-            jobs = list(s.execute(stmt.limit(200)).scalars().all())
+            jobs = list(s.execute(base.limit(200)).scalars().all())
+
+            # Counts for the category switcher — only against the location filter
+            # + the same max-experience / employment-type / salary stack, so the
+            # numbers shown next to each option mean "if I picked this".
+            count_base = select(func.count()).select_from(Job).where(or_(*loc_filters))
+            if max_exp is not None:
+                count_base = count_base.where(
+                    or_(Job.min_years.is_(None), Job.min_years <= max_exp)
+                )
+            else:
+                count_base = count_base.where(
+                    or_(Job.min_years.is_(None), Job.min_years <= 2)
+                )
+            nontech_total = s.execute(
+                count_base.where(Job.category == "nontech")
+            ).scalar_one()
+            tech_total = s.execute(
+                count_base.where(Job.category == "tech")
+            ).scalar_one()
 
     return templates.TemplateResponse(
         request,
@@ -437,6 +475,9 @@ def local_jobs(
             "employment_type": employment_type,
             "min_salary": min_salary,
             "max_experience": max_experience,
+            "category": cat,
+            "nontech_total": nontech_total,
+            "tech_total": tech_total,
         },
     )
 
@@ -499,6 +540,8 @@ def bounties_page(
     request: Request,
     q: str = "",
     platform: str = "",
+    pays: str = "",
+    sort: str = "name",
 ) -> HTMLResponse:
     """Active bug bounty programs from HackerOne, Bugcrowd, etc."""
     from .bounties import fetch_programs, load_cached_programs
@@ -506,6 +549,7 @@ def bounties_page(
     programs = load_cached_programs()
     if not programs:
         programs = fetch_programs()
+
     if q.strip():
         ql = q.strip().lower()
         programs = [
@@ -515,6 +559,25 @@ def bounties_page(
         ]
     if platform:
         programs = [p for p in programs if p.platform == platform]
+    if pays == "cash":
+        programs = [p for p in programs if p.pays == "cash"]
+    elif pays == "any-reward":
+        programs = [p for p in programs if p.pays in ("cash", "swag")]
+
+    if sort == "max":
+        programs = sorted(programs, key=lambda p: -(p.max_bounty or 0))
+    elif sort == "min":
+        programs = sorted(programs, key=lambda p: -(p.min_bounty or 0))
+    elif sort == "responsive":
+        # Higher response efficiency = more responsive program.
+        programs = sorted(
+            programs,
+            key=lambda p: -(p.response_efficiency_pct or 0),
+        )
+    else:
+        programs = sorted(programs, key=lambda p: p.name.lower())
+
+    paying_count = sum(1 for p in programs if p.pays == "cash")
 
     return templates.TemplateResponse(
         request,
@@ -525,6 +588,9 @@ def bounties_page(
             "programs": programs,
             "q": q.strip(),
             "platform": platform,
+            "pays": pays,
+            "sort": sort,
+            "paying_count": paying_count,
         },
     )
 
@@ -714,17 +780,13 @@ async def api_alerts_check() -> JSONResponse:
 
 @app.get("/cv", response_class=HTMLResponse)
 def cv_page(request: Request) -> HTMLResponse:
-    try:
-        from .cv import cv_status
-        status = cv_status()
-        cv_available = True
-    except ImportError as exc:
-        status = {"loaded": False, "error": str(exc)}
-        cv_available = False
+    from .cv import cv_status
+
+    status = cv_status()
     return templates.TemplateResponse(
         request,
         "cv.html",
-        {"cv": status, "cv_available": cv_available, "nav": "cv", "today": _today()},
+        {"cv": status, "nav": "cv", "today": _today()},
     )
 
 
@@ -735,7 +797,8 @@ async def cv_upload(file: UploadFile = File(...)) -> RedirectResponse:
     content = await file.read()
     try:
         upload_cv(file.filename or "cv.txt", content)
-    except (ValueError, ImportError) as exc:
+    except ValueError as exc:
+        # Only true input errors (bad file type, parse failure) bubble as 400.
         raise HTTPException(400, str(exc)) from exc
     # Match jobs immediately so the user sees results on the next visit.
     try:
@@ -789,7 +852,28 @@ def _render_sources(request: Request, error: str | None = None) -> HTMLResponse:
 
 @app.get("/sources", response_class=HTMLResponse)
 def sources_page(request: Request) -> HTMLResponse:
-    return _render_sources(request)
+    try:
+        return _render_sources(request)
+    except Exception as exc:  # noqa: BLE001
+        # File-not-found after a package upgrade, YAML parse errors, etc. —
+        # serve a graceful "no sources" view instead of crashing the page.
+        log.warning("sources page render failed: %s", exc)
+        return templates.TemplateResponse(
+            request,
+            "sources.html",
+            {
+                "grouped": {},
+                "source_types": [],
+                "error": (
+                    f"Couldn't read the source list ({exc}). "
+                    "Try restarting jobhunt — this usually resolves itself."
+                ),
+                "nav": "sources",
+                "today": _today(),
+                "total_local": 0,
+                "total_default": 0,
+            },
+        )
 
 
 @app.post("/sources/add", response_model=None)
@@ -1053,7 +1137,11 @@ def api_update() -> JSONResponse:
 
 @app.post("/api/uninstall")
 def api_uninstall() -> JSONResponse:
-    """Return uninstall instructions appropriate for the install method."""
+    """Return uninstall instructions appropriate for the install method.
+
+    Kept for backward compatibility — the one-click button on the Settings page
+    calls /api/uninstall-now (below) instead.
+    """
     method = _detect_install_method()
     data_msg = (
         f"\n\nYour job data is in:\n  {settings.data_dir}\n"
@@ -1078,6 +1166,95 @@ def api_uninstall() -> JSONResponse:
     return JSONResponse({
         "ok": True,
         "message": "Run this in your terminal:\n\n  pip uninstall jobhunt-app" + data_msg,
+    })
+
+
+@app.post("/api/uninstall-now")
+def api_uninstall_now() -> JSONResponse:
+    """One-click uninstall. Runs the right shell command for the detected
+    install method, then schedules the server to shut down so the in-use
+    files release on Windows.
+    """
+    import shutil
+    import signal
+    import subprocess
+    import threading
+
+    method = _detect_install_method()
+    data_msg = (
+        f"\nYour job data is at:\n  {settings.data_dir}\n"
+        "Delete that folder for a fully clean removal."
+    )
+
+    if method == "binary":
+        # Self-deleting a running binary is platform-specific and risky — just
+        # tell the user what to do, the same as the old /api/uninstall path.
+        return JSONResponse({
+            "ok": True,
+            "uninstalled": False,
+            "message": (
+                "You installed jobhunt as a single binary. "
+                "Delete the jobhunt file you downloaded — that's the whole "
+                "uninstall.\n" + data_msg
+            ),
+        })
+
+    cmd: list[str] | None = None
+    if method == "uv":
+        uv = shutil.which("uv")
+        if uv:
+            cmd = [uv, "tool", "uninstall", "jobhunt-app"]
+    elif method == "pipx":
+        pipx = shutil.which("pipx")
+        if pipx:
+            cmd = [pipx, "uninstall", "jobhunt-app"]
+
+    if cmd is None:
+        return JSONResponse({
+            "ok": False,
+            "uninstalled": False,
+            "message": (
+                f"Could not find the {method} tool on your PATH. "
+                "Open a terminal and run `pip uninstall jobhunt-app` instead.\n"
+                + data_msg
+            ),
+        })
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse({
+            "ok": False,
+            "uninstalled": False,
+            "message": f"Uninstall command failed to start: {exc}\n" + data_msg,
+        })
+
+    if result.returncode != 0:
+        return JSONResponse({
+            "ok": False,
+            "uninstalled": False,
+            "message": (
+                (result.stderr.strip() or result.stdout.strip() or "Uninstall failed.")
+                + "\n" + data_msg
+            ),
+        })
+
+    # Uninstall succeeded. Shut the running server down so the files can be
+    # fully cleaned up by the OS — wait a beat so this response can flush.
+    def _delayed_exit() -> None:
+        import time
+        time.sleep(1.0)
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    threading.Thread(target=_delayed_exit, daemon=True).start()
+
+    return JSONResponse({
+        "ok": True,
+        "uninstalled": True,
+        "message": (
+            "jobhunt has been uninstalled. This window will close shortly — "
+            "you can close the browser tab.\n" + data_msg
+        ),
     })
 
 

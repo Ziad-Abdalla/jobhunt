@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.9.0] — 2026-05-28
+
+### Added
+- **CV upload always works.** Without `sentence-transformers` installed, jobhunt now
+  falls back to a keyword-overlap CV match (skills + languages) so uploads no
+  longer return `{"detail": "CV matching requires sentence-transformers..."}`.
+  Installing the `[match]` extras transparently upgrades to semantic cosine
+  similarity. No more terminal commands to "make it work".
+- **One-click uninstall.** The Settings page now has an actual **Uninstall jobhunt**
+  button — it runs `uv tool uninstall jobhunt-app` / `pipx uninstall …` and shuts
+  the server down so the OS releases the files. No more copy-pasting commands.
+- **Split Check vs Install for updates.** The old single button mixed
+  "check for updates" with "install the upgrade now", and the failure messages
+  were opaque. *Check for updates* is now passive (calls `/api/check-update`)
+  and surfaces a separate **Install update** button only when a new version is
+  available.
+- **Local Jobs pivot: zero-experience first.** The `/local` page is now built
+  around the everyday entry-level work most people actually need near home —
+  cleaning, retail, warehouse, hospitality, care, customer service, driving,
+  reception, security. Tech / software is still one click away via the new
+  *What kind of work* dropdown.
+- **Find a Job (DWP) scraper.** Free UK government job board with strong
+  non-tech coverage. 19 default sources cover all major UK cities plus
+  category-targeted pulls (cleaning, warehouse, retail, kitchen, delivery,
+  reception, customer service, care, security).
+- **Tech / non-tech classifier.** Every job is now tagged with a `category`
+  (`tech`, `nontech`, or `other`) at scrape time; a one-time migration
+  back-classifies existing rows on first boot.
+- **Bug bounty reward data — actual numbers, never estimates.** Intigriti,
+  YesWeHack, and Bugcrowd payout ranges are now pulled directly from the
+  upstream data. HackerOne entries surface `offers_bounties` / `offers_swag`
+  plus response-efficiency % and average days-to-resolve. New filters: *Pays
+  cash* / *Cash or swag*, plus sort by highest max payout, highest min
+  payout, or most responsive.
+- **Cache-busted static assets.** `style.css?v={{ version }}` and
+  `app.js?v={{ version }}` on every template so browsers stop serving stale
+  copies after upgrade.
+
+### Changed
+- **Career stage filter no longer duplicates "Internship".** The Jobs page used
+  to show "intern" in *Level* AND "Internship" in *Job type*. Career stage is
+  now permanent-role seniority only (entry → senior); use *Job type →
+  Internship* for the contract type. Adds an explicit hint on both filters.
+- **/sources page no longer 500s after an in-place upgrade.** Wrapped the
+  YAML loader in a graceful fallback that serves an empty state with an
+  inline retry hint instead of crashing the page.
+- **CV match modes are visible.** The CV page shows whether you're in
+  semantic or keyword mode and how to upgrade if you want the bigger model.
+
+### Fixed
+- After clicking the old *Check for updates* button (which actually ran the
+  install), subsequent `/sources` and `/api/refresh` requests could 500.
+  Splitting check from install + hardening the sources renderer closes both
+  symptoms.
+
 ## [0.7.2] — 2026-05-28
 
 ### Added
