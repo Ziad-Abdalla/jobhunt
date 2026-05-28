@@ -55,26 +55,19 @@ Write-Host "  $ver installed" -ForegroundColor Green
 $desktop = [Environment]::GetFolderPath('Desktop')
 $shell = New-Object -ComObject WScript.Shell
 
-$iconPath = "$env:SystemRoot\System32\shell32.dll,13"
-
-# Desktop shortcut
 $lnk = $shell.CreateShortcut((Join-Path $desktop 'jobhunt.lnk'))
 $lnk.TargetPath = $jobhuntExe
 $lnk.Description = 'Search thousands of software jobs locally'
-$lnk.IconLocation = $iconPath
 $lnk.WindowStyle = 7
 $lnk.Save()
 
-# Also add to Start Menu
 $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
 $lnk2 = $shell.CreateShortcut((Join-Path $startMenu 'jobhunt.lnk'))
 $lnk2.TargetPath = $jobhuntExe
 $lnk2.Description = 'Search thousands of software jobs locally'
-$lnk2.IconLocation = $iconPath
 $lnk2.WindowStyle = 7
 $lnk2.Save()
 
-# Remove old .bat if it exists
 $oldBat = Join-Path $desktop 'jobhunt.bat'
 if (Test-Path $oldBat) { Remove-Item $oldBat -Force }
 
