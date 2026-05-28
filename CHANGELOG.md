@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.11.1] — 2026-05-28
+
+### Fixed
+- Stop tracking `data/jobhunt.log`. Same class of bug as v0.10.4: a
+  new runtime file (the rotating log added in v0.11.0) wasn't in
+  `.gitignore` and got committed once. Cleanup commit; no behaviour
+  change.
+
+## [0.11.0] — 2026-05-28
+
+### Added
+- **`jobhunt backup` / `jobhunt restore` commands.** Round-tripping
+  zip backup of the things you'd actually care about losing — saved
+  searches, CV profile, alerts, local source overrides, environment
+  settings. Skips the transient job database (gets re-scraped).
+  Schema-versioned (schema=1), so future releases can migrate older
+  backups without losing data. 6 new tests cover the round-trip,
+  malformed zips, missing payload, wrong schema, and missing files.
+- **File-based logging at `data_dir/jobhunt.log`.** Rotating handler
+  (1 MB × 3 backups = ~4 MB max disk use). When a user hits a bug
+  they can attach this file to a GitHub issue. Falls back silently
+  to stderr-only on read-only filesystems.
+- **`db.check_integrity()`** — wraps SQLite's `PRAGMA integrity_check`,
+  returns `(ok, message)`. Available for `jobhunt doctor` to surface
+  silent DB corruption before it bites.
+
+### Why this matters for long-term operation
+The three additions above together close the "what if something goes
+wrong years from now" loop:
+- Backup protects against an accidental Clear-all-jobs click + against
+  DB corruption + against moving to a new machine.
+- File logging gives the user real evidence to attach when reporting
+  a bug, without having to know what stderr is.
+- Integrity check lets `jobhunt doctor` flag a quietly-corrupt DB
+  before it becomes a data-loss event.
+
+## [0.10.4] — 2026-05-28
+
+### Fixed
+- Stop tracking SQLite WAL sidecar files. v0.10.3 turned on WAL mode
+  but didn't update `.gitignore`, so `data/jobhunt.db-wal` and
+  `data/jobhunt.db-shm` got committed. Also untracks
+  `data/bounties.json`, which was already a per-machine cache file
+  but had been tracked since an earlier commit. No code-behaviour
+  change beyond the cleanup.
+
 ## [0.10.3] — 2026-05-28
 
 ### Fixed
