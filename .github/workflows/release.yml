@@ -1,5 +1,19 @@
 name: release
 
+# Auto-runs when a v* tag lands:
+#   1. Runs the unit tests on the tagged commit.
+#   2. Builds the wheel + sdist in clean CI.
+#   3. Smoke-installs the wheel and verifies all routes return 200 +
+#      templates are bundled (catches the kind of packaging bug that
+#      shipped a templates-less wheel in v0.7.x).
+#   4. Uploads to PyPI using the PYPI_API_TOKEN repo secret.
+#   5. Creates a GitHub release with the wheel + install scripts attached.
+#
+# One-time setup (the only manual step left for releases):
+#   Add PYPI_API_TOKEN at the repo secrets page:
+#   https://github.com/Abdalla2004-collab/Jobhunt/settings/secrets/actions
+#   The token is scoped to jobhunt-app only.
+
 on:
   push:
     tags:
@@ -30,13 +44,75 @@ jobs:
           python-version: "3.12"
       - run: pip install build
       - run: python -m build
+      - name: Verify wheel contains templates + static + sources.yaml
+        run: |
+          python - <<'PYEOF'
+          import glob, zipfile, sys
+          whl = glob.glob("dist/jobhunt_app-*-py3-none-any.whl")[0]
+          must_have = [
+              "jobhunt/sources.yaml",
+              "jobhunt/static/app.js",
+              "jobhunt/static/style.css",
+              "jobhunt/templates/index.html",
+              "jobhunt/templates/local.html",
+              "jobhunt/templates/bounties.html",
+              "jobhunt/templates/settings.html",
+              "jobhunt/templates/cv.html",
+              "jobhunt/templates/sources.html",
+              "jobhunt/templates/alerts.html",
+              "jobhunt/templates/health.html",
+              "jobhunt/templates/freelance.html",
+              "jobhunt/templates/_nav.html",
+              "jobhunt/templates/_jobs.html",
+          ]
+          z = zipfile.ZipFile(whl)
+          missing = [m for m in must_have if m not in z.namelist()]
+          if missing:
+              sys.exit(f"wheel is missing: {missing}")
+          print(f"wheel-content check passed ({len(must_have)} files)")
+          PYEOF
+      - name: Smoke install + route check
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/jobhunt_app-*.whl
+          /tmp/smoke/bin/python - <<'PYEOF'
+          from jobhunt.main import app
+          from jobhunt import __version__
+          from fastapi.testclient import TestClient
+          print("installed:", __version__)
+          with TestClient(app) as c:
+              for p in ["/", "/local", "/bounties", "/sources", "/cv", "/settings", "/freelance"]:
+                  r = c.get(p)
+                  if r.status_code != 200:
+                      raise SystemExit(f"{p} -> {r.status_code}")
+                  print(f"  200  {p}")
+          PYEOF
       - uses: actions/upload-artifact@v4
         with:
           name: wheel
           path: dist/*
 
-  release:
+  publish-pypi:
     needs: build-wheel
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install twine
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload --non-interactive dist/jobhunt_app-*
+
+  release:
+    needs: publish-pypi
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
