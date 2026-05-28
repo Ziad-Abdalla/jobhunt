@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.2] — 2026-05-28
+
+### Added
+- **Germany non-tech parity** — 9 new Arbeitsagentur entries mirroring
+  the UK Reed catalogue (Reinigungskraft, Lagerarbeiter, Verkäufer
+  Einzelhandel, Küchenhilfe, Lieferfahrer, Empfangskraft, Kundenservice,
+  Pflegehelfer, Sicherheitsmitarbeiter). German users now get the same
+  zero-experience local-jobs experience the UK has had since v0.9.1.
+  No API key required.
+
 ## [0.10.1] — 2026-05-28
 
 ### Fixed

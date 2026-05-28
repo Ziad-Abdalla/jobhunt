@@ -299,6 +299,15 @@ survives without you having to remember the whole maintenance picture.
 2026-05-28  add     reed/care assistant                            — Reed UK non-tech, replaces findajob/care                 — source-maintenance skill
 2026-05-28  add     reed/security officer                          — Reed UK non-tech, replaces findajob/security             — source-maintenance skill
 2026-05-28  fix     scraper arbeitnow.py                            — handle 403 / 429 mid-pagination as end-of-feed not error — source-maintenance skill
+2026-05-28  add     arbeitsagentur/Reinigungskraft                  — DE non-tech parity with UK Reed Cleaning                  — v0.10.2
+2026-05-28  add     arbeitsagentur/Lagerarbeiter                    — DE non-tech parity with UK Reed Warehouse                 — v0.10.2
+2026-05-28  add     arbeitsagentur/Verkäufer Einzelhandel           — DE non-tech parity with UK Reed Retail                    — v0.10.2
+2026-05-28  add     arbeitsagentur/Küchenhilfe                      — DE non-tech parity with UK Reed Kitchen                   — v0.10.2
+2026-05-28  add     arbeitsagentur/Lieferfahrer                     — DE non-tech parity with UK Reed Delivery                  — v0.10.2
+2026-05-28  add     arbeitsagentur/Empfangskraft                    — DE non-tech parity with UK Reed Reception                 — v0.10.2
+2026-05-28  add     arbeitsagentur/Kundenservice                    — DE non-tech parity with UK Reed Customer Service          — v0.10.2
+2026-05-28  add     arbeitsagentur/Pflegehelfer                     — DE non-tech parity with UK Reed Care                      — v0.10.2
+2026-05-28  add     arbeitsagentur/Sicherheitsmitarbeiter           — DE non-tech parity with UK Reed Security                  — v0.10.2
 ```
 
 When the skill runs, it appends its findings here as `verify` /

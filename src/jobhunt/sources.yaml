@@ -216,3 +216,20 @@
 - { source: reed, board: "customer service", company: "(Reed UK — Customer Service)" }
 - { source: reed, board: "care assistant",   company: "(Reed UK — Care)" }
 - { source: reed, board: "security officer", company: "(Reed UK — Security)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  Germany — non-tech / zero-experience parity with the UK Reed
+#  catalogue above. Arbeitsagentur (Federal Employment Agency) covers
+#  all sectors and needs no API key. Keywords in German because their
+#  search is German-language-first.
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: arbeitsagentur, board: "Reinigungskraft",         company: "(Germany — Reinigung)" }
+- { source: arbeitsagentur, board: "Lagerarbeiter",            company: "(Germany — Lager)" }
+- { source: arbeitsagentur, board: "Verkäufer Einzelhandel",   company: "(Germany — Einzelhandel)" }
+- { source: arbeitsagentur, board: "Küchenhilfe",              company: "(Germany — Küche)" }
+- { source: arbeitsagentur, board: "Lieferfahrer",             company: "(Germany — Lieferung)" }
+- { source: arbeitsagentur, board: "Empfangskraft",            company: "(Germany — Empfang)" }
+- { source: arbeitsagentur, board: "Kundenservice",            company: "(Germany — Kundenservice)" }
+- { source: arbeitsagentur, board: "Pflegehelfer",             company: "(Germany — Pflege)" }
+- { source: arbeitsagentur, board: "Sicherheitsmitarbeiter",   company: "(Germany — Sicherheit)" }
