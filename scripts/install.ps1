@@ -34,7 +34,7 @@ Write-Host "  Installing jobhunt..." -ForegroundColor Cyan
 & uv tool uninstall jobhunt-app 2>$null | Out-Null
 & uv tool uninstall jobhunt 2>$null | Out-Null
 & uv cache clean 2>$null | Out-Null
-& uv tool install "jobhunt-app>=0.7.3" --refresh
+& uv tool install "jobhunt-app>=0.8.0" --refresh
 
 Refresh-Path
 $toolBin = & uv tool dir --bin 2>$null
