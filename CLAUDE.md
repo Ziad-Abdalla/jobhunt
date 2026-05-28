@@ -4,15 +4,12 @@
 Local-first Python job aggregator. FastAPI + Jinja2 + HTMX + SQLite. No build step.
 PyPI: `jobhunt-app`. CLI: `jobhunt`. MIT licensed, public repo.
 
-## 4 Sections
+## 3 Sections
 - **Jobs** (`/`) — main search, 15 filters, thousands of jobs from 130+ sources (tech-focused).
 - **Local Jobs** (`/local`) — **zero-experience local roles (cleaning, retail,
   warehouse, hospitality, care, customer service, driving)** with a *What kind of
   work* toggle for tech. UK + Germany focus. Defaults to `category=nontech`.
 - **Freelance** (`/freelance`) — contract/freelance roles
-- **Bug Bounty** (`/bounties`) — 870+ programs from HackerOne/Bugcrowd/Intigriti/YesWeHack.
-  Reward ranges come directly from upstream (Intigriti, YesWeHack, Bugcrowd); we
-  never estimate. HackerOne entries expose response-efficiency % and pays-cash flag.
 
 ## Session continuity
 Resume anchor: [`docs/internal/SESSION_LOG.md`](docs/internal/SESSION_LOG.md) — read the latest entry
@@ -46,9 +43,6 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 - **Career stage vs Job type don't both say "Internship".** Career stage = permanent-role
   seniority (entry → senior); Job type → Internship is the contract type. The Jobs page
   hides level=intern radio for this reason — hint text is required on both filters.
-- **Bug bounty rewards: real numbers only.** Never estimate min/max; if upstream
-  data is silent, the field stays None and the UI omits it. User explicitly
-  set "extreme accuracy" as the gate.
 - **CV match never blocks on missing ML deps.** `cv.py` falls back to keyword
   scoring when sentence-transformers isn't installed. The upload always works;
   the bigger model is an opt-in extras install.
@@ -68,16 +62,12 @@ ruff check src/              # style + bug lint
 ```
 
 ## Architecture
-- `main.py` — all routes (8 pages + ~16 API endpoints incl. /api/uninstall-now)
+- `main.py` — all routes (7 pages + ~15 API endpoints incl. /api/uninstall-now)
 - `scrapers/` — 17 ATS adapters (findajob removed in v0.9.1 — DWP deprecated their RSS feed)
 - `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
 - `refresh.py` — scrape pipeline + employment type normalization + category derivation
 - `extract.py` — regex extractors (level, remote, salary, skills, languages,
   **`classify_category`** → tech/nontech/other)
-- `bounties.py` — per-platform parsers (`_parse_hackerone`/`_parse_bugcrowd`/
-  `_parse_intigriti`/`_parse_yeswehack`); BountyProgram now carries
-  `min_bounty`, `max_bounty`, `currency`, `pays`, `state`,
-  `response_efficiency_pct`, `avg_days_to_resolve`.
 - `filters.py` — search query builder, 15 stackable filters
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `config.py` — pydantic-settings, reads from env vars + `.env` file

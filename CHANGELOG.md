@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.12.0] — 2026-05-29
+
+### Removed
+- **Bug Bounty section removed.** The `/bounties` page, the per-platform
+  program parsers (`bounties.py`), the “Bug Bounty” nav tab, the
+  `/api/refresh-bounties` endpoint, and the bounty fetch inside
+  `/api/refresh` are all gone — along with their tests and the bounty
+  references in the README, CLAUDE.md, and MAINTENANCE.md. jobhunt now
+  focuses on its three job sections: **Jobs**, **Local Jobs**, and
+  **Freelance**.
+
 ## [0.11.2] — 2026-05-28
 
 ### Security

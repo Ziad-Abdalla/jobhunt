@@ -3,7 +3,7 @@
 
 # jobhunt
 
-**Thousands of jobs. 4 sections. Clean filters. Runs locally.**
+**Thousands of jobs. 3 sections. Clean filters. Runs locally.**
 
 No account needed. No data leaves your machine. Free and open source.
 
@@ -33,7 +33,7 @@ jobhunt
 
 ---
 
-## 4 Sections
+## 3 Sections
 
 ### Jobs (main search)
 Thousands of software roles from 130+ company boards.
@@ -52,13 +52,6 @@ Employment Agency) is free and no API key needed.
 ### Freelance & Contract
 Contract, freelance, and temporary software roles. Filter by keyword, work
 mode, and salary. Sorted by most recently posted.
-
-### Bug Bounty
-870+ active bug bounty programs from HackerOne, Bugcrowd, Intigriti, and
-YesWeHack. Search by company or domain. Filter by platform, by *Pays cash*
-vs *Cash or swag*, and sort by highest max payout, highest min payout, or
-most responsive (HackerOne response-efficiency %). Reward ranges come straight
-from the platform — never estimated.
 
 ---
 

@@ -1,7 +1,7 @@
 # jobhunt — source maintenance handbook
 
 > Sources rot. APIs expire, RSS feeds change shape, companies move ATS,
-> bounty repos relocate, free tiers tighten. This doc + the paired
+> free tiers tighten. This doc + the paired
 > `source-maintenance` skill at `.claude/skills/source-maintenance/SKILL.md`
 > together are the durable process for keeping jobhunt useful in 6 months,
 > 12 months, 24 months — without any single person having to remember the
@@ -37,14 +37,13 @@ Run the skill periodically; the app handles routine decay on its own.
 | **Company changed ATS slug** | `greenhouse:foobar` 404s | `jobhunt doctor` → `FAIL` |
 | **Company migrated platform** | Old slug returns 404, but they're hiring on Ashby now | `doctor` flags; replacement needs research |
 | **RSS endpoint URL changed** | scraper hits 404 / receives HTML in place of XML | `doctor` → `FAIL` on the source |
-| **Upstream data repo moved** | `arkadiyt/bounty-targets-data` 404s | `/api/refresh-bounties` returns 0 |
-| **Schema drift** | Bounty JSON gains/loses a field; parser silently drops it | `doctor` says ok, but UI shows partial data |
+| **Schema drift** | A source's JSON gains/loses a field; parser silently drops it | `doctor` says ok, but UI shows partial data |
 | **Free tier removed** | "This API now requires a paid plan" | `doctor` says ok, but with limited results |
 | **New free API appears** | A government opens a public job feed | No detection — we have to actively search |
 
-The skill catches every row except the last two. Schema drift needs the
-spot-check rituals in §6. New-API discovery is a periodic active search
-(§7).
+The skill catches the detectable rows; **schema drift** and **new-API
+discovery** are the two it can't. Schema drift needs the spot-check
+rituals in §6; new-API discovery is a periodic active search (§7).
 
 ---
 
@@ -220,16 +219,12 @@ We do **not** scrape LinkedIn or Indeed — both prohibit it in their ToS.
 Schema drift (a field upstream silently changes shape) is the failure
 mode `doctor` cannot catch. Periodic spot check, ideally once a quarter:
 
-1. Open `/bounties` in the UI. Pick three Intigriti programs at random.
-   Confirm `min_bounty` and `max_bounty` are populated. If most show
-   nothing, the upstream JSON shape changed — re-read
-   `bounties._parse_intigriti` against the live JSON.
-2. Open `/local?location=London`. Confirm a mix of categories show; if
+1. Open `/local?location=London`. Confirm a mix of categories show; if
    the *No-experience local work* count is suspiciously low, the Find a
    Job RSS may have lost the `<description>` content we rely on.
-3. Open `/`. Search for a known company. Confirm salary badges appear
+2. Open `/`. Search for a known company. Confirm salary badges appear
    on most rows.
-4. Run `jobhunt scrape --once` (if implemented) or click Refresh — note
+3. Run `jobhunt scrape --once` (if implemented) or click Refresh — note
    the `added/seen/removed` numbers. A scrape that returns near-zero
    for previously-rich sources signals drift.
 

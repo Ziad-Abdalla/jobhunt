@@ -534,89 +534,13 @@ def freelance_page(
     )
 
 
-# ---------- bug bounty page ----------
-
-
-@app.get("/bounties", response_class=HTMLResponse)
-def bounties_page(
-    request: Request,
-    q: str = "",
-    platform: str = "",
-    pays: str = "",
-    sort: str = "name",
-) -> HTMLResponse:
-    """Active bug bounty programs from HackerOne, Bugcrowd, etc."""
-    from .bounties import fetch_programs, load_cached_programs
-
-    programs = load_cached_programs()
-    if not programs:
-        programs = fetch_programs()
-
-    if q.strip():
-        ql = q.strip().lower()
-        programs = [
-            p for p in programs
-            if ql in p.name.lower()
-            or any(ql in d.lower() for d in p.domains)
-        ]
-    if platform:
-        programs = [p for p in programs if p.platform == platform]
-    if pays == "cash":
-        programs = [p for p in programs if p.pays == "cash"]
-    elif pays == "any-reward":
-        programs = [p for p in programs if p.pays in ("cash", "swag")]
-
-    if sort == "max":
-        programs = sorted(programs, key=lambda p: -(p.max_bounty or 0))
-    elif sort == "min":
-        programs = sorted(programs, key=lambda p: -(p.min_bounty or 0))
-    elif sort == "responsive":
-        # Higher response efficiency = more responsive program.
-        programs = sorted(
-            programs,
-            key=lambda p: -(p.response_efficiency_pct or 0),
-        )
-    else:
-        programs = sorted(programs, key=lambda p: p.name.lower())
-
-    paying_count = sum(1 for p in programs if p.pays == "cash")
-
-    return templates.TemplateResponse(
-        request,
-        "bounties.html",
-        {
-            "nav": "bounties",
-            "today": _today(),
-            "programs": programs,
-            "q": q.strip(),
-            "platform": platform,
-            "pays": pays,
-            "sort": sort,
-            "paying_count": paying_count,
-        },
-    )
-
-
-@app.post("/api/refresh-bounties")
-def api_refresh_bounties() -> JSONResponse:
-    """Fetch latest bug bounty programs from GitHub."""
-    from .bounties import fetch_programs
-
-    programs = fetch_programs()
-    return JSONResponse({
-        "ok": True,
-        "count": len(programs),
-        "message": f"Fetched {len(programs)} bounty programs.",
-    })
-
-
 _last_refresh: dict[str, float] = {}
 _REFRESH_COOLDOWN = 300
 
 
 @app.post("/api/refresh")
 async def api_refresh() -> JSONResponse:
-    """Refresh all job sources + bounties. Rate-limited to once per 5 min."""
+    """Refresh all job sources. Rate-limited to once per 5 min."""
     import time
 
     now = time.time()
@@ -635,12 +559,6 @@ async def api_refresh() -> JSONResponse:
         result["alerts"] = alert_result
     except Exception as exc:  # noqa: BLE001
         result["alerts"] = {"error": str(exc)}
-    try:
-        from .bounties import fetch_programs
-        bounty_count = len(fetch_programs())
-        result["bounties"] = bounty_count
-    except Exception as exc:  # noqa: BLE001
-        result["bounties"] = {"error": str(exc)}
     return JSONResponse(result)
 
 
