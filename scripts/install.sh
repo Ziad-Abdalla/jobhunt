@@ -2,7 +2,16 @@
 # jobhunt installer for macOS and Linux.
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
+#
+# This script is idempotent — running it again on a later day pulls the latest
+# release. We force the uv tool cache to drop the old wheel so users never
+# stay stuck on a stale install (the "worked yesterday, broken today" trap).
 set -euo pipefail
+
+# Floor version: re-running with an older floor would still let uv pick
+# whatever is cached. Bumping this every release guarantees the user gets
+# the new wheel even if their cache holds the previous one.
+PKG_SPEC="jobhunt-app>=0.9.0"
 
 echo ""
 echo "  ============================="
@@ -31,9 +40,15 @@ fi
 
 echo "  [2/2] Installing jobhunt..."
 
-uv tool uninstall jobhunt-app 2>/dev/null || true
-uv tool uninstall jobhunt 2>/dev/null || true
-uv tool install jobhunt-app
+# Drop the old install + cache so we always resolve to the latest PyPI wheel.
+# Without these, uv happily reuses a wheel from yesterday and the user thinks
+# their update did nothing.
+uv tool uninstall jobhunt-app >/dev/null 2>&1 || true
+uv tool uninstall jobhunt >/dev/null 2>&1 || true
+uv cache clean >/dev/null 2>&1 || true
+
+# `--refresh` forces uv to re-fetch metadata + wheel even if locally cached.
+uv tool install --refresh "$PKG_SPEC"
 
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -54,4 +69,5 @@ echo "  ============================="
 echo ""
 echo "  Type 'jobhunt' to start."
 echo "  To update later: run this same command again."
+echo "  To uninstall: open Settings inside the app and click Uninstall."
 echo ""

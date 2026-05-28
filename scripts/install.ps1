@@ -34,7 +34,10 @@ Write-Host "  Installing jobhunt..." -ForegroundColor Cyan
 & uv tool uninstall jobhunt-app 2>$null | Out-Null
 & uv tool uninstall jobhunt 2>$null | Out-Null
 & uv cache clean 2>$null | Out-Null
-& uv tool install "jobhunt-app>=0.8.0" --refresh
+# Floor version bumped every release so a cached older wheel can't satisfy
+# the constraint — uv has to re-fetch the latest. --refresh forces metadata
+# + wheel re-download even if locally cached.
+& uv tool install --refresh "jobhunt-app>=0.9.0"
 
 Refresh-Path
 $toolBin = & uv tool dir --bin 2>$null

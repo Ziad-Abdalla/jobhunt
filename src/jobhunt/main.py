@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -49,7 +50,20 @@ def _localdate(dt: datetime | None, fmt: str = "%b %d, %Y") -> str:
 templates.env.filters["localdate"] = _localdate
 templates.env.globals["version"] = __version__
 
-app = FastAPI(title="jobhunt", version=__version__)
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):  # type: ignore[no-untyped-def]
+    """Lifespan context: initialise DB + start the scheduler on boot, stop
+    the scheduler on shutdown. Replaces the deprecated @app.on_event hooks."""
+    init_db()
+    if settings.refresh_interval_minutes > 0:
+        sched_module.start()
+    try:
+        yield
+    finally:
+        sched_module.stop()
+
+
+app = FastAPI(title="jobhunt", version=__version__, lifespan=_lifespan)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
@@ -116,18 +130,6 @@ def _last_updated_str() -> str:
     if row:
         return _localdate(row, "%b %d, %H:%M")
     return ""
-
-
-@app.on_event("startup")
-async def _on_startup() -> None:
-    init_db()
-    if settings.refresh_interval_minutes > 0:
-        sched_module.start()
-
-
-@app.on_event("shutdown")
-def _on_shutdown() -> None:
-    sched_module.stop()
 
 
 def _safe_int(val: str | int | None) -> int | None:
@@ -1171,13 +1173,13 @@ def api_uninstall() -> JSONResponse:
 
 @app.post("/api/uninstall-now")
 def api_uninstall_now() -> JSONResponse:
-    """One-click uninstall. Runs the right shell command for the detected
-    install method, then schedules the server to shut down so the in-use
-    files release on Windows.
+    """One-click uninstall. Schedules the actual uninstall to run in a
+    detached subprocess AFTER our own server exits — on Windows the running
+    binary has its files locked, so we must release them first.
     """
     import shutil
-    import signal
     import subprocess
+    import sys
     import threading
 
     method = _detect_install_method()
@@ -1188,7 +1190,7 @@ def api_uninstall_now() -> JSONResponse:
 
     if method == "binary":
         # Self-deleting a running binary is platform-specific and risky — just
-        # tell the user what to do, the same as the old /api/uninstall path.
+        # tell the user what to do.
         return JSONResponse({
             "ok": True,
             "uninstalled": False,
@@ -1220,31 +1222,63 @@ def api_uninstall_now() -> JSONResponse:
             ),
         })
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    except Exception as exc:  # noqa: BLE001
-        return JSONResponse({
-            "ok": False,
-            "uninstalled": False,
-            "message": f"Uninstall command failed to start: {exc}\n" + data_msg,
-        })
+    # We can't call uv/pipx synchronously here because on Windows the running
+    # binary has its files locked — uv tries to delete them and fails with
+    # WinError 32. The fix: spawn the uninstall as a fully detached process,
+    # have it wait a moment, then run while we're already gone.
+    is_windows = sys.platform.startswith("win")
+    if is_windows:
+        # `start /b` + `timeout` runs the uninstall in a detached cmd window
+        # after a short wait. /min hides the window. We deliberately don't
+        # capture stdout — once we exit the user can't see it anyway.
+        wrapper = (
+            "timeout /t 2 /nobreak >nul && "
+            + subprocess.list2cmdline(cmd)
+        )
+        try:
+            subprocess.Popen(
+                ["cmd.exe", "/c", wrapper],
+                creationflags=(
+                    subprocess.CREATE_NEW_PROCESS_GROUP
+                    | getattr(subprocess, "DETACHED_PROCESS", 0)
+                ),
+                close_fds=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({
+                "ok": False,
+                "uninstalled": False,
+                "message": f"Uninstall command failed to start: {exc}\n" + data_msg,
+            })
+    else:
+        # On Unix the running process can have its files unlinked while
+        # executing — just shell out with a small delay so the response
+        # flushes first.
+        shell_cmd = "sleep 2 && " + " ".join(
+            subprocess.list2cmdline([part]) for part in cmd
+        )
+        try:
+            subprocess.Popen(
+                ["/bin/sh", "-c", shell_cmd],
+                start_new_session=True,
+                close_fds=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({
+                "ok": False,
+                "uninstalled": False,
+                "message": f"Uninstall command failed to start: {exc}\n" + data_msg,
+            })
 
-    if result.returncode != 0:
-        return JSONResponse({
-            "ok": False,
-            "uninstalled": False,
-            "message": (
-                (result.stderr.strip() or result.stdout.strip() or "Uninstall failed.")
-                + "\n" + data_msg
-            ),
-        })
-
-    # Uninstall succeeded. Shut the running server down so the files can be
-    # fully cleaned up by the OS — wait a beat so this response can flush.
+    # Schedule our own exit so the running binary releases its files before
+    # the detached uninstaller tries to remove them. os._exit is brutal but
+    # the only reliable way to stop uvicorn cross-platform from inside a
+    # request handler — SIGTERM is unreliable on Windows.
     def _delayed_exit() -> None:
         import time
+
         time.sleep(1.0)
-        os.kill(os.getpid(), signal.SIGTERM)
+        os._exit(0)
 
     threading.Thread(target=_delayed_exit, daemon=True).start()
 
@@ -1252,8 +1286,9 @@ def api_uninstall_now() -> JSONResponse:
         "ok": True,
         "uninstalled": True,
         "message": (
-            "jobhunt has been uninstalled. This window will close shortly — "
-            "you can close the browser tab.\n" + data_msg
+            "Uninstall scheduled. jobhunt is closing now; the package will be "
+            "removed in a few seconds. You can close this browser tab.\n"
+            + data_msg
         ),
     })
 

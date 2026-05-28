@@ -46,7 +46,11 @@ class FindAJobScraper(BaseScraper):
             "pp": _PAGE_SIZE,
             "format": "rss",
         }
-        resp = await self.client.get(_FEED_URL, params=params)
+        # Explicit per-call timeout so a hung gov.uk RSS endpoint can't freeze
+        # the whole nightly refresh. The shared client default is 20s but if
+        # this scraper is ever instantiated outside refresh.py we still want a
+        # bound.
+        resp = await self.client.get(_FEED_URL, params=params, timeout=20.0)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "lxml-xml")
 

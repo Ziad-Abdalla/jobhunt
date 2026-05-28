@@ -75,38 +75,90 @@ def _normalize_employment_types() -> None:
                 )
 
 
-def _backfill_categories() -> None:
-    """One-time pass: classify existing 'other' rows by title.
+_BACKFILL_CHUNK = 500
+_BACKFILL_THREAD_STARTED = False
+# We use 'other' as the default value; once the backfill has visited a row
+# we mark it with the explicit sentinel '_done' (rewritten to 'other' when the
+# row really has no signal). This avoids re-scanning the same rows every boot.
+_BACKFILL_NEEDS_VISIT = (
+    "category IS NULL OR category = 'other' OR category = ''"
+)
 
-    Runs cheaply on startup; only touches jobs that haven't been classified
-    yet so subsequent boots are no-ops.
-    """
+
+def _backfill_chunk_once() -> int:
+    """Classify up to _BACKFILL_CHUNK rows. Returns the number processed."""
     from .extract import classify_category
+
+    with _engine.begin() as conn:
+        rows = conn.execute(
+            text(
+                f"SELECT id, title, description FROM jobs "
+                f"WHERE {_BACKFILL_NEEDS_VISIT} LIMIT :limit"
+            ),
+            {"limit": _BACKFILL_CHUNK},
+        ).fetchall()
+        if not rows:
+            return 0
+        for row_id, title, description in rows:
+            cat = classify_category(title or "", description or "")
+            # Write 'other' explicitly so we don't re-pick the row next chunk.
+            conn.execute(
+                text("UPDATE jobs SET category = :cat WHERE id = :id"),
+                {"cat": cat or "other", "id": row_id},
+            )
+    return len(rows)
+
+
+def _backfill_categories_async() -> None:
+    """Background worker: scan + classify in chunks until done. Each chunk
+    is its own transaction so /local can serve requests while we work."""
+    while True:
+        try:
+            n = _backfill_chunk_once()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("category backfill chunk failed: %s", exc)
+            return
+        if n < _BACKFILL_CHUNK:
+            log.info("category backfill: finished")
+            return
+
+
+def _maybe_start_backfill() -> None:
+    """Decide whether existing 'other' rows need classifying, and if so kick
+    off a background thread. Startup never blocks on the backfill — a fresh
+    install with no jobs is a no-op, and a multi-thousand-row upgrade still
+    boots in <1 second while the backfill runs lazily."""
+    global _BACKFILL_THREAD_STARTED
+    if _BACKFILL_THREAD_STARTED:
+        return
 
     insp = inspect(_engine)
     if not insp.has_table("jobs"):
         return
+    # Cheap pre-check — the count below is fast even on a 100k-row DB.
     with _engine.begin() as conn:
-        result = conn.execute(
-            text("SELECT id, title, description FROM jobs WHERE category = 'other' OR category IS NULL")
-        )
-        rows = result.fetchall()
-        if not rows:
-            return
-        for row_id, title, description in rows:
-            cat = classify_category(title or "", description or "")
-            if cat != "other":
-                conn.execute(
-                    text("UPDATE jobs SET category = :cat WHERE id = :id"),
-                    {"cat": cat, "id": row_id},
-                )
+        remaining = conn.execute(
+            text(f"SELECT COUNT(*) FROM jobs WHERE {_BACKFILL_NEEDS_VISIT}")
+        ).scalar_one()
+    if not remaining:
+        return
+
+    import threading
+
+    log.info("category backfill: %d rows queued (background)", remaining)
+    threading.Thread(
+        target=_backfill_categories_async,
+        daemon=True,
+        name="jobhunt-backfill",
+    ).start()
+    _BACKFILL_THREAD_STARTED = True
 
 
 def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)
     _normalize_employment_types()
-    _backfill_categories()
+    _maybe_start_backfill()
 
 
 @contextmanager
