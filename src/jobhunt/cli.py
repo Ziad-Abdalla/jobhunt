@@ -13,8 +13,35 @@ import uvicorn
 
 from . import __version__
 from .config import settings
-from .db import db_session, init_db
+from .db import check_integrity, db_session, init_db
 from .refresh import scrape_all
+
+
+def _setup_file_logging() -> None:
+    """Add a rotating file handler so a user can send the log when they
+    hit a bug. Lives at `data_dir/jobhunt.log`, capped at 1 MB × 3 backups
+    (~4 MB max disk use). Idempotent — never double-installs the handler."""
+    import logging
+    import logging.handlers
+
+    log_path = settings.data_dir / "jobhunt.log"
+    root = logging.getLogger("jobhunt")
+    if any(getattr(h, "_jobhunt_file", False) for h in root.handlers):
+        return  # already installed
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        handler = logging.handlers.RotatingFileHandler(
+            log_path, maxBytes=1_000_000, backupCount=3, encoding="utf-8",
+        )
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s: %(message)s"
+        ))
+        handler._jobhunt_file = True  # type: ignore[attr-defined]
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    except OSError:
+        # Read-only filesystem or similar — log to stderr only.
+        pass
 
 _FROZEN = getattr(sys, "frozen", False)
 
@@ -36,6 +63,7 @@ def main(
     ),
 ) -> None:
     """jobhunt — local job board aggregator."""
+    _setup_file_logging()
     if ctx.invoked_subcommand is None:
         app_mode(port=None, no_browser=False, schedule=0)
 
@@ -230,6 +258,170 @@ def list_sources() -> None:
         by_kind[it.get("source", "?")] = by_kind.get(it.get("source", "?"), 0) + 1
     for kind, n in sorted(by_kind.items()):
         typer.echo(f"  {kind}: {n}")
+
+
+@app.command()
+def backup(
+    output: Path = typer.Option(
+        None, "--output", "-o",
+        help="Output file. Defaults to jobhunt-backup-<timestamp>.zip in the data folder.",
+    ),
+) -> None:
+    """Export your saved searches, CV profile, alerts, and source overrides
+    to a zip file. Doesn't dump the job database itself — that's transient
+    and gets re-scraped — only the data you'd care about losing."""
+    import json
+    import zipfile
+    from datetime import UTC, datetime
+
+    from .models import CVProfile, SavedSearch
+
+    init_db()
+    if output is None:
+        ts = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+        output = settings.data_dir / f"jobhunt-backup-{ts}.zip"
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    with db_session() as s:
+        searches = [
+            {
+                "name": r.name,
+                "query_json": r.query_json,
+                "notify": r.notify,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "notified_job_ids": r.notified_job_ids or [],
+            }
+            for r in s.query(SavedSearch).all()
+        ]
+        cv = s.get(CVProfile, 1)
+        cv_data = None
+        if cv is not None:
+            cv_data = {
+                "filename": cv.filename,
+                "text": cv.text,
+                "embedding": list(cv.embedding or []),
+                "model": cv.model,
+                "uploaded_at": cv.uploaded_at.isoformat() if cv.uploaded_at else None,
+                "detected_skills": list(cv.detected_skills or []),
+                "detected_languages": list(cv.detected_languages or []),
+            }
+
+    local_sources_path = Path(settings.local_sources_file)
+    local_sources_yaml = (
+        local_sources_path.read_text() if local_sources_path.exists() else ""
+    )
+    env_path = settings.data_dir / ".env"
+    env_text = env_path.read_text() if env_path.exists() else ""
+
+    payload = {
+        "schema": 1,
+        "exported_at": datetime.now(UTC).isoformat(),
+        "version": __version__,
+        "saved_searches": searches,
+        "cv_profile": cv_data,
+        "local_sources_yaml": local_sources_yaml,
+        "env": env_text,
+    }
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("jobhunt-backup.json", json.dumps(payload, indent=2))
+    typer.echo(f"Backup written: {output}")
+    typer.echo(f"  saved searches: {len(searches)}")
+    typer.echo(f"  CV profile:     {'yes' if cv_data else 'no'}")
+    typer.echo(f"  local sources:  {'yes' if local_sources_yaml else 'no'}")
+
+
+@app.command()
+def restore(
+    backup_file: Path = typer.Argument(..., help="A zip produced by `jobhunt backup`."),
+    force: bool = typer.Option(
+        False, "--force", help="Skip the confirmation prompt; overwrites existing data.",
+    ),
+) -> None:
+    """Restore saved searches, CV, alerts, and local sources from a backup
+    zip. Refuses to run on a malformed file. Asks for confirmation unless
+    `--force` is set."""
+    import json
+    import zipfile
+
+    from .models import CVProfile, SavedSearch
+
+    if not backup_file.exists():
+        typer.echo(f"ERROR: {backup_file} not found", err=True)
+        raise typer.Exit(1)
+
+    try:
+        with zipfile.ZipFile(backup_file) as z:
+            with z.open("jobhunt-backup.json") as f:
+                payload = json.load(f)
+    except (zipfile.BadZipFile, KeyError, json.JSONDecodeError) as exc:
+        typer.echo(f"ERROR: not a valid jobhunt backup ({exc})", err=True)
+        raise typer.Exit(1) from exc
+
+    if payload.get("schema") != 1:
+        typer.echo(
+            f"ERROR: backup schema {payload.get('schema')} not supported; "
+            "this jobhunt version expects schema 1.",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    if not force:
+        typer.echo(f"About to restore: {len(payload.get('saved_searches', []))} saved searches, "
+                   f"{'1' if payload.get('cv_profile') else '0'} CV, "
+                   f"local sources, env settings.")
+        if not typer.confirm("Overwrite existing data?"):
+            typer.echo("Aborted.")
+            raise typer.Exit(0)
+
+    init_db()
+    with db_session() as s:
+        s.query(SavedSearch).delete()
+        for r in payload.get("saved_searches", []):
+            from datetime import datetime
+            created_at = None
+            if r.get("created_at"):
+                try:
+                    created_at = datetime.fromisoformat(r["created_at"])
+                except ValueError:
+                    created_at = None
+            s.add(SavedSearch(
+                name=r["name"][:128],
+                query_json=r.get("query_json") or {},
+                notify=bool(r.get("notify", True)),
+                created_at=created_at,
+                notified_job_ids=list(r.get("notified_job_ids") or []),
+            ))
+        s.query(CVProfile).delete()
+        cv = payload.get("cv_profile")
+        if cv:
+            from datetime import datetime
+            uploaded_at = None
+            if cv.get("uploaded_at"):
+                try:
+                    uploaded_at = datetime.fromisoformat(cv["uploaded_at"])
+                except ValueError:
+                    uploaded_at = None
+            s.add(CVProfile(
+                id=1,
+                filename=cv.get("filename", ""),
+                text=cv.get("text", ""),
+                embedding=list(cv.get("embedding") or []),
+                model=cv.get("model", ""),
+                uploaded_at=uploaded_at,
+                detected_skills=list(cv.get("detected_skills") or []),
+                detected_languages=list(cv.get("detected_languages") or []),
+            ))
+
+    local_sources_yaml = payload.get("local_sources_yaml", "")
+    if local_sources_yaml:
+        Path(settings.local_sources_file).parent.mkdir(parents=True, exist_ok=True)
+        Path(settings.local_sources_file).write_text(local_sources_yaml)
+
+    env_text = payload.get("env", "")
+    if env_text:
+        (settings.data_dir / ".env").write_text(env_text)
+
+    typer.echo("Restore complete. Run `jobhunt` to start with the recovered data.")
 
 
 @app.command()

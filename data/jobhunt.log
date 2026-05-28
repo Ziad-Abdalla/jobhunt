@@ -1,0 +1,15 @@
+2026-05-28 15:35:07,974 INFO jobhunt.db: category backfill: 10168 rows queued (background)
+2026-05-28 15:35:21,012 INFO jobhunt.db: category backfill: 10168 rows queued (background)
+2026-05-28 15:35:47,133 INFO jobhunt.db: category backfill: 10168 rows queued (background)
+2026-05-28 15:36:05,599 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:36:05,662 INFO jobhunt.db: category backfill: finished
+2026-05-28 15:36:11,936 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:36:14,433 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:36:16,909 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:36:19,585 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:37:34,857 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:37:34,932 INFO jobhunt.db: category backfill: finished
+2026-05-28 15:37:39,481 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:37:41,854 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:37:44,342 INFO jobhunt.db: FTS5 index built over jobs table
+2026-05-28 15:37:46,867 INFO jobhunt.db: FTS5 index built over jobs table

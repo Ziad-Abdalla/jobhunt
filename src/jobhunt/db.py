@@ -267,6 +267,19 @@ def wal_checkpoint() -> None:
         log.debug("wal_checkpoint skipped: %s", exc)
 
 
+def check_integrity() -> tuple[bool, str]:
+    """Run SQLite's built-in `PRAGMA integrity_check`. Cheap on small
+    databases, slower on multi-GB ones. Returns (ok, message). Used by
+    `jobhunt doctor` and as a startup sanity check."""
+    try:
+        with _engine.begin() as conn:
+            result = conn.execute(text("PRAGMA integrity_check")).fetchone()
+        msg = result[0] if result else "no result"
+        return (msg == "ok", msg)
+    except Exception as exc:  # noqa: BLE001
+        return (False, f"{type(exc).__name__}: {exc}")
+
+
 def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)

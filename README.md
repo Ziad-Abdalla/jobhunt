@@ -88,7 +88,9 @@ from the platform — never estimated.
 | **Add API keys** | Settings tab > Jooble / Reed keys (optional, unlocks more sources) |
 | **Uninstall** | Settings tab → **Uninstall jobhunt** button (one click) |
 | **Auto-refresh** | `jobhunt --schedule 360` (every 6 hours) |
-| **Check sources** | `jobhunt doctor` |
+| **Check sources** | `jobhunt doctor` (or `--json` for scripts) |
+| **Backup data** | `jobhunt backup` — saved searches + CV + local sources to a zip |
+| **Restore data** | `jobhunt restore <backup.zip>` |
 
 ## How it works
 
