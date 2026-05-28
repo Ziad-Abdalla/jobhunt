@@ -17,13 +17,13 @@ No account needed. No data leaves your machine. Free and open source.
 ```powershell
 irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
 ```
-A `jobhunt` shortcut appears on your Desktop. Double-click it anytime to launch.
 
 **macOS / Linux** — open Terminal, paste this:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
 ```
-Then type `jobhunt`.
+
+Then type `jobhunt` in any terminal. Your browser opens automatically.
 
 **Or with pip:**
 ```
@@ -73,7 +73,7 @@ YesWeHack. Search by company or domain. Filter by platform.
 
 | What | How |
 |------|-----|
-| **Launch** | Double-click `jobhunt` on Desktop, or type `jobhunt` in terminal |
+| **Launch** | Type `jobhunt` in any terminal — browser opens automatically |
 | **Update** | Settings tab > Check for updates, or re-run the install command |
 | **Clear jobs** | Settings tab > Clear all jobs |
 | **Add API keys** | Settings tab > Jooble / Reed keys (optional, unlocks more sources) |

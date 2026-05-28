@@ -4,9 +4,8 @@
 $ErrorActionPreference = 'Continue'
 
 Write-Host ""
-Write-Host "  =============================" -ForegroundColor Blue
-Write-Host "       jobhunt installer" -ForegroundColor Blue
-Write-Host "  =============================" -ForegroundColor Blue
+Write-Host "  jobhunt installer" -ForegroundColor Blue
+Write-Host "  -----------------" -ForegroundColor Blue
 Write-Host ""
 
 function Refresh-Path {
@@ -17,10 +16,8 @@ function Refresh-Path {
 
 Refresh-Path
 
-if (Get-Command uv -ErrorAction SilentlyContinue) {
-    Write-Host "  [1/3] uv found" -ForegroundColor Green
-} else {
-    Write-Host "  [1/3] Installing uv..." -ForegroundColor Cyan
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Write-Host "  [1/2] Installing uv..." -ForegroundColor Cyan
     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" 2>$null
     Refresh-Path
     $uvBin = Join-Path $env:USERPROFILE '.local\bin'
@@ -32,17 +29,19 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
         Read-Host "  Press Enter to close"
         exit 1
     }
-    Write-Host "  [1/3] uv installed" -ForegroundColor Green
 }
+Write-Host "  [1/2] uv ready" -ForegroundColor Green
 
 # -- Step 2: jobhunt --
 
-Write-Host "  [2/3] Installing jobhunt..." -ForegroundColor Cyan
+Write-Host "  [2/2] Installing jobhunt..." -ForegroundColor Cyan
 
+# Force clean install of latest version
 & uv tool uninstall jobhunt-app 2>$null | Out-Null
 & uv tool uninstall jobhunt 2>$null | Out-Null
 & uv cache clean jobhunt-app 2>$null | Out-Null
-& uv tool install "jobhunt-app>=0.7.3"
+& uv cache clean 2>$null | Out-Null
+& uv tool install "jobhunt-app>=0.7.3" --refresh
 
 Refresh-Path
 $toolBin = & uv tool dir --bin 2>$null
@@ -52,57 +51,19 @@ if ($toolBin -and (Test-Path $toolBin)) {
 
 $ver = & jobhunt --version 2>$null
 if (-not $ver) {
-    Write-Host "  ERROR: install failed. Try closing all terminals and running again." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  ERROR: jobhunt not found after install." -ForegroundColor Red
+    Write-Host "  Close ALL terminals, open a new PowerShell, type: jobhunt" -ForegroundColor Yellow
     Read-Host "  Press Enter to close"
     exit 1
 }
-Write-Host "  [2/3] $ver installed" -ForegroundColor Green
-if ($ver -notlike "*0.7*") {
-    Write-Host "  WARNING: Expected v0.7.x but got $ver. Cache may be stale." -ForegroundColor Yellow
-    Write-Host "  Trying forced reinstall..." -ForegroundColor Yellow
-    & uv cache clean 2>$null | Out-Null
-    & uv tool uninstall jobhunt-app 2>$null | Out-Null
-    & uv tool install "jobhunt-app>=0.7.3" --reinstall
-    Refresh-Path
-    $ver = & jobhunt --version 2>$null
-    Write-Host "  [2/3] $ver installed (forced)" -ForegroundColor Green
-}
 
-# -- Step 3: desktop shortcut --
-
-# Find the exact path to jobhunt.exe
-$jobhuntExe = (Get-Command jobhunt -ErrorAction SilentlyContinue).Source
-if (-not $jobhuntExe) {
-    $jobhuntExe = Join-Path $toolBin 'jobhunt.exe'
-}
-
-$desktop = [Environment]::GetFolderPath('Desktop')
-$batPath = Join-Path $desktop 'jobhunt.bat'
-
-$batLines = @(
-    '@echo off'
-    'title jobhunt'
-    "set ""PATH=$toolBin;%USERPROFILE%\.local\bin;%PATH%"""
-    'echo.'
-    'echo   Starting jobhunt...'
-    'echo   Your browser will open shortly.'
-    'echo   Close this window to stop the server.'
-    'echo.'
-    'jobhunt'
-    'if %errorlevel% neq 0 ('
-    '    echo.'
-    '    echo   Something went wrong. See error above.'
-    '    pause'
-    ')'
-)
-Set-Content -Path $batPath -Value ($batLines -join "`r`n") -Encoding ASCII
-Write-Host "  [3/3] Desktop shortcut created" -ForegroundColor Green
-
+Write-Host "  [2/2] $ver installed" -ForegroundColor Green
 Write-Host ""
-Write-Host "  =============================" -ForegroundColor Green
-Write-Host "         All done!" -ForegroundColor Green
-Write-Host "  =============================" -ForegroundColor Green
+Write-Host "  Done! To start jobhunt:" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Double-click 'jobhunt' on your Desktop to start." -ForegroundColor White
-Write-Host "  To update later: run this same command again." -ForegroundColor Gray
+Write-Host "    jobhunt" -ForegroundColor White
+Write-Host ""
+Write-Host "  Type that in any terminal. Your browser opens automatically." -ForegroundColor Gray
+Write-Host "  To update later: run this same install command again." -ForegroundColor Gray
 Write-Host ""
