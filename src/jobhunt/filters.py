@@ -97,21 +97,29 @@ def count(session: Session, q: JobQuery) -> int:
     return session.execute(stmt).scalar_one()
 
 
+import time as _time
+
+_facet_cache: dict[str, object] = {"data": None, "expires": 0.0}
+_FACET_TTL = 60
+
+
 def facets(session: Session) -> dict[str, list[tuple[str, int]]]:
-    """Return value counts for facet filters in the sidebar."""
+    """Return value counts for facet filters. Cached for 60 seconds."""
     from sqlalchemy import func
+
+    now = _time.monotonic()
+    if _facet_cache["data"] and now < _facet_cache["expires"]:
+        return _facet_cache["data"]  # type: ignore[return-value]
 
     out: dict[str, list[tuple[str, int]]] = {}
     for col, key in (
         (Job.remote, "remote"),
         (Job.level, "level"),
-        (Job.degree, "degree"),
-        (Job.source, "source"),
-        (Job.employment_type, "employment_type"),
-        (Job.visa_sponsorship, "visa_sponsorship"),
     ):
         rows = session.execute(
             select(col, func.count()).group_by(col).order_by(func.count().desc())
         ).all()
         out[key] = [(r[0] or "unknown", r[1]) for r in rows]
+    _facet_cache["data"] = out
+    _facet_cache["expires"] = now + _FACET_TTL
     return out

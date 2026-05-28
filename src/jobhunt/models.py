@@ -62,6 +62,9 @@ class Job(Base):
     __table_args__ = (
         Index("ix_jobs_company_title", "company", "title"),
         Index("ix_jobs_remote_level", "remote", "level"),
+        Index("ix_jobs_etype_level", "employment_type", "level"),
+        Index("ix_jobs_score_posted", "score", "posted_at"),
+        Index("ix_jobs_location_level", "location", "level"),
     )
 
 

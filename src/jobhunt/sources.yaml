@@ -30,6 +30,13 @@
 - { source: jooble, board: "junior developer|Germany",         company: "(Jooble Germany - Junior)" }
 
 # ═══════════════════════════════════════════════════════════════════
+#  FREELANCE / CONTRACT SOURCES
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: arbeitnow,     board: "freelance",    company: "(Arbeitnow Freelance)" }
+- { source: arbeitnow,     board: "contract",     company: "(Arbeitnow Contract)" }
+
+# ═══════════════════════════════════════════════════════════════════
 #  WIDE-NET FIREHOSES (all levels)
 # ═══════════════════════════════════════════════════════════════════
 
@@ -110,7 +117,6 @@
 - { source: greenhouse, board: checkout,           company: Checkout.com }
 - { source: greenhouse, board: starlingbank,       company: Starling Bank }
 - { source: greenhouse, board: depop,              company: Depop }
-- { source: greenhouse, board: improbable,         company: Improbable }
 - { source: greenhouse, board: snyk,               company: Snyk }
 - { source: greenhouse, board: onfido,             company: Onfido }
 - { source: greenhouse, board: bulb,               company: Bulb }
@@ -118,7 +124,6 @@
 - { source: ashby, board: airwallex,          company: Airwallex }
 - { source: ashby, board: 1password,          company: 1Password }
 - { source: workable, board: made-tech,       company: Made Tech }
-- { source: workable, board: huggingface,     company: Hugging Face }
 
 # ═══════════════════════════════════════════════════════════════════
 #  COMPANY BOARDS — Lever

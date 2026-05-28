@@ -103,6 +103,19 @@ def _today() -> str:
     return datetime.now(UTC).strftime("%A, %B %d, %Y").upper()
 
 
+def _last_updated_str() -> str:
+    """Get the most recent scrape run time as a readable string."""
+    with db_session() as s:
+        row = s.execute(
+            select(ScrapeRun.started_at)
+            .order_by(ScrapeRun.started_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+    if row:
+        return _localdate(row, "%b %d, %H:%M")
+    return ""
+
+
 @app.on_event("startup")
 async def _on_startup() -> None:
     init_db()
@@ -192,6 +205,7 @@ def index(request: Request) -> HTMLResponse:
             "cv_loaded": cv_loaded,
             "nav": "search",
             "today": _today(),
+            "last_updated": _last_updated_str(),
         },
     )
 
@@ -487,9 +501,11 @@ def bounties_page(
     platform: str = "",
 ) -> HTMLResponse:
     """Active bug bounty programs from HackerOne, Bugcrowd, etc."""
-    from .bounties import load_cached_programs
+    from .bounties import fetch_programs, load_cached_programs
 
     programs = load_cached_programs()
+    if not programs:
+        programs = fetch_programs()
     if q.strip():
         ql = q.strip().lower()
         programs = [
@@ -526,8 +542,25 @@ def api_refresh_bounties() -> JSONResponse:
     })
 
 
+_last_refresh: dict[str, float] = {}
+_REFRESH_COOLDOWN = 300
+
+
 @app.post("/api/refresh")
 async def api_refresh() -> JSONResponse:
+    """Refresh all job sources + bounties. Rate-limited to once per 5 min."""
+    import time
+
+    now = time.time()
+    last = _last_refresh.get("all", 0)
+    if now - last < _REFRESH_COOLDOWN:
+        remaining = int(_REFRESH_COOLDOWN - (now - last))
+        return JSONResponse({
+            "ok": False,
+            "message": f"Please wait {remaining}s before refreshing again.",
+        })
+
+    _last_refresh["all"] = now
     result = await asyncio.shield(scrape_all())
     try:
         alert_result = await check_alerts()

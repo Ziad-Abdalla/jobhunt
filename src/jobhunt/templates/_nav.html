@@ -4,8 +4,7 @@
     <span class="brand-tagline">a quiet job paper</span>
   </div>
   <div class="masthead-date">
-    {% if today is defined %}{{ today }}{% else %}{{ now }}{% endif %}
-    · Vol. 0 · No. 1
+    {% if last_updated is defined and last_updated %}Updated {{ last_updated }}{% else %}{{ today if today is defined else '' }}{% endif %}
   </div>
   <div class="masthead-meta">
     {% if total is defined %}<span class="counter">{{ "{:,}".format(total) }} jobs</span>{% endif %}

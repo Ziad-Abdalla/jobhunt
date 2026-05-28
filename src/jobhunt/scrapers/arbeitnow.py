@@ -26,7 +26,10 @@ class ArbeitnowScraper(BaseScraper):
         total_yielded = 0
 
         while total_yielded < _MAX_JOBS:
-            resp = await self.client.get(_BASE_URL, params={"page": page})
+            params: dict[str, str | int] = {"page": page}
+            if self.board:
+                params["employment_type"] = self.board
+            resp = await self.client.get(_BASE_URL, params=params)
             resp.raise_for_status()
             payload = resp.json()
 
