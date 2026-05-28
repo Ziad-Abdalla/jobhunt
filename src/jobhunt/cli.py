@@ -260,16 +260,48 @@ def list_sources() -> None:
         typer.echo(f"  {kind}: {n}")
 
 
+_API_KEY_LINE_RE = None  # populated lazily
+
+
+def _redact_env(env_text: str) -> str:
+    """Strip API key values from a .env blob so a leaked backup zip can't
+    expose live credentials. Keys are replaced with a sentinel that
+    `restore` recognises and preserves."""
+    import re
+
+    global _API_KEY_LINE_RE
+    if _API_KEY_LINE_RE is None:
+        _API_KEY_LINE_RE = re.compile(
+            r"^(JOBHUNT_(?:JOOBLE|REED|[A-Z_]*?_)?API_KEY)\s*=.*$",
+            re.MULTILINE,
+        )
+    return _API_KEY_LINE_RE.sub(
+        r"\1=__REDACTED_BY_BACKUP__regenerate_via_settings__",
+        env_text,
+    )
+
+
 @app.command()
 def backup(
     output: Path = typer.Option(
         None, "--output", "-o",
         help="Output file. Defaults to jobhunt-backup-<timestamp>.zip in the data folder.",
     ),
+    include_secrets: bool = typer.Option(
+        False, "--include-secrets",
+        help=(
+            "Include raw API keys in the backup. Default: redacted. "
+            "Only use this if you trust where the backup is going — "
+            "the file is a plain zip, not encrypted."
+        ),
+    ),
 ) -> None:
     """Export your saved searches, CV profile, alerts, and source overrides
     to a zip file. Doesn't dump the job database itself — that's transient
-    and gets re-scraped — only the data you'd care about losing."""
+    and gets re-scraped — only the data you'd care about losing.
+
+    API keys are redacted by default — use --include-secrets to keep
+    them (only if the backup will stay on a trusted machine)."""
     import json
     import zipfile
     from datetime import UTC, datetime
@@ -312,6 +344,8 @@ def backup(
     )
     env_path = settings.data_dir / ".env"
     env_text = env_path.read_text() if env_path.exists() else ""
+    env_for_backup = env_text if include_secrets else _redact_env(env_text)
+    keys_were_redacted = bool(env_text) and env_for_backup != env_text
 
     payload = {
         "schema": 1,
@@ -320,7 +354,8 @@ def backup(
         "saved_searches": searches,
         "cv_profile": cv_data,
         "local_sources_yaml": local_sources_yaml,
-        "env": env_text,
+        "env": env_for_backup,
+        "secrets_included": include_secrets,
     }
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("jobhunt-backup.json", json.dumps(payload, indent=2))
@@ -328,6 +363,13 @@ def backup(
     typer.echo(f"  saved searches: {len(searches)}")
     typer.echo(f"  CV profile:     {'yes' if cv_data else 'no'}")
     typer.echo(f"  local sources:  {'yes' if local_sources_yaml else 'no'}")
+    if include_secrets:
+        typer.echo(
+            "  ⚠ API keys included verbatim — treat this file like a password.",
+            err=True,
+        )
+    elif keys_were_redacted:
+        typer.echo("  API keys: REDACTED (re-enter on the Settings page after restore).")
 
 
 @app.command()
@@ -412,14 +454,64 @@ def restore(
                 detected_languages=list(cv.get("detected_languages") or []),
             ))
 
+    # local_sources.yaml: defence against a hostile backup pointing scrapers
+    # at attacker-controlled hosts. Only accept entries whose `source` is a
+    # known scraper kind from SCRAPER_REGISTRY; reject everything else
+    # rather than silently writing it through.
     local_sources_yaml = payload.get("local_sources_yaml", "")
     if local_sources_yaml:
-        Path(settings.local_sources_file).parent.mkdir(parents=True, exist_ok=True)
-        Path(settings.local_sources_file).write_text(local_sources_yaml)
+        import yaml as _yaml
 
+        from .scrapers import SCRAPER_REGISTRY
+
+        try:
+            parsed = _yaml.safe_load(local_sources_yaml) or []
+        except _yaml.YAMLError as exc:
+            typer.echo(f"WARNING: local_sources YAML invalid, skipping: {exc}", err=True)
+            parsed = None
+        if isinstance(parsed, list):
+            safe_entries = [
+                e for e in parsed
+                if isinstance(e, dict)
+                and e.get("source") in SCRAPER_REGISTRY
+                and isinstance(e.get("board"), str)
+            ]
+            dropped = (len(parsed) - len(safe_entries)) if parsed else 0
+            if dropped:
+                typer.echo(
+                    f"WARNING: dropped {dropped} local_sources entries with "
+                    "unknown scraper kinds.",
+                    err=True,
+                )
+            Path(settings.local_sources_file).parent.mkdir(parents=True, exist_ok=True)
+            Path(settings.local_sources_file).write_text(
+                _yaml.safe_dump(safe_entries, sort_keys=False, allow_unicode=True)
+            )
+
+    # .env: same defence. A backup can carry user-set JOBHUNT_* keys, but
+    # we allowlist known ones to stop a backup from injecting JOBHUNT_*=
+    # variables we'd act on (data_dir overrides, webhook URLs, etc.).
     env_text = payload.get("env", "")
     if env_text:
-        (settings.data_dir / ".env").write_text(env_text)
+        _ALLOWED_ENV_KEYS = {
+            "JOBHUNT_JOOBLE_API_KEY",
+            "JOBHUNT_REED_API_KEY",
+            "JOBHUNT_USER_LOCATION",
+        }
+        kept_lines: list[str] = []
+        for raw in env_text.splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, _val = line.partition("=")
+            if key.strip() in _ALLOWED_ENV_KEYS:
+                kept_lines.append(line)
+        (settings.data_dir / ".env").write_text("\n".join(kept_lines) + "\n" if kept_lines else "")
+        if payload.get("secrets_included") is False:
+            typer.echo(
+                "Note: API keys were redacted in this backup. "
+                "Re-enter them on the Settings page.",
+            )
 
     typer.echo("Restore complete. Run `jobhunt` to start with the recovered data.")
 
@@ -442,7 +534,12 @@ def doctor(
 
     init_db()
     sources = load_sources()
+    integrity_ok, integrity_msg = check_integrity()
     if not json_output:
+        if integrity_ok:
+            typer.echo("  db integrity: ok")
+        else:
+            typer.echo(f"  db integrity: FAIL — {integrity_msg}")
         typer.echo(f"checking {len(sources)} sources...\n")
 
     async def check_source(spec: dict) -> dict:
@@ -496,6 +593,7 @@ def doctor(
             "ok": len(ok),
             "warn": len(warn),
             "error": len(errors),
+            "integrity": {"ok": integrity_ok, "message": integrity_msg},
             "results": results,
         }, indent=2))
         return

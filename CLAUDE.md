@@ -5,7 +5,7 @@ Local-first Python job aggregator. FastAPI + Jinja2 + HTMX + SQLite. No build st
 PyPI: `jobhunt-app`. CLI: `jobhunt`. MIT licensed, public repo.
 
 ## 4 Sections
-- **Jobs** (`/`) — main search, 15 filters, 24k+ jobs from 130+ sources (tech-focused).
+- **Jobs** (`/`) — main search, 15 filters, thousands of jobs from 130+ sources (tech-focused).
 - **Local Jobs** (`/local`) — **zero-experience local roles (cleaning, retail,
   warehouse, hospitality, care, customer service, driving)** with a *What kind of
   work* toggle for tech. UK + Germany focus. Defaults to `category=nontech`.
@@ -69,8 +69,8 @@ ruff check src/              # style + bug lint
 
 ## Architecture
 - `main.py` — all routes (8 pages + ~16 API endpoints incl. /api/uninstall-now)
-- `scrapers/` — 18 ATS adapters (including `findajob` for UK DWP free non-tech data)
-- `sources.yaml` — 130+ company boards + Find a Job non-tech entries
+- `scrapers/` — 17 ATS adapters (findajob removed in v0.9.1 — DWP deprecated their RSS feed)
+- `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
 - `refresh.py` — scrape pipeline + employment type normalization + category derivation
 - `extract.py` — regex extractors (level, remote, salary, skills, languages,
   **`classify_category`** → tech/nontech/other)

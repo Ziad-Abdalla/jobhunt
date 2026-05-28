@@ -96,3 +96,121 @@ def test_restore_rejects_wrong_schema(tmp_path: Path) -> None:
 def test_restore_missing_file() -> None:
     result = runner.invoke(cli_app, ["restore", "/tmp/this-file-does-not-exist-xyz.zip", "--force"])
     assert result.exit_code == 1
+
+
+# ---- security hardening (added v0.11.2 after fan-out audit) ----
+
+
+def test_redact_env_strips_api_key_values() -> None:
+    """A backup must not leak API keys verbatim unless --include-secrets."""
+    from jobhunt.cli import _redact_env
+
+    env = (
+        "JOBHUNT_JOOBLE_API_KEY=abc123secret\n"
+        "JOBHUNT_REED_API_KEY=def456\n"
+        "JOBHUNT_USER_LOCATION=London, UK\n"
+    )
+    redacted = _redact_env(env)
+    assert "abc123secret" not in redacted
+    assert "def456" not in redacted
+    # Non-key values must survive.
+    assert "London, UK" in redacted
+    # Sentinel is present so a future restore can detect redaction.
+    assert "__REDACTED_BY_BACKUP__" in redacted
+
+
+def test_backup_default_redacts_secrets(tmp_path: Path) -> None:
+    """The default backup should never carry plaintext keys."""
+    # Seed an .env so the backup has something to redact.
+    from jobhunt.config import settings
+
+    env_path = settings.data_dir / ".env"
+    original = env_path.read_text() if env_path.exists() else ""
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    env_path.write_text(
+        "JOBHUNT_JOOBLE_API_KEY=DO_NOT_LEAK_THIS_PLEASE\n"
+        "JOBHUNT_USER_LOCATION=Manchester\n"
+    )
+    try:
+        out = tmp_path / "redacted.zip"
+        result = runner.invoke(cli_app, ["backup", "-o", str(out)])
+        assert result.exit_code == 0
+        with zipfile.ZipFile(out) as z, z.open("jobhunt-backup.json") as f:
+            payload = json.load(f)
+        env_in_backup = payload.get("env", "")
+        assert "DO_NOT_LEAK_THIS_PLEASE" not in env_in_backup
+        assert "Manchester" in env_in_backup
+        assert payload.get("secrets_included") is False
+    finally:
+        # Restore the prior .env contents so we don't disturb the dev box.
+        env_path.write_text(original)
+
+
+def test_restore_rejects_unknown_env_keys(tmp_path: Path) -> None:
+    """A hostile backup that injects JOBHUNT_DATA_DIR or anything outside
+    the allowlist must NOT take effect on restore."""
+    from jobhunt.config import settings
+
+    env_path = settings.data_dir / ".env"
+    original_env = env_path.read_text() if env_path.exists() else ""
+
+    bad = tmp_path / "hostile.zip"
+    with zipfile.ZipFile(bad, "w") as z:
+        z.writestr("jobhunt-backup.json", json.dumps({
+            "schema": 1,
+            "saved_searches": [],
+            "cv_profile": None,
+            "local_sources_yaml": "",
+            "env": (
+                "JOBHUNT_JOOBLE_API_KEY=legit-key\n"
+                "JOBHUNT_DATA_DIR=/etc\n"          # hostile injection
+                "JOBHUNT_WEBHOOK_URL=http://evil\n"  # hostile injection
+            ),
+            "secrets_included": True,
+        }))
+    try:
+        result = runner.invoke(cli_app, ["restore", str(bad), "--force"])
+        assert result.exit_code == 0
+        written = env_path.read_text() if env_path.exists() else ""
+        # Allowlisted key survives.
+        assert "JOBHUNT_JOOBLE_API_KEY=legit-key" in written
+        # Hostile keys must be filtered out.
+        assert "JOBHUNT_DATA_DIR" not in written
+        assert "JOBHUNT_WEBHOOK_URL" not in written
+    finally:
+        env_path.write_text(original_env)
+
+
+def test_restore_drops_unknown_scraper_kinds(tmp_path: Path) -> None:
+    """A hostile backup pointing local_sources at unknown scraper kinds
+    (or attacker-controlled targets) should be dropped before write."""
+    from jobhunt.config import settings
+
+    ls_path = Path(settings.local_sources_file)
+    original = ls_path.read_text() if ls_path.exists() else None
+
+    bad = tmp_path / "hostile-sources.zip"
+    with zipfile.ZipFile(bad, "w") as z:
+        z.writestr("jobhunt-backup.json", json.dumps({
+            "schema": 1,
+            "saved_searches": [],
+            "cv_profile": None,
+            "local_sources_yaml": (
+                "- source: greenhouse\n  board: legit-board\n"
+                "- source: attacker-pwn\n  board: http://evil.com/exfil\n"
+            ),
+            "env": "",
+            "secrets_included": True,
+        }))
+    try:
+        result = runner.invoke(cli_app, ["restore", str(bad), "--force"])
+        assert result.exit_code == 0
+        written = ls_path.read_text() if ls_path.exists() else ""
+        assert "greenhouse" in written  # allowed
+        assert "attacker-pwn" not in written  # rejected
+        assert "evil.com" not in written
+    finally:
+        if original is None:
+            ls_path.unlink(missing_ok=True)
+        else:
+            ls_path.write_text(original)

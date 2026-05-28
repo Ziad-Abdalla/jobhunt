@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.11.2] — 2026-05-28
+
+### Security
+- **Backup zips no longer leak API keys.** v0.11.0's `jobhunt backup`
+  serialised the `.env` file verbatim, including `JOOBLE_API_KEY` and
+  `REED_API_KEY`. A user emailing a backup for support or syncing it
+  to cloud storage would have leaked live credentials. Now API key
+  values are redacted by default with a sentinel value; opt back in
+  with `--include-secrets` (which prints a stderr warning).
+- **`jobhunt restore` allowlists env keys and source kinds.** A
+  hostile backup file could previously have injected arbitrary
+  `JOBHUNT_*` environment variables on restore. Now only
+  `JOBHUNT_JOOBLE_API_KEY`, `JOBHUNT_REED_API_KEY`, and
+  `JOBHUNT_USER_LOCATION` survive — everything else is filtered.
+  Likewise `local_sources.yaml` is now `safe_load`'d, schema-checked,
+  and entries whose `source` isn't a known scraper kind are dropped
+  with a stderr warning.
+- 4 new tests in `tests/test_backup_restore.py` cover the redact
+  helper, the redacted-default round-trip, env allowlist, and source-
+  kind allowlist.
+
+### Changed
+- **Doc clarity pass** based on a fan-out audit:
+  - Purged stale references to `findajob` / Find a Job from README,
+    CONTRIBUTING, CLAUDE.md, MAINTENANCE.md. Source count now reads
+    "17" everywhere (was "18" in three places after v0.9.1's removal).
+  - Hedged stale figures (`24,000+ jobs`, `69 unit tests`) into
+    `thousands of jobs` / `100+ unit tests` — exact numbers go stale
+    every release.
+  - MAINTENANCE.md picked up an explanatory note that `findajob` was
+    removed in v0.9.1 with a pointer to audit log §10.
+  - TASKS.md catches up to v0.10.3 → v0.11.1 (the WAL-checkpoint item
+    was shipped in v0.10.3 but still listed as open).
+
 ## [0.11.1] — 2026-05-28
 
 ### Fixed

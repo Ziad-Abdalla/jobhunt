@@ -36,7 +36,7 @@ Run the skill periodically; the app handles routine decay on its own.
 | **API rate-limit tightened** | Some calls succeed, others time out | `jobhunt doctor` → mixed `ok` / `warn` for the same source type |
 | **Company changed ATS slug** | `greenhouse:foobar` 404s | `jobhunt doctor` → `FAIL` |
 | **Company migrated platform** | Old slug returns 404, but they're hiring on Ashby now | `doctor` flags; replacement needs research |
-| **RSS endpoint URL changed** | Find a Job RSS 404s | `doctor` → `FAIL  Find a Job` |
+| **RSS endpoint URL changed** | scraper hits 404 / receives HTML in place of XML | `doctor` → `FAIL` on the source |
 | **Upstream data repo moved** | `arkadiyt/bounty-targets-data` 404s | `/api/refresh-bounties` returns 0 |
 | **Schema drift** | Bounty JSON gains/loses a field; parser silently drops it | `doctor` says ok, but UI shows partial data |
 | **Free tier removed** | "This API now requires a paid plan" | `doctor` says ok, but with limited results |
@@ -48,7 +48,7 @@ spot-check rituals in §6. New-API discovery is a periodic active search
 
 ---
 
-## 2. The 18 sources we ship today
+## 2. The 17 sources we ship today
 
 | Source | Auth | Coverage | Strong for | Country bias |
 |---|---|---|---|---|
@@ -66,10 +66,13 @@ spot-check rituals in §6. New-API discovery is a periodic active search
 | `jobicy` | none | Remote aggregator | Remote tech | Global |
 | `himalayas` | none | Remote aggregator | Remote tech | Global |
 | `themuse` | none | Aggregator | Tech mid | US |
-| `arbeitsagentur` | none | German Federal Employment Agency | Praktikum, Ausbildung, Werkstudent | DE |
+| `arbeitsagentur` | none | German Federal Employment Agency — all sectors | Praktikum, Ausbildung, Werkstudent, non-tech | DE |
 | `jooble` | **key** | 69-country aggregator | Generalist | Global (with key) |
-| `reed` | **key** | UK's largest job board | All sectors, UK | UK |
-| `findajob` | none | UK DWP Find a Job | Non-tech UK roles | UK |
+| `reed` | **key** | UK's largest job board — all sectors, incl. non-tech | All sectors, UK | UK |
+
+> 🗒️ `findajob` (UK DWP) was removed in v0.9.1 — DWP deprecated their
+> `?format=rss` query and every URL now returns HTML. UK non-tech
+> coverage moved to Reed broader keywords. See audit log §10.
 
 **Key takeaways for adding coverage:**
 - For a new country, look for a **government-run** job feed first (free,
@@ -175,7 +178,7 @@ scraper class (a new ATS / new public RSS shape).
 
 1. Create `src/jobhunt/scrapers/<name>.py` subclassing `BaseScraper`.
    Implement `async def fetch()` yielding `RawJob` instances. Look at
-   `findajob.py` (simplest, no-key) or `reed.py` (with API key) as a model.
+   `arbeitnow.py` (no-key) or `reed.py` (with API key) as a model.
 2. Register in `src/jobhunt/scrapers/__init__.py` `SCRAPER_REGISTRY`.
 3. Add a unit test in `tests/test_<name>.py` with a `respx` mock.
 4. Add default entries to `src/jobhunt/sources.yaml`.
@@ -186,7 +189,7 @@ scraper class (a new ATS / new public RSS shape).
 
 | Region | Candidate |
 |---|---|
-| UK | Find a Job (✅ done), Civil Service Jobs (gov.uk), NHS Jobs RSS |
+| UK | Civil Service Jobs (gov.uk), NHS Jobs RSS, Reed (✅ broad coverage) |
 | Germany | Arbeitsagentur (✅ done), StepStone (only via partner) |
 | US | USAJobs.gov (free with key), GitHub's "who is hiring" thread |
 | France | Pôle Emploi "Offres d'emploi" API (free with key) |

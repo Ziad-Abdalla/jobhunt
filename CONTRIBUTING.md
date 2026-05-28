@@ -23,11 +23,14 @@ src/jobhunt/
 ├── salary_estimator.py Self-calibrating salary estimation
 ├── dedup.py           Fingerprint-based deduplication
 ├── bounties.py        Bug bounty program fetcher (GitHub data)
-├── scrapers/          18 ATS adapters (incl. findajob — UK DWP, free, no key)
-├── templates/         Jinja2 (8 pages: index, local, freelance, bounties,
-│                       alerts, cv, sources, settings)
+├── scrapers/          17 ATS adapters (greenhouse, lever, ashby, workable,
+│                       smartrecruiters, recruitee, workday, remoteok,
+│                       hackernews, simplifyjobs, arbeitnow, jobicy,
+│                       himalayas, themuse, arbeitsagentur, jooble, reed)
+├── templates/         Jinja2 (9 pages: index, local, freelance, bounties,
+│                       alerts, cv, sources, settings, help)
 ├── static/            style.css, app.js, htmx.min.js (vendored)
-└── sources.yaml       150+ default boards (incl. Find a Job non-tech entries)
+└── sources.yaml       150+ default boards (Reed + Arbeitsagentur non-tech entries)
 ```
 
 **4 sections in the app:**
@@ -36,7 +39,7 @@ src/jobhunt/
   job type = contract type. Internship lives in *Job type*, not *Career stage*.
 - **Local Jobs** — **zero-experience local roles** (cleaning, retail, warehouse,
   hospitality, care, customer service, driving). Tech is still selectable.
-  Defaults to `?category=nontech`. Backed by Find a Job + Reed + Jooble + Arbeitsagentur.
+  Defaults to `?category=nontech`. Backed by Reed (UK) + Arbeitsagentur (DE) + Jooble.
 - **Freelance** — contract/freelance roles
 - **Bug Bounty** — HackerOne / Bugcrowd / Intigriti / YesWeHack programs with
   real upstream reward data. We never estimate min/max amounts; if upstream is
@@ -115,7 +118,7 @@ for examples. You'll need:
 ## Testing
 
 ```bash
-pytest -q          # 69 unit tests
+pytest -q          # 100+ unit tests
 pytest -m e2e      # 11 Playwright browser E2E tests
 ```
 

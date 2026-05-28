@@ -3,7 +3,7 @@
 
 # jobhunt
 
-**24,000+ software jobs. 4 sections. Clean filters. Runs locally.**
+**Thousands of jobs. 4 sections. Clean filters. Runs locally.**
 
 No account needed. No data leaves your machine. Free and open source.
 
@@ -36,7 +36,7 @@ jobhunt
 ## 4 Sections
 
 ### Jobs (main search)
-All 24,000+ software roles from 130+ company boards and 17 job sources.
+Thousands of software roles from 130+ company boards.
 Filters: keyword, company, location, remote/hybrid/onsite, level, job type,
 salary, degree, experience, languages, skills, posted date, visa sponsorship,
 CV match, sort order.
@@ -46,8 +46,8 @@ Zero-experience local work near you — cleaning, retail, warehouse, hospitality
 care, customer service, driving, reception, security. Type your city
 (Whitechapel, Manchester, Stuttgart, Berlin) and the page defaults to
 no-experience non-tech roles; flip the *What kind of work* dropdown to switch
-to tech / software or "any kind". Best UK and Germany coverage; UK government's
-Find a Job feed is included free, no API key needed.
+to tech / software or "any kind". Best UK and Germany coverage; Arbeitsagentur (German Federal
+Employment Agency) is free and no API key needed.
 
 ### Freelance & Contract
 Contract, freelance, and temporary software roles. Filter by keyword, work
@@ -64,10 +64,10 @@ from the platform — never estimated.
 
 ## Features
 
-- **18 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+- **17 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
   Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs, Arbeitnow, Jobicy,
-  Himalayas, TheMuse, Arbeitsagentur (Germany), Jooble (69 countries), Reed (UK),
-  Find a Job (UK DWP — all sectors, no key)
+  Himalayas, TheMuse, Arbeitsagentur (Germany — all sectors, no key),
+  Jooble (69 countries), Reed (UK — all sectors, broad keyword set)
 - **Intern/junior focused**: 3,300+ entry-level roles. Detects intern, graduate,
   trainee, apprentice, co-op, Ausbildung, Werkstudent, and "0-1 years" patterns.
 - **Salary on every job**: real data where available, plus a self-calibrating estimator.
@@ -120,7 +120,7 @@ uv pip install -e ".[dev]"
 pytest -q && jobhunt
 ```
 
-69 unit tests + 11 Playwright E2E tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+100+ unit tests + 11 Playwright E2E tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
