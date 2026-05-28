@@ -373,6 +373,11 @@ async def scrape_all() -> dict:
 
         removed = sweep_stale(session)
 
+    # Checkpoint the WAL file so it doesn't grow unbounded on long-running
+    # installs. Runs PASSIVE — never blocks, never raises.
+    from .db import wal_checkpoint
+    wal_checkpoint()
+
     return {
         "sources": len(sources),
         "added": added,

@@ -11,6 +11,50 @@ import pytest
 from jobhunt.cv import cosine, parse_cv
 
 
+# ---- robustness against bad uploads (caught during v0.10.x bug-hunt) ----
+
+
+def test_parse_cv_rejects_empty_pdf() -> None:
+    with pytest.raises(ValueError, match="empty"):
+        parse_cv("empty.pdf", b"")
+
+
+def test_parse_cv_rejects_empty_docx() -> None:
+    with pytest.raises(ValueError, match="empty"):
+        parse_cv("empty.docx", b"")
+
+
+def test_parse_cv_rejects_empty_txt() -> None:
+    with pytest.raises(ValueError, match="empty"):
+        parse_cv("empty.txt", b"")
+
+
+def test_parse_cv_rejects_fake_pdf() -> None:
+    """File renamed to .pdf but with non-PDF bytes — should not 500."""
+    with pytest.raises(ValueError, match="Couldn't read PDF"):
+        parse_cv("fake.pdf", b"hello, this is not a PDF")
+
+
+def test_parse_cv_rejects_fake_docx() -> None:
+    with pytest.raises(ValueError, match="Couldn't read DOCX"):
+        parse_cv("fake.docx", b"\xd0\xcf\x11\xe0 not a docx")
+
+
+def test_parse_cv_rejects_whitespace_only_txt() -> None:
+    with pytest.raises(ValueError, match="no text"):
+        parse_cv("blank.txt", b"   \n\t\n   ")
+
+
+def test_parse_cv_accepts_valid_txt() -> None:
+    out = parse_cv("cv.txt", b"Python developer with 5 years experience")
+    assert "Python" in out
+
+
+def test_parse_cv_rejects_unknown_extension() -> None:
+    with pytest.raises(ValueError, match="Unsupported"):
+        parse_cv("cv.rtf", b"some content")
+
+
 def _minimal_pdf(text: str) -> bytes:
     """Build a tiny valid PDF byte string with a single line of extractable text.
 

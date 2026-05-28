@@ -304,11 +304,54 @@
     }
   }
 
+  // ---------- keyboard shortcuts ----------
+  // `/` focuses the keyword search; `r` triggers Refresh; `?` opens /help.
+  // Skipped while the user is typing in any input/textarea so we never
+  // hijack characters mid-edit.
+  function bindKeyboardShortcuts() {
+    document.addEventListener("keydown", function (e) {
+      var tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target.isContentEditable) {
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "/") {
+        var q = document.querySelector('input[name="q"]') || document.querySelector('input[type="text"]');
+        if (q) { q.focus(); e.preventDefault(); }
+      } else if (e.key === "r") {
+        var refresh = document.getElementById("refresh-btn");
+        if (refresh && !refresh.disabled) { refresh.click(); e.preventDefault(); }
+      } else if (e.key === "?" && e.shiftKey) {
+        // Only navigate if we're not already on /help.
+        if (!location.pathname.startsWith("/help")) {
+          location.href = "/help";
+          e.preventDefault();
+        }
+      }
+    });
+  }
+
+  // ---------- htmx loading state on result area ----------
+  function bindHtmxLoadingState() {
+    var results = document.getElementById("results");
+    if (!results) return;
+    document.body.addEventListener("htmx:beforeRequest", function (e) {
+      if (e.target === results || results.contains(e.target)) {
+        results.classList.add("htmx-loading");
+      }
+    });
+    document.body.addEventListener("htmx:afterRequest", function () {
+      results.classList.remove("htmx-loading");
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     bindRefreshButton();
     bindFilterFormShape();
     bindConfirmForms();
     bindActions();
     bindSettingsButtons();
+    bindKeyboardShortcuts();
+    bindHtmxLoadingState();
   });
 })();

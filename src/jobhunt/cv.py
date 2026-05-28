@@ -49,38 +49,68 @@ def parse_cv(filename: str, content: bytes) -> str:
     """Extract plain text from a CV file by extension.
 
     Supports .pdf (pypdf), .docx (python-docx), and .txt (utf-8). Raises
-    ValueError for anything else.
+    ValueError on unsupported types, empty files, or upstream parser
+    failure (so the route converts these to a 400 with a clear message
+    instead of bubbling a 500).
     """
+    if not content:
+        raise ValueError("CV file is empty.")
     ext = os.path.splitext(filename)[1].lower()
 
     if ext == ".pdf":
-        from pypdf import PdfReader
+        try:
+            from pypdf import PdfReader
 
-        reader = PdfReader(io.BytesIO(content))
-        parts: list[str] = []
-        for page in reader.pages:
-            try:
-                parts.append(page.extract_text() or "")
-            except Exception:
-                # A single bad page shouldn't kill the whole upload.
-                continue
-        return "\n".join(parts).strip()
+            reader = PdfReader(io.BytesIO(content))
+            parts: list[str] = []
+            for page in reader.pages:
+                try:
+                    parts.append(page.extract_text() or "")
+                except Exception:
+                    # A single bad page shouldn't kill the whole upload.
+                    continue
+            text = "\n".join(parts).strip()
+        except Exception as exc:  # noqa: BLE001
+            # pypdf raises EmptyFileError, PdfReadError, etc. — all map to
+            # "we can't read this file", not "the server is broken".
+            raise ValueError(
+                f"Couldn't read PDF: {type(exc).__name__}. "
+                "Is it a real PDF (not just renamed)?"
+            ) from exc
+        if not text:
+            raise ValueError(
+                "PDF contained no extractable text. "
+                "Image-only PDFs (e.g. scanned CVs) need OCR — try exporting as DOCX or TXT."
+            )
+        return text
 
     if ext == ".docx":
-        import docx  # python-docx
+        try:
+            import docx  # python-docx
 
-        document = docx.Document(io.BytesIO(content))
-        parts = [p.text for p in document.paragraphs if p.text]
-        # Tables often hold skills lists in modern CVs.
-        for table in document.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    if cell.text:
-                        parts.append(cell.text)
-        return "\n".join(parts).strip()
+            document = docx.Document(io.BytesIO(content))
+            parts = [p.text for p in document.paragraphs if p.text]
+            # Tables often hold skills lists in modern CVs.
+            for table in document.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text:
+                            parts.append(cell.text)
+            text = "\n".join(parts).strip()
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError(
+                f"Couldn't read DOCX: {type(exc).__name__}. "
+                "Is it a real .docx (not .doc, not renamed)?"
+            ) from exc
+        if not text:
+            raise ValueError("DOCX contained no extractable text.")
+        return text
 
     if ext == ".txt":
-        return content.decode("utf-8", errors="replace").strip()
+        text = content.decode("utf-8", errors="replace").strip()
+        if not text:
+            raise ValueError("TXT file contained no text.")
+        return text
 
     raise ValueError(f"Unsupported CV file type: {ext!r}. Use .pdf, .docx, or .txt.")
 

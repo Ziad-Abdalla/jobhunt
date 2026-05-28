@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.10.3] — 2026-05-28
+
+### Fixed
+- **CV upload no longer returns 500 on bad files.** Empty PDFs/DOCX/TXT,
+  files renamed to a supported extension but with mismatched content,
+  and image-only PDFs all now return a clear 400 with a user-friendly
+  message instead of bubbling pypdf/python-docx exceptions. 8 new
+  tests in `tests/test_cv.py` lock down each failure mode.
+- **`/alerts/create` truncates over-long inputs.** Previously a
+  5000-character name was being saved verbatim despite the
+  `String(128)` column declaration. Now: name capped at 128, free-text
+  fields at 256, tag lists at 50 entries. 3 new tests in
+  `tests/test_robustness.py`.
+
+### Added
+- **`PRAGMA wal_checkpoint(PASSIVE)` after every refresh.** Keeps the
+  SQLite `-wal` sidecar file from growing unbounded on long-running
+  installs. PASSIVE mode never blocks readers and skips quietly when
+  another connection is mid-transaction.
+- **Keyboard shortcuts.** `/` focuses the keyword search, `r` triggers
+  Refresh, `?` opens `/help`. Skipped while typing in any input so we
+  never hijack characters.
+- **HTMX loading skeleton.** A subtle shimmer + dimmed cards appear
+  while `/jobs` requests are in flight, so filter changes don't feel
+  laggy. Pure CSS + a class toggle, no extra JS work per request.
+
 ## [0.10.2] — 2026-05-28
 
 ### Added

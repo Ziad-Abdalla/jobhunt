@@ -256,6 +256,17 @@ def _setup_fts() -> None:
         """))
 
 
+def wal_checkpoint() -> None:
+    """Roll the WAL file back into the main database to keep its size
+    bounded. PASSIVE mode never blocks readers and skips if any other
+    connection is mid-transaction — safe to call on every refresh."""
+    try:
+        with _engine.begin() as conn:
+            conn.execute(text("PRAGMA wal_checkpoint(PASSIVE)"))
+    except Exception as exc:  # noqa: BLE001
+        log.debug("wal_checkpoint skipped: %s", exc)
+
+
 def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)

@@ -723,6 +723,16 @@ def alerts_page(request: Request) -> HTMLResponse:
     )
 
 
+_MAX_ALERT_NAME = 128       # matches SavedSearch.name length
+_MAX_ALERT_FIELD = 256       # plenty for any reasonable user input
+_MAX_ALERT_TAGS = 50         # comma-separated lists
+
+
+def _trim(s: str, limit: int) -> str:
+    """Trim + truncate so a malformed or hostile input can't bloat the DB."""
+    return (s or "").strip()[:limit]
+
+
 @app.post("/alerts/create")
 def alerts_create(
     name: str = Form(...),
@@ -738,19 +748,20 @@ def alerts_create(
     posted_within_days: int | None = Form(None),
     notify: bool = Form(True),
 ) -> RedirectResponse:
-    name = name.strip()
+    name = _trim(name, _MAX_ALERT_NAME)
     if not name:
         raise HTTPException(400, "name required")
+    # Bound every free-text field so a 5k-char paste can't bloat the row.
     query_json = {
-        "q": q.strip(),
-        "company": company.strip(),
-        "location": location.strip(),
-        "remote": remote.strip(),
-        "level": level.strip(),
-        "degree": degree.strip(),
+        "q": _trim(q, _MAX_ALERT_FIELD),
+        "company": _trim(company, _MAX_ALERT_FIELD),
+        "location": _trim(location, _MAX_ALERT_FIELD),
+        "remote": _trim(remote, 16),
+        "level": _trim(level, 16),
+        "degree": _trim(degree, 16),
         "max_years": max_years,
-        "languages": [s.strip().lower() for s in languages.split(",") if s.strip()],
-        "skills": [s.strip().lower() for s in skills.split(",") if s.strip()],
+        "languages": [s.strip().lower() for s in languages.split(",") if s.strip()][:_MAX_ALERT_TAGS],
+        "skills": [s.strip().lower() for s in skills.split(",") if s.strip()][:_MAX_ALERT_TAGS],
         "posted_within_days": posted_within_days,
     }
     with db_session() as s:
