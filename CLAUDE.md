@@ -16,6 +16,15 @@ Resume anchor: [`docs/internal/SESSION_LOG.md`](docs/internal/SESSION_LOG.md) �
 first. Owner-side action checklist for each session lives in `docs/sessions/`.
 A session **must** end by appending a SESSION_LOG entry (see `docs/internal/SESSION_LOG.md` for the template).
 
+## Knowledge map
+Accumulated research + audit findings follow the project knowledge convention
+(`~/projects/KNOWLEDGE_CONVENTION.md`): an AI-facing `docs/INDEX.md` manifest (Title · Path · Kind ·
+Source · Area · Status · Date · Verdict) + `docs/research/` + `docs/audits/` + `docs/archive/`, read
+first when planning in an area with accumulated knowledge (a missing row = a gap to research/audit;
+stale = re-verify). None has accumulated here yet beyond `docs/MAINTENANCE.md` (the data-layer
+rulebook + audit log), so **create the INDEX when the first research/audit doc lands — don't scaffold
+it empty.** The owner reads the HTML view via the `owner-hub` skill.
+
 ## Long-term maintenance
 External sources rot — APIs expire, ATS slugs change, free tiers tighten.
 Two paired artefacts keep the data layer healthy:
