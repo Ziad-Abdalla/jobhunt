@@ -22,18 +22,17 @@ src/jobhunt/
 ├── scoring.py         Transparent relevance score (recency + quality)
 ├── salary_estimator.py Self-calibrating salary estimation
 ├── dedup.py           Fingerprint-based deduplication
-├── bounties.py        Bug bounty program fetcher (GitHub data)
 ├── scrapers/          17 ATS adapters (greenhouse, lever, ashby, workable,
 │                       smartrecruiters, recruitee, workday, remoteok,
 │                       hackernews, simplifyjobs, arbeitnow, jobicy,
 │                       himalayas, themuse, arbeitsagentur, jooble, reed)
-├── templates/         Jinja2 (9 pages: index, local, freelance, bounties,
+├── templates/         Jinja2 (8 pages: index, local, freelance,
 │                       alerts, cv, sources, settings, help)
 ├── static/            style.css, app.js, htmx.min.js (vendored)
 └── sources.yaml       150+ default boards (Reed + Arbeitsagentur non-tech entries)
 ```
 
-**4 sections in the app:**
+**3 sections in the app:**
 - **Jobs** — main search with all 15 filters. Career stage and Job type are
   intentionally separate: career stage = permanent-role seniority (entry → senior),
   job type = contract type. Internship lives in *Job type*, not *Career stage*.
@@ -41,9 +40,6 @@ src/jobhunt/
   hospitality, care, customer service, driving). Tech is still selectable.
   Defaults to `?category=nontech`. Backed by Reed (UK) + Arbeitsagentur (DE) + Jooble.
 - **Freelance** — contract/freelance roles
-- **Bug Bounty** — HackerOne / Bugcrowd / Intigriti / YesWeHack programs with
-  real upstream reward data. We never estimate min/max amounts; if upstream is
-  silent, the UI omits the badge.
 
 ## Development setup
 
@@ -126,6 +122,6 @@ pytest -m e2e      # 11 Playwright browser E2E tests
 
 Please include:
 - Output of `jobhunt info` and `jobhunt --version`.
-- Which section (Jobs / Local / Freelance / Bug Bounty).
+- Which section (Jobs / Local / Freelance).
 - Which filter or action was used.
 - What you expected vs what happened.
