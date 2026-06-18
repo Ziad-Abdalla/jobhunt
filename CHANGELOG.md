@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.13.1] — 2026-06-19
+
+### Fixed
+- **Zero-experience local jobs are no longer mislabelled "mid".** An unqualified
+  non-tech title (Cleaner, Catering Assistant) now defaults to **entry**, so the
+  0-experience / entry filter actually finds local work. Tech titles still
+  default to mid by convention.
+
+### Added / Changed
+- **Refresh no longer hangs.** The Refresh button starts the scrape in the
+  background and returns instantly; it polls `/api/refresh/status` for live
+  progress while the rest of the app stays usable.
+- **Faster refresh.** Source concurrency 4 → 8 and Reed depth 500 → 300 per
+  keyword (~40% less work, still thousands of jobs after dedup). No data dropped.
+- **Gentler stale window (14 → 30 days).** Active listings are re-seen on every
+  scrape and never expire; this only widens the grace period for jobs a refresh
+  temporarily misses.
+
 ## [0.13.0] — 2026-06-18
 
 ### Added
