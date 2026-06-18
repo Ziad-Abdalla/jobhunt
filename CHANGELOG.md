@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.2] — 2026-06-19
+
+### Added
+- **First-run setup prompt.** When a key or your location is missing, a friendly
+  modal walks you through it — location, Reed key (with a "Get a free key" link),
+  optional Jooble key — then saves and live-tests them. Pre-fills existing values
+  so it never erases a saved key; dismissable with "Maybe later".
+
+### Fixed
+- **Update check + update now work from GitHub tags, not stale PyPI.** The check
+  compares versions numerically (so v0.13.2 correctly beats v0.9.2) and the
+  in-app update reinstalls from the matching tag. Degrades gracefully when the
+  repo isn't publicly reachable.
+
 ## [0.13.1] — 2026-06-19
 
 ### Fixed

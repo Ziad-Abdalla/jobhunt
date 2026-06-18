@@ -22,3 +22,36 @@
   <a href="/settings" class="{% if nav == 'settings' %}active{% endif %}">Settings</a>
   <a href="/help" class="{% if nav == 'help' %}active{% endif %}">Help</a>
 </nav>
+
+<!-- First-run setup prompt. Hidden until app.js confirms something is missing. -->
+<div id="setup-modal" class="modal-overlay" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <h2 id="setup-title">Set up jobhunt for jobs near you</h2>
+    <p class="modal-sub">Two minutes. Everything is free and stays on your computer.</p>
+
+    <label class="setup-field">
+      <span>Your location</span>
+      <input id="setup-location" type="text" placeholder="London, UK" autocomplete="off" />
+      <small>Used to show jobs near you (within a travel radius).</small>
+    </label>
+
+    <label class="setup-field">
+      <span>Reed key <em>— unlocks thousands of local jobs near you</em></span>
+      <input id="setup-reed" type="text" placeholder="paste your Reed API key" autocomplete="off" />
+      <small><a href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">Get a free Reed key →</a> (sign up, copy the key)</small>
+    </label>
+
+    <label class="setup-field">
+      <span>Jooble key <em>— optional, adds more coverage</em></span>
+      <input id="setup-jooble" type="text" placeholder="paste your Jooble API key (optional)" autocomplete="off" />
+      <small><a href="https://jooble.org/api/about" target="_blank" rel="noopener">Get a free Jooble key →</a></small>
+    </label>
+
+    <div id="setup-result" class="setup-result" aria-live="polite"></div>
+
+    <div class="modal-actions">
+      <button id="setup-skip" type="button" class="btn-ghost">Maybe later</button>
+      <button id="setup-save" type="button" class="btn-primary">Save &amp; test</button>
+    </div>
+  </div>
+</div>

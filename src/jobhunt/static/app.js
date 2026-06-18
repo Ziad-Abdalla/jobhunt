@@ -368,6 +368,77 @@
     });
   }
 
+  // ---------- first-run setup prompt (missing API keys / location) ----------
+  function bindSetupModal() {
+    var modal = document.getElementById("setup-modal");
+    if (!modal) return;
+    var DISMISS_KEY = "jobhunt_setup_dismissed";
+    var $ = function (id) { return document.getElementById(id); };
+
+    function dismissed() {
+      try { return localStorage.getItem(DISMISS_KEY) === "1"; } catch (e) { return false; }
+    }
+    function remember() {
+      try { localStorage.setItem(DISMISS_KEY, "1"); } catch (e) { /* ignore */ }
+    }
+
+    fetch("/api/settings/missing").then(function (r) { return r.json(); }).then(function (d) {
+      var v = (d && d.values) || {};
+      if ($("setup-location")) $("setup-location").value = v.location || "";
+      if ($("setup-reed")) $("setup-reed").value = v.reed || "";
+      if ($("setup-jooble")) $("setup-jooble").value = v.jooble || "";
+      if (d && d.prompt && !dismissed()) modal.hidden = false;
+    }).catch(function () { /* offline — no prompt */ });
+
+    if ($("setup-skip")) $("setup-skip").addEventListener("click", function () {
+      remember();
+      modal.hidden = true;
+    });
+
+    if ($("setup-save")) $("setup-save").addEventListener("click", async function () {
+      var btn = this;
+      var result = $("setup-result");
+      var loc = ($("setup-location") || {}).value || "";
+      var reed = (($("setup-reed") || {}).value || "").trim();
+      var jooble = (($("setup-jooble") || {}).value || "").trim();
+      btn.disabled = true;
+      if (result) result.textContent = "Saving and testing…";
+      try {
+        var save = new URLSearchParams();
+        save.set("user_location", loc);
+        save.set("reed_api_key", reed);
+        save.set("jooble_api_key", jooble);
+        await fetch("/api/settings/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: save.toString(),
+        });
+        var tp = new URLSearchParams();
+        tp.set("reed_api_key", reed);
+        tp.set("jooble_api_key", jooble);
+        var t = await (await fetch("/api/settings/test-keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: tp.toString(),
+        })).json();
+        var parts = [];
+        if (reed) parts.push((t.reed && t.reed.ok === true ? "Reed ✓ " : "Reed ✗ ") + ((t.reed && t.reed.message) || ""));
+        if (jooble) parts.push((t.jooble && t.jooble.ok === true ? "Jooble ✓ " : "Jooble ✗ ") + ((t.jooble && t.jooble.message) || ""));
+        if (result) result.textContent = parts.join("   ·   ") || "Saved.";
+        var reedOk = !reed || (t.reed && t.reed.ok === true);
+        if (reedOk) {
+          if (result) result.textContent += "   — all set! reloading…";
+          setTimeout(function () { location.reload(); }, 1400);
+        } else {
+          btn.disabled = false;
+        }
+      } catch (e) {
+        if (result) result.textContent = "Something went wrong: " + e.message;
+        btn.disabled = false;
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     bindRefreshButton();
     bindFilterFormShape();
@@ -376,5 +447,6 @@
     bindSettingsButtons();
     bindKeyboardShortcuts();
     bindHtmxLoadingState();
+    bindSetupModal();
   });
 })();

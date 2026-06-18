@@ -735,3 +735,37 @@ main#results, main.page {
   color: #33425b;
   text-align: left;
 }
+
+/* ---------- first-run setup modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-card {
+  background: #fff; border-radius: 14px; max-width: 460px; width: 100%;
+  padding: 24px 26px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-card h2 { margin: 0 0 4px; font-size: 20px; }
+.modal-sub { margin: 0 0 18px; color: #64748b; font-size: 14px; }
+.setup-field { display: block; margin-bottom: 14px; }
+.setup-field > span { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
+.setup-field > span em { font-weight: 400; color: #64748b; font-style: normal; }
+.setup-field input {
+  width: 100%; box-sizing: border-box; padding: 9px 11px;
+  border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;
+}
+.setup-field small { display: block; margin-top: 4px; color: #64748b; font-size: 12.5px; }
+.setup-result { min-height: 18px; margin: 6px 0 14px; font-size: 13px; color: #334155; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.modal-actions .btn-ghost {
+  background: none; border: 1px solid #cbd5e1; color: #475569;
+  padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+.modal-actions .btn-primary {
+  background: #2563eb; border: 1px solid #2563eb; color: #fff;
+  padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+.modal-actions .btn-primary:disabled { opacity: 0.6; cursor: default; }

@@ -863,6 +863,58 @@ def sources_remove_route(source: str, board: str) -> RedirectResponse:
 _GITHUB_REPO = "Abdalla2004-collab/Jobhunt"
 
 
+def _parse_version(s: str) -> tuple[int, ...]:
+    """Parse a version/tag string into a comparable tuple. Junk -> (0,)."""
+    try:
+        return tuple(int(x) for x in (s or "").lstrip("v").split("."))
+    except (ValueError, AttributeError):
+        return (0,)
+
+
+def _pick_latest_tag(tags: list[str]) -> str:
+    """Return the highest semantic-version tag, comparing numerically (so
+    v0.13.1 beats v0.9.2, which string-sorting gets wrong). Non-version tags
+    are ignored. Empty input -> ""."""
+    versioned = [t for t in tags if _parse_version(t) != (0,)]
+    if not versioned:
+        return ""
+    return max(versioned, key=_parse_version)
+
+
+def _latest_github_version() -> tuple[str, str] | None:
+    """(tag, release_url) of the newest version tag on GitHub, or None.
+
+    Uses /tags (every release tags) rather than /releases/latest, which 404s
+    until a formal GitHub Release is cut.
+    """
+    import httpx
+
+    resp = httpx.get(
+        f"https://api.github.com/repos/{_GITHUB_REPO}/tags",
+        headers={"Accept": "application/vnd.github+json"},
+        timeout=10,
+        follow_redirects=True,
+    )
+    # 404 = repo is private/not visible to an unauthenticated client. Degrade to
+    # "no versions found" rather than erroring.
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    tags = resp.json()
+    if not isinstance(tags, list):
+        return None
+    best = _pick_latest_tag([t.get("name", "") for t in tags if isinstance(t, dict)])
+    if not best:
+        return None
+    return best, f"https://github.com/{_GITHUB_REPO}/releases/tag/{best}"
+
+
+def _git_install_spec(tag: str) -> str:
+    """pip/uv requirement that installs jobhunt straight from a GitHub tag —
+    works even when PyPI is behind."""
+    return f"git+https://github.com/{_GITHUB_REPO}.git@{tag}"
+
+
 def _detect_install_method() -> str:
     """Detect how jobhunt was installed."""
     import shutil
@@ -975,6 +1027,27 @@ def api_sources_health() -> JSONResponse:
     return JSONResponse(_source_health_summary())
 
 
+@app.get("/api/settings/missing")
+def api_settings_missing() -> JSONResponse:
+    """What setup the user still needs. Drives the first-run setup prompt."""
+    reed = bool(settings.reed_api_key)
+    jooble = bool(settings.jooble_api_key)
+    location = bool(settings.user_location)
+    return JSONResponse({
+        "reed": not reed,
+        "jooble": not jooble,
+        "location": not location,
+        # Prompt while the essentials for "jobs near me" are missing.
+        "prompt": (not reed) or (not location),
+        # Current values so the prompt pre-fills and never erases a saved key.
+        "values": {
+            "reed": settings.reed_api_key,
+            "jooble": settings.jooble_api_key,
+            "location": settings.user_location,
+        },
+    })
+
+
 @app.post("/api/settings/test-keys")
 async def api_test_keys(
     jooble_api_key: str = Form(""),
@@ -1057,37 +1130,22 @@ def api_save_settings(
 
 @app.get("/api/check-update")
 def api_check_update() -> JSONResponse:
-    """Check GitHub for a newer release without installing anything."""
-    import httpx
-
+    """Check GitHub tags for a newer version without installing anything."""
     try:
-        resp = httpx.get(
-            f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest",
-            headers={"Accept": "application/vnd.github+json"},
-            timeout=10,
-            follow_redirects=True,
-        )
-        if resp.status_code == 404:
+        latest = _latest_github_version()
+        if latest is None:
             return JSONResponse({"ok": True, "update_available": False,
-                                 "message": f"You are on v{__version__}. No releases found."})
-        resp.raise_for_status()
-        data = resp.json()
-        latest_tag = data.get("tag_name", "").lstrip("v")
-        current_parts = tuple(int(x) for x in __version__.split("."))
-        try:
-            latest_parts = tuple(int(x) for x in latest_tag.split("."))
-        except (ValueError, AttributeError):
-            latest_parts = (0, 0, 0)
-        if latest_parts > current_parts:
+                                 "message": f"You are on v{__version__}. No versions found."})
+        latest_tag, url = latest
+        if _parse_version(latest_tag) > _parse_version(__version__):
             return JSONResponse({
                 "ok": True, "update_available": True,
-                "latest": latest_tag, "current": __version__,
-                "url": data.get("html_url", ""),
-                "message": f"Update available: v{latest_tag} (you have v{__version__})",
+                "latest": latest_tag.lstrip("v"), "current": __version__, "url": url,
+                "message": f"Update available: {latest_tag} (you have v{__version__})",
             })
         return JSONResponse({
             "ok": True, "update_available": False,
-            "latest": latest_tag, "current": __version__,
+            "latest": latest_tag.lstrip("v"), "current": __version__,
             "message": f"You are on the latest version (v{__version__}).",
         })
     except Exception as exc:  # noqa: BLE001
@@ -1166,31 +1224,29 @@ def api_update() -> JSONResponse:
         except Exception as exc:  # noqa: BLE001
             return JSONResponse({"ok": False, "message": f"Could not check for updates: {exc}"})
 
-    elif method == "uv":
-        uv = shutil.which("uv")
-        result = subprocess.run(
-            [uv, "tool", "install", "--reinstall", "--upgrade", "jobhunt-app"],
-            capture_output=True, text=True, timeout=120,
-        )
+    elif method in ("uv", "pipx"):
+        # Install straight from the newest GitHub tag — PyPI can lag behind.
+        latest = _latest_github_version()
+        tag = latest[0] if latest else f"v{__version__}"
+        spec = _git_install_spec(tag)
+        if method == "uv":
+            uv = shutil.which("uv")
+            cmd = [uv, "tool", "install", "--reinstall", spec]
+        else:
+            pipx = shutil.which("pipx")
+            cmd = [pipx, "install", "--force", spec]
+        if not cmd[0]:
+            return JSONResponse({"ok": False, "message": f"Could not find {method} on PATH."})
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         if result.returncode == 0:
-            msg = (
-                result.stdout.strip()
-                or "jobhunt updated. Restart to use the new version."
-            )
-            return JSONResponse({"ok": True, "message": msg})
+            return JSONResponse({
+                "ok": True,
+                "message": f"Updated to {tag}. Restart jobhunt to use the new version.",
+            })
         return JSONResponse({
             "ok": False,
-            "message": result.stderr.strip() or "Update failed.",
+            "message": result.stderr.strip() or result.stdout.strip() or "Update failed.",
         })
-
-    elif method == "pipx":
-        pipx = shutil.which("pipx")
-        result = subprocess.run(
-            [pipx, "upgrade", "jobhunt-app"],
-            capture_output=True, text=True, timeout=120,
-        )
-        msg = result.stdout.strip() or result.stderr.strip() or "done"
-        return JSONResponse({"ok": result.returncode == 0, "message": msg})
 
     else:
         return JSONResponse({
