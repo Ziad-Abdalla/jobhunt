@@ -480,6 +480,7 @@ def local_jobs(
             "category": cat,
             "nontech_total": nontech_total,
             "tech_total": tech_total,
+            "reed_key_set": bool(settings.reed_api_key),
         },
     )
 

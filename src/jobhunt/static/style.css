@@ -720,3 +720,18 @@ main#results, main.page {
   .card-head { flex-direction: column; gap: var(--sp-1); }
   .head-meta { order: -1; }
 }
+
+/* Local page: actionable hint when local jobs need a free Reed key */
+.empty-cta {
+  display: block;
+  max-width: 540px;
+  margin: 14px auto 0;
+  padding: 14px 18px;
+  background: #f5f8ff;
+  border: 1px solid #cfe0ff;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #33425b;
+  text-align: left;
+}

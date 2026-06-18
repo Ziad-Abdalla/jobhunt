@@ -82,7 +82,14 @@
       <p class="empty">
         {% if category == 'nontech' %}
           No no-experience jobs found near "{{ location }}" yet.
-          {% if tech_total > 0 %}
+          {% if not reed_key_set %}
+            <span class="empty-cta">
+              Local cleaning, retail, warehouse, hospitality and care jobs come from
+              <b>Reed</b>, which needs a free key. Get one in two minutes at
+              <a href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">reed.co.uk/developers</a>,
+              paste it in <a href="/settings">Settings</a>, then hit Refresh — and this page fills with jobs near you.
+            </span>
+          {% elif tech_total > 0 %}
             There are {{ "{:,}".format(tech_total) }} tech roles — switch <b>What kind of work</b> above to see them.
           {% else %}
             Try a broader area, run a refresh from the main page, or switch to "Any kind".
