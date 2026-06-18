@@ -132,6 +132,7 @@
 - { source: ashby,      board: synthesia,    company: Synthesia }
 - { source: ashby,      board: gohenry,      company: GoHenry }
 - { source: ashby,      board: pleo,         company: Pleo }
+- { source: ashby,      board: multiverse,   company: Multiverse }   # London apprenticeships (no-degree, 0-exp)
 
 # ═══════════════════════════════════════════════════════════════════
 #  COMPANY BOARDS — Ashby
@@ -232,10 +233,11 @@
 - { source: reed, board: "security officer", company: "(Reed UK — Security)" }
 - { source: reed, board: "barista",          company: "(Reed UK — Café)" }
 - { source: reed, board: "sales assistant",  company: "(Reed UK — Retail)" }
-# Weekend / part-time friendly searches (fit study schedules)
-- { source: reed, board: "weekend",          company: "(Reed UK — Weekend)" }
+# Part-time / weekday-friendly searches (study around them)
 - { source: reed, board: "part time",        company: "(Reed UK — Part-time)" }
-- { source: reed, board: "saturday",         company: "(Reed UK — Weekend)" }
+- { source: reed, board: "team member",      company: "(Reed UK — Hospitality)" }
+- { source: reed, board: "shop assistant",   company: "(Reed UK — Retail)" }
+- { source: reed, board: "no experience",    company: "(Reed UK — Entry)" }
 
 # ═══════════════════════════════════════════════════════════════════
 #  Germany — non-tech / zero-experience parity with the UK Reed
