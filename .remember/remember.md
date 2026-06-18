@@ -24,7 +24,17 @@ distance search · free advisory auto-update. Honest gap: QA/MY coverage is thin
    `docs/internal/research/JOBHUNT_ENHANCEMENT_2026_05_30/00-SYNTHESIS-AND-RECOMMENDATIONS.md` (evidence).
 4. `docs/INDEX.md` is the knowledge manifest.
 
-## THE SINGLE NEXT ACTION
+## 2026-06-18 — app tuned for owner's real use (v0.13.0, HEAD da95440, not pushed)
+Owner wants to USE it now: London SWE internships OR loads of part-time 0-exp near Whitechapel, fresh, daily.
+Shipped: Reed near-me distance scoping (TDD), London early-career boards, Jooble Kentucky fix, fresh scrape
+(27,711 active), 3 alerts, auto-refresh, `.env` set (London/15mi). Track 1 (London software early-career)
+WORKS + verified in UI (clean). **Track 2 (local part-time near Whitechapel) is empty pending ONE owner
+action: a free Reed key** (reed.co.uk/developers/jobseeker → Settings → Refresh) — that data isn't on any
+free no-key feed. Activation guide is in the owner hub manual-steps page. 135 tests green.
+**Next: if owner adds the Reed key → verify Local part-time fills; else build B1 (Careerjet adds a free
+local/QA/MY source, reducing the single-key dependency).**
+
+## THE LONGER-TERM ROADMAP NEXT ACTION
 **Execute Batch B1** = `docs/superpowers/plans/2026-05-30-jobhunt-B1-resilience-and-careerjet.md`
 (shared hardened HTTP session + per-source circuit breaker + `SourceHealth` + Careerjet scraper,
 which closes the Qatar/Malaysia/non-tech gaps). Read the MASTER doc first, then run B1 task-by-task with
