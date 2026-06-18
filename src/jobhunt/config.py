@@ -45,7 +45,9 @@ class Settings(BaseSettings):
     db_path: Path = Field(default_factory=_default_db_path)
     user_agent: str = "jobhunt/0.3 (+https://github.com/Abdalla2004-collab/Jobhunt)"
     request_timeout: float = 20.0
-    concurrency: int = 4
+    # How many sources to scrape in parallel. Higher = faster refresh; the
+    # per-source pages stay sequential so no single host gets hammered.
+    concurrency: int = 8
     stale_after_days: int = 14
 
     sources_file: Path = Field(default_factory=lambda: _find_sources_yaml())

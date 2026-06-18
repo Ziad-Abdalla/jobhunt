@@ -94,6 +94,21 @@ def _normalize_employment_type(raw: str) -> str:
     return _EMPLOYMENT_TYPE_MAP.get(raw.lower().strip(), raw)
 
 
+def _resolve_level(detected_level: str, category: str, *, has_description: bool) -> str:
+    """Pick a job's seniority when the title carried no explicit signal.
+
+    A bare "Software Engineer" is mid-level by industry convention, but a bare
+    "Cleaner" or "Catering Assistant" is entry-level work. Defaulting local
+    (non-tech) roles to "mid" would hide them from the zero-experience filter,
+    so they default to "entry" instead.
+    """
+    if detected_level != "unknown":
+        return detected_level
+    if not has_description:
+        return "unknown"
+    return "mid" if category == "tech" else "entry"
+
+
 def load_sources() -> list[dict]:
     items: list[dict] = []
     for path in (settings.sources_file, settings.local_sources_file):
@@ -148,11 +163,11 @@ def _persist(
     if remote == "unknown" and raw.location and "," in raw.location:
         remote = "onsite"
 
-    # ── Level ──
-    level = ex.level
-    # "Software Engineer" with no qualifier is mid-level (industry convention).
-    if level == "unknown" and len(raw.description) > 50:
-        level = "mid"
+    # ── Category + Level ──
+    # Category first, because the level default is category-aware: an unqualified
+    # tech title is mid by convention, an unqualified local title is entry-level.
+    category = classify_category(raw.title, raw.description)
+    level = _resolve_level(ex.level, category, has_description=len(raw.description) > 50)
 
     # ── Employment type ──
     et_from_api = _normalize_employment_type(raw.employment_type)
@@ -176,8 +191,6 @@ def _persist(
         salary_max = est.max_salary
         salary_currency = est.currency
         salary_estimated = True
-
-    category = classify_category(raw.title, raw.description)
 
     if existing is None:
         job = Job(
@@ -353,7 +366,7 @@ async def scrape_all() -> dict:
         if db_ranges:
             log.info("salary estimator: %d level×region combos from own data", len(db_ranges))
 
-        for spec, (source, raws, err) in zip(sources, results):
+        for spec, (source, raws, err) in zip(sources, results, strict=False):
             run = ScrapeRun(
                 source=source or "?",
                 board=str(spec.get("board", "")),
@@ -366,7 +379,8 @@ async def scrape_all() -> dict:
             )
             for raw in raws:
                 seen += 1
-                if _persist(session, raw, company_override=spec.get("company"), db_ranges=db_ranges):
+                company_override = spec.get("company")
+                if _persist(session, raw, company_override=company_override, db_ranges=db_ranges):
                     added += 1
                     run.jobs_added += 1
             session.add(run)
