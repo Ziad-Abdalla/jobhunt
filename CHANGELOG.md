@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.13.3] — 2026-06-19
+
+### Fixed (correctness sweep)
+- **Entry-level local roles** ("Bar Staff", "Sales Lead", "Cleaner") are no
+  longer mislabelled as senior and dropped from the zero-experience filter.
+- **Min-salary** filters on real salaries only, not level+location estimates.
+- **Freelance** page matches Contract/freelance/temp roles (it previously
+  filtered on a value that never existed in the database).
+- A **"London" search** no longer expands to the whole UK ("Manchester, UK").
+- **Dedup** keeps Staff/Lead/Principal as distinct roles instead of merging them.
+- A **healthy-but-empty source** is no longer permanently auto-disabled; disabled
+  sources are periodically re-probed so they can recover.
+- **Reed** pagination stops cleanly on the last page; the key test rejects
+  malformed responses.
+- **Background refresh** keeps a strong task reference and supersedes a stale run;
+  the progress poll has a hard timeout so it can't spin forever.
+- **Setup prompt** no longer returns API keys to the browser, and saving with a
+  blank key field keeps the existing key instead of erasing it.
+- **Version** reported by the app now matches the package (fixes stale CSS/JS
+  after upgrades and the update check); a test keeps them in sync.
+- The **release pipeline** no longer references the removed bounty page/route, and
+  the accessibility skip-link no longer uses a CSP-blocked inline handler.
+
 ## [0.13.2] — 2026-06-19
 
 ### Added
