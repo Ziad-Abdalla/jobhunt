@@ -16,9 +16,10 @@ def normalize_title(title: str) -> str:
     t = title.lower()
     t = re.sub(r"\(.*?\)", " ", t)              # drop parenthetical noise
     t = re.sub(r"\[.*?\]", " ", t)
+    # Strip only formatting noise — NOT staff/principal/lead, which denote
+    # genuinely distinct roles (collapsing them loses real listings).
     t = re.sub(
-        r"\b(sr\.?|senior|jr\.?|junior|staff|principal|lead|"
-        r"intern|internship|new grad|entry[- ]level)\b",
+        r"\b(sr\.?|senior|jr\.?|junior|intern|internship|new grad|entry[- ]level)\b",
         " ",
         t,
     )

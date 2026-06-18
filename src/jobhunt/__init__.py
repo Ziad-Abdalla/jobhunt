@@ -1,3 +1,3 @@
 """jobhunt — local-first software engineering job aggregator."""
 
-__version__ = "0.12.0"
+__version__ = "0.13.2"

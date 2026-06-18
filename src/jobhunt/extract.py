@@ -61,11 +61,18 @@ _TITLE_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.I,
     ), "entry"),
     (re.compile(r"\bjunior\b|\bjr\.?\b", re.I), "junior"),
-    (re.compile(r"\bstaff\b", re.I), "staff"),
+    (re.compile(
+        r"\bstaff\s+(?:software\s+|sr\.?\s+)?"
+        r"(?:engineer|developer|scientist|programmer|architect|sde|swe|sre|designer|researcher|analyst)\b",
+        re.I), "staff"),
     (re.compile(r"\bprincipal\b", re.I), "principal"),
     (re.compile(r"\bdistinguished\b|\bfellow\b", re.I), "principal"),
     (re.compile(r"\bsenior\b|\bsr\.?\b", re.I), "senior"),
-    (re.compile(r"\blead\b", re.I), "lead"),
+    (re.compile(
+        r"\blead\s+(?:software\s+)?"
+        r"(?:engineer|developer|scientist|programmer|architect|designer|sde|swe|sre|researcher|analyst)\b"
+        r"|\b(?:engineering|technical|tech|software|platform|data|qa|security)\s+lead\b",
+        re.I), "lead"),
     (re.compile(r"\bmid[- ]?level\b", re.I), "mid"),
 )
 
@@ -85,8 +92,15 @@ _DESC_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ), "entry"),
     (re.compile(r"\bjunior\b|\bjr\.?\b", re.I), "junior"),
     (re.compile(r"\bsenior\b|\bsr\.?\b", re.I), "senior"),
-    (re.compile(r"\bstaff\b", re.I), "staff"),
-    (re.compile(r"\blead\b", re.I), "lead"),
+    (re.compile(
+        r"\bstaff\s+(?:software\s+|sr\.?\s+)?"
+        r"(?:engineer|developer|scientist|programmer|architect|sde|swe|sre|designer|researcher|analyst)\b",
+        re.I), "staff"),
+    (re.compile(
+        r"\blead\s+(?:software\s+)?"
+        r"(?:engineer|developer|scientist|programmer|architect|designer|sde|swe|sre|researcher|analyst)\b"
+        r"|\b(?:engineering|technical|tech|software|platform|data|qa|security)\s+lead\b",
+        re.I), "lead"),
 )
 
 _REMOTE_STRONG = re.compile(

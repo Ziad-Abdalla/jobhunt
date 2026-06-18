@@ -769,3 +769,14 @@ main#results, main.page {
   padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 14px;
 }
 .modal-actions .btn-primary:disabled { opacity: 0.6; cursor: default; }
+
+/* Accessible skip-link: hidden until keyboard-focused (CSP-safe, no inline JS) */
+.skip-link {
+  position: absolute; left: -9999px; top: auto;
+  width: 1px; height: 1px; overflow: hidden;
+}
+.skip-link:focus {
+  left: 8px; top: 8px; width: auto; height: auto;
+  padding: 8px 12px; background: #2563eb; color: #fff;
+  border-radius: 6px; z-index: 1100;
+}

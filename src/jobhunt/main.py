@@ -335,7 +335,10 @@ _REGION_MAP: dict[str, list[str]] = {
     "shoreditch": ["shoreditch", "london", "hackney"],
     "soho": ["soho", "london", "westminster"],
     "city of london": ["city of london", "london"],
-    "london": ["london", "uk", "united kingdom", "england"],
+    # A city search must NOT expand to nation-level terms, or "London" matches
+    # "Manchester, UK" / anything tagged "England". Keep it to the city + its
+    # boroughs (which themselves all contain "london" as a substring).
+    "london": ["london", "greater london"],
     "manchester": ["manchester", "uk", "united kingdom", "england"],
     "birmingham": ["birmingham", "uk", "united kingdom", "england"],
     "leeds": ["leeds", "uk", "united kingdom", "england"],
@@ -435,6 +438,7 @@ def local_jobs(
             sal = _safe_int(min_salary)
             if sal:
                 base = base.where(
+                    Job.salary_estimated.is_(False),
                     Job.salary_max.is_not(None), Job.salary_max >= sal
                 )
             base = base.order_by(
@@ -499,9 +503,15 @@ def freelance_page(
     from sqlalchemy import or_
 
     with db_session() as s:
-        stmt = select(Job).where(
-            Job.employment_type.in_(["Contract", "Freelance"])
-        )
+        # "Freelance" is normalized to "Contract", so the old `in_(["Contract",
+        # "Freelance"])` only ever matched Contract. Also catch any un-normalized
+        # contract/freelance/temp values a source emits so they aren't lost.
+        stmt = select(Job).where(or_(
+            Job.employment_type == "Contract",
+            Job.employment_type.ilike("%freelance%"),
+            Job.employment_type.ilike("%contract%"),
+            Job.employment_type.ilike("%temp%"),
+        ))
         if q.strip():
             like = f"%{q.strip().lower()}%"
             stmt = stmt.where(or_(
@@ -513,7 +523,10 @@ def freelance_page(
             stmt = stmt.where(Job.remote == remote)
         sal = _safe_int(min_salary)
         if sal:
-            stmt = stmt.where(Job.salary_max.is_not(None), Job.salary_max >= sal)
+            stmt = stmt.where(
+                Job.salary_estimated.is_(False),
+                Job.salary_max.is_not(None), Job.salary_max >= sal,
+            )
         stmt = stmt.order_by(Job.posted_at.desc().nullslast(), Job.score.desc())
         total = s.execute(
             select(func.count()).select_from(stmt.subquery())
@@ -541,6 +554,8 @@ _REFRESH_COOLDOWN = 300
 
 # Tracks the background scrape so the Refresh button never blocks on it.
 _scrape_state: dict[str, object] = {"running": False, "started_at": 0.0, "last": None}
+# A refresh running longer than this is presumed dead (interrupted / task lost).
+_MAX_SCRAPE_SECONDS = 1800
 
 
 async def _run_refresh() -> None:
@@ -564,12 +579,16 @@ async def api_refresh() -> JSONResponse:
     /api/refresh/status for progress. Rate-limited to once per 5 min."""
     import time
 
-    if _scrape_state["running"]:
+    now = time.time()
+    # If a run is marked running but has overrun a sane window, treat it as dead
+    # (the task was lost / the loop was interrupted) so we never wedge forever.
+    started = float(_scrape_state.get("started_at") or 0)
+    stale = (now - started) > _MAX_SCRAPE_SECONDS
+    if _scrape_state["running"] and not stale:
         return JSONResponse(
             {"ok": True, "running": True, "message": "Already refreshing in the background…"}
         )
 
-    now = time.time()
     last = _last_refresh.get("all", 0)
     if now - last < _REFRESH_COOLDOWN:
         remaining = int(_REFRESH_COOLDOWN - (now - last))
@@ -580,7 +599,9 @@ async def api_refresh() -> JSONResponse:
 
     _last_refresh["all"] = now
     _scrape_state.update(running=True, started_at=now, last=None)
-    asyncio.create_task(_run_refresh())
+    # Keep a strong reference: asyncio only holds a weak ref to tasks, so a bare
+    # create_task() can be garbage-collected mid-run and silently cancel the scrape.
+    _scrape_state["task"] = asyncio.create_task(_run_refresh())
     return JSONResponse(
         {"ok": True, "running": True, "message": "Refresh started in the background."}
     )
@@ -1039,12 +1060,10 @@ def api_settings_missing() -> JSONResponse:
         "location": not location,
         # Prompt while the essentials for "jobs near me" are missing.
         "prompt": (not reed) or (not location),
-        # Current values so the prompt pre-fills and never erases a saved key.
-        "values": {
-            "reed": settings.reed_api_key,
-            "jooble": settings.jooble_api_key,
-            "location": settings.user_location,
-        },
+        # Only the non-secret location is returned for pre-fill. We never send the
+        # actual API keys to the client; the save endpoint keeps existing keys when
+        # a field is left blank, so the prompt can't erase them.
+        "values": {"location": settings.user_location},
     })
 
 
@@ -1098,7 +1117,9 @@ async def api_test_keys(
             if r.status_code >= 400:
                 return {"ok": False, "message": f"Reed returned HTTP {r.status_code}"}
             data = r.json()
-            total = data.get("totalResults", 0) if isinstance(data, dict) else 0
+            if not isinstance(data, dict) or ("results" not in data and "totalResults" not in data):
+                return {"ok": False, "message": "unexpected Reed response shape"}
+            total = data.get("totalResults", 0)
             return {"ok": True, "message": f"{total:,} jobs accessible"}
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "message": f"{type(exc).__name__}: {exc}"}
@@ -1114,8 +1135,11 @@ def api_save_settings(
     user_location: str = Form(""),
 ) -> RedirectResponse:
     """Save user settings to a .env file in the data directory."""
-    jk = jooble_api_key.strip()[:256]
-    rk = reed_api_key.strip()[:256]
+    # Blank key field = "keep the existing key", never erase it. The setup
+    # prompt and the settings form both post all fields; a blank must not wipe a
+    # saved key (the client never receives the key to re-send).
+    jk = jooble_api_key.strip()[:256] or settings.jooble_api_key
+    rk = reed_api_key.strip()[:256] or settings.reed_api_key
     ul = user_location.strip()[:256]
     env = _load_user_env()
     env["JOBHUNT_JOOBLE_API_KEY"] = jk
@@ -1179,11 +1203,8 @@ def api_update() -> JSONResponse:
             resp.raise_for_status()
             data = resp.json()
             latest_tag = data.get("tag_name", "").lstrip("v")
-            current_parts = tuple(int(x) for x in __version__.split("."))
-            try:
-                latest_parts = tuple(int(x) for x in latest_tag.split("."))
-            except (ValueError, AttributeError):
-                latest_parts = (0, 0, 0)
+            current_parts = _parse_version(__version__)
+            latest_parts = _parse_version(latest_tag)
             if latest_parts <= current_parts:
                 return JSONResponse({
                     "ok": True,

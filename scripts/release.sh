@@ -114,7 +114,6 @@ must_have = [
     "jobhunt/static/style.css",
     "jobhunt/templates/index.html",
     "jobhunt/templates/local.html",
-    "jobhunt/templates/bounties.html",
     "jobhunt/templates/settings.html",
     "jobhunt/templates/cv.html",
     "jobhunt/templates/sources.html",
@@ -136,7 +135,7 @@ from jobhunt import __version__
 from fastapi.testclient import TestClient
 print("→ installed jobhunt version:", __version__)
 with TestClient(app) as c:
-    for p in ["/", "/local", "/bounties", "/sources", "/cv", "/settings", "/freelance"]:
+    for p in ["/", "/local", "/sources", "/cv", "/settings", "/freelance"]:
         r = c.get(p)
         if r.status_code != 200:
             raise SystemExit(f"ERROR: {p} -> {r.status_code}")

@@ -98,7 +98,14 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
     if q.employment_type:
         stmt = stmt.where(Job.employment_type.ilike(f"%{q.employment_type}%"))
     if q.min_salary is not None:
-        stmt = stmt.where(Job.salary_max.is_not(None), Job.salary_max >= q.min_salary)
+        # Filter only on REAL salary data. Estimated salaries are level+location
+        # guesses (salary_estimated=True), so applying a real cutoff to them gives
+        # misleading results.
+        stmt = stmt.where(
+            Job.salary_estimated.is_(False),
+            Job.salary_max.is_not(None),
+            Job.salary_max >= q.min_salary,
+        )
     if q.visa_sponsorship:
         stmt = stmt.where(Job.visa_sponsorship == q.visa_sponsorship)
     if q.posted_within_days is not None:

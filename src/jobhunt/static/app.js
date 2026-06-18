@@ -56,17 +56,26 @@
         }
         // The scrape runs in the background; poll for completion so the button
         // never hangs and the page stays usable meanwhile.
+        var fails = 0;
         var poll = setInterval(async function () {
           elapsed += 3;
+          // Hard caps so the poll can never spin forever (a wedged server or a
+          // stuck "running" flag won't keep hammering the endpoint).
+          if (elapsed > 1800 || fails > 20) {
+            clearInterval(poll);
+            finish((typeof s !== "undefined" && s && s.last) || {});
+            return;
+          }
           try {
             var s = await (await fetch("/api/refresh/status")).json();
+            fails = 0;
             if (!s.running) {
               clearInterval(poll);
               finish(s.last);
             } else {
               setStatus("scraping in the background — " + elapsed + "s — keep browsing", { spinner: true });
             }
-          } catch (e) { /* transient — keep polling */ }
+          } catch (e) { fails += 1; }
         }, 3000);
       } catch (e) {
         document.body.classList.remove("results-loading");

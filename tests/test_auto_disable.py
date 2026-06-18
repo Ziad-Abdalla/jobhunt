@@ -85,15 +85,17 @@ def test_not_disabled_when_any_recent_run_succeeded() -> None:
     assert ("test-flaky", "co") not in disabled
 
 
-def test_disabled_when_zero_jobs_no_error() -> None:
-    """3 consecutive zero-job runs (no exception) is still 'silent decay'
-    and triggers auto-disable — the more dangerous failure mode."""
+def test_not_disabled_when_zero_jobs_no_error() -> None:
+    """A source that returns 0 jobs but never errors is EMPTY, not broken —
+    it must NOT be auto-disabled. Small company boards routinely have no open
+    roles for a while then repost; disabling them silently shrinks coverage and
+    they could never recover (a disabled source is never scraped again)."""
     with db_session() as s:
         _seed_runs(s, "test-silent", "co",
                    n=_AUTO_DISABLE_AFTER, jobs_seen=0, error=None)
     with db_session() as s:
         disabled = _disabled_sources(s)
-    assert ("test-silent", "co") in disabled
+    assert ("test-silent", "co") not in disabled
 
 
 def test_sources_health_endpoint() -> None:

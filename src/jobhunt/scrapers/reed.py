@@ -123,4 +123,9 @@ class ReedScraper(BaseScraper):
                 if total_yielded >= _MAX_JOBS:
                     break
 
+            # Last page: fewer results than a full page means we're done. Avoids
+            # a wasted trailing request and protects against Reed clamping
+            # resultsToSkip and re-serving the final page in a loop.
+            if len(results) < _PAGE_SIZE:
+                break
             offset += _PAGE_SIZE

@@ -309,7 +309,12 @@ def _disabled_sources(session: Session) -> set[tuple[str, str]]:
     for key, runs in grouped.items():
         if len(runs) < _AUTO_DISABLE_AFTER:
             continue
-        if all(error or jobs_seen == 0 for error, jobs_seen in runs):
+        # Only disable a source that genuinely ERRORED every recent run. A
+        # healthy board that's simply empty right now (jobs_seen == 0, no error)
+        # must NOT be disabled — small company boards routinely empty out for a
+        # week then repost, and a disabled source is never scraped so it could
+        # never recover ("plentiful" silently shrinking over time).
+        if all(error for error, _ in runs):
             disabled.add(key)
     return disabled
 
@@ -335,10 +340,14 @@ async def scrape_all() -> dict:
         disabled = _disabled_sources(s)
     skipped = 0
     if disabled:
+        import random
         active = []
         for spec in sources:
             key = (spec.get("source", "?"), str(spec.get("board", "")))
-            if key in disabled:
+            # Re-probe a disabled source ~1 run in 4 so one that recovers
+            # (e.g. the company moved ATS and it's fixed) can come back, instead
+            # of being skipped forever and never getting a fresh scrape_run.
+            if key in disabled and random.random() >= 0.25:
                 skipped += 1
                 continue
             active.append(spec)
