@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.13.0] — 2026-06-18
+
+### Added
+- **Reed searches are now "near me".** When you set a home location, every
+  Reed search is scoped to that town plus a travel radius
+  (`JOBHUNT_REED_DISTANCE_MILES`, default 15) using Reed's server-side
+  distance filter — so results are jobs you can actually reach rather than
+  UK-wide. With no location set, Reed stays UK-wide as before.
+- **More London early-career coverage.** Added verified London-heavy boards
+  (Palantir, Wayve, Synthesia, GoHenry, Pleo) and weekend / part-time Reed
+  searches (weekend, part time, saturday, barista, sales assistant) for
+  study-friendly local work.
+
+### Fixed
+- **Jooble no longer returns the wrong London.** A bare "London" resolved to
+  London, Kentucky; UK searches now name the country. Jooble's free API is
+  UK-wide and coarsely located, so granular "near me" results come from Reed
+  (key) and the company boards.
+
+### Changed
+- Trimmed off-target Jooble country searches (Egypt, Cairo, Australia) and
+  added UK intern / graduate / placement searches.
+
 ## [0.12.0] — 2026-05-29
 
 ### Removed

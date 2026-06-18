@@ -35,11 +35,23 @@ class ReedScraper(BaseScraper):
         offset = 0
         total_yielded = 0
 
+        # When the user has set a home location, scope every search to that
+        # town + a travel radius. Reed filters by distance server-side, so we
+        # only ever pull jobs the user can actually reach. "London, UK" -> Reed
+        # wants the bare town name ("London"), so we drop any country suffix.
+        location_params: dict[str, object] = {}
+        if settings.user_location:
+            town = settings.user_location.split(",")[0].strip()
+            if town:
+                location_params["locationName"] = town
+                location_params["distanceFromLocation"] = settings.reed_distance_miles
+
         while total_yielded < _MAX_JOBS:
             params = {
                 "keywords": self.board,
                 "resultsToTake": _PAGE_SIZE,
                 "resultsToSkip": offset,
+                **location_params,
             }
             resp = await self.client.get(_API_URL, params=params, auth=auth)
             resp.raise_for_status()

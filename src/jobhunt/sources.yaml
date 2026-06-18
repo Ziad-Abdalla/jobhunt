@@ -121,6 +121,17 @@
 # ═══════════════════════════════════════════════════════════════════
 
 - { source: lever, board: spotify,    company: Spotify }
+- { source: lever, board: palantir,   company: Palantir }   # strong London office
+
+# ═══════════════════════════════════════════════════════════════════
+#  LONDON-HEAVY TECH BOARDS — extra early-career coverage near the
+#  capital (verified to carry London-located roles). No API key.
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: greenhouse, board: wayve,        company: Wayve }
+- { source: ashby,      board: synthesia,    company: Synthesia }
+- { source: ashby,      board: gohenry,      company: GoHenry }
+- { source: ashby,      board: pleo,         company: Pleo }
 
 # ═══════════════════════════════════════════════════════════════════
 #  COMPANY BOARDS — Ashby
@@ -183,18 +194,21 @@
 #  MULTI-COUNTRY LOCAL JOBS (Jooble, free key at jooble.org/api/about)
 # ═══════════════════════════════════════════════════════════════════
 
-- { source: jooble, board: "software developer|United Kingdom",  company: "(Jooble UK)" }
-- { source: jooble, board: "software engineer|United Kingdom",   company: "(Jooble UK)" }
-- { source: jooble, board: "software developer|Egypt",           company: "(Jooble Egypt)" }
-- { source: jooble, board: "software engineer|Egypt",            company: "(Jooble Egypt)" }
-- { source: jooble, board: "developer|Cairo",                    company: "(Jooble Egypt)" }
-- { source: jooble, board: "software developer|Qatar",           company: "(Jooble Qatar)" }
-- { source: jooble, board: "IT engineer|Qatar",                  company: "(Jooble Qatar)" }
-- { source: jooble, board: "software developer|Australia",       company: "(Jooble Australia)" }
-- { source: jooble, board: "software engineer|Australia",        company: "(Jooble Australia)" }
-- { source: jooble, board: "software developer|Malaysia",        company: "(Jooble Malaysia)" }
-- { source: jooble, board: "software engineer|Malaysia",         company: "(Jooble Malaysia)" }
-- { source: jooble, board: "software developer|Germany",         company: "(Jooble Germany)" }
+# NOTE: Jooble's free API resolves a bare city to the wrong country
+# (e.g. "London" -> London, Kentucky). Always name the COUNTRY
+# ("London, UK"). Even then results are UK-wide and coarsely located
+# ("United Kingdom"), so Jooble is a volume firehose, not a "near me"
+# source — granular local jobs come from Reed (key) + the ATS boards.
+- { source: jooble, board: "software intern|United Kingdom",          company: "(Jooble UK - Intern)" }
+- { source: jooble, board: "graduate software engineer|United Kingdom", company: "(Jooble UK - Graduate)" }
+- { source: jooble, board: "software placement|United Kingdom",       company: "(Jooble UK - Placement)" }
+- { source: jooble, board: "software developer|United Kingdom",       company: "(Jooble UK)" }
+- { source: jooble, board: "software engineer|United Kingdom",        company: "(Jooble UK)" }
+- { source: jooble, board: "software developer|Qatar",               company: "(Jooble Qatar)" }
+- { source: jooble, board: "IT engineer|Qatar",                      company: "(Jooble Qatar)" }
+- { source: jooble, board: "software developer|Malaysia",            company: "(Jooble Malaysia)" }
+- { source: jooble, board: "software engineer|Malaysia",             company: "(Jooble Malaysia)" }
+- { source: jooble, board: "software developer|Germany",             company: "(Jooble Germany)" }
 
 # ═══════════════════════════════════════════════════════════════════
 #  UK — non-tech / zero-experience coverage via Reed broader keywords.
@@ -216,6 +230,12 @@
 - { source: reed, board: "customer service", company: "(Reed UK — Customer Service)" }
 - { source: reed, board: "care assistant",   company: "(Reed UK — Care)" }
 - { source: reed, board: "security officer", company: "(Reed UK — Security)" }
+- { source: reed, board: "barista",          company: "(Reed UK — Café)" }
+- { source: reed, board: "sales assistant",  company: "(Reed UK — Retail)" }
+# Weekend / part-time friendly searches (fit study schedules)
+- { source: reed, board: "weekend",          company: "(Reed UK — Weekend)" }
+- { source: reed, board: "part time",        company: "(Reed UK — Part-time)" }
+- { source: reed, board: "saturday",         company: "(Reed UK — Weekend)" }
 
 # ═══════════════════════════════════════════════════════════════════
 #  Germany — non-tech / zero-experience parity with the UK Reed

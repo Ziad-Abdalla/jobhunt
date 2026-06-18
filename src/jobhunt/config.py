@@ -63,7 +63,13 @@ class Settings(BaseSettings):
 
     # User's location — when set, Jooble automatically fetches local jobs for this area.
     # Examples: "London, UK", "Berlin, Germany", "Cairo, Egypt", "Sydney, Australia"
+    # Reed also scopes every search to this town + reed_distance_miles (server-side
+    # distance filter), so results are "near me" rather than UK-wide.
     user_location: str = ""
+
+    # Travel radius (miles) used by Reed's distanceFromLocation when user_location
+    # is set. Generous default so it covers a whole city plus commuter towns.
+    reed_distance_miles: int = 15
 
     @property
     def db_url(self) -> str:
