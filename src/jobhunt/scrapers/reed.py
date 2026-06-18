@@ -20,7 +20,9 @@ from .base import BaseScraper, RawJob
 
 _API_URL = "https://www.reed.co.uk/api/1.0/search"
 _PAGE_SIZE = 100
-_MAX_JOBS = 500
+# 300 per keyword keeps coverage high (many overlapping keywords, deduped) while
+# cutting the slowest part of a refresh by ~40%.
+_MAX_JOBS = 300
 
 
 class ReedScraper(BaseScraper):

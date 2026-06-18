@@ -24,19 +24,17 @@
       var wasText = btn.textContent;
       btn.disabled = true;
       btn.textContent = "scraping...";
-      setStatus("pulling from every source — takes about a minute", { spinner: true });
-      document.body.classList.add("results-loading");
-      try {
-        var r = await fetch("/api/refresh", { method: "POST" });
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        var j = await r.json();
-        if (j.ok === false) {
-          setStatus(j.message || "refresh failed");
-          return;
-        }
-        var msg = "added " + (j.added || 0) + " · saw " + (j.seen || 0) + " · removed " + (j.removed || 0);
-        if (j.alerts && typeof j.alerts.notified === "number" && j.alerts.notified > 0) {
-          msg += " · " + j.alerts.notified + " alert" + (j.alerts.notified === 1 ? "" : "s") + " sent";
+      setStatus("pulling jobs in the background — keep browsing", { spinner: true });
+      var elapsed = 0;
+
+      function finish(last) {
+        document.body.classList.remove("results-loading");
+        btn.disabled = false;
+        btn.textContent = wasText;
+        last = last || {};
+        var msg = "added " + (last.added || 0) + " · saw " + (last.seen || 0) + " · removed " + (last.removed || 0);
+        if (last.alerts && typeof last.alerts.notified === "number" && last.alerts.notified > 0) {
+          msg += " · " + last.alerts.notified + " alert" + (last.alerts.notified === 1 ? "" : "s") + " sent";
         }
         setStatus(msg);
         var form = document.getElementById("filters");
@@ -44,12 +42,37 @@
         if (document.body.dataset.page === "health") {
           setTimeout(function () { location.reload(); }, 800);
         }
+      }
+
+      try {
+        var r = await fetch("/api/refresh", { method: "POST" });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        var j = await r.json();
+        if (j.ok === false) {
+          setStatus(j.message || "refresh failed");
+          btn.disabled = false;
+          btn.textContent = wasText;
+          return;
+        }
+        // The scrape runs in the background; poll for completion so the button
+        // never hangs and the page stays usable meanwhile.
+        var poll = setInterval(async function () {
+          elapsed += 3;
+          try {
+            var s = await (await fetch("/api/refresh/status")).json();
+            if (!s.running) {
+              clearInterval(poll);
+              finish(s.last);
+            } else {
+              setStatus("scraping in the background — " + elapsed + "s — keep browsing", { spinner: true });
+            }
+          } catch (e) { /* transient — keep polling */ }
+        }, 3000);
       } catch (e) {
-        setStatus("scrape failed: " + e.message + " — try again in a minute");
-      } finally {
         document.body.classList.remove("results-loading");
         btn.disabled = false;
         btn.textContent = wasText;
+        setStatus("scrape failed: " + e.message + " — try again in a minute");
       }
     });
   }

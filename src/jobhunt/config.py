@@ -48,7 +48,11 @@ class Settings(BaseSettings):
     # How many sources to scrape in parallel. Higher = faster refresh; the
     # per-source pages stay sequential so no single host gets hammered.
     concurrency: int = 8
-    stale_after_days: int = 14
+    # A job is dropped only after this many days WITHOUT being seen on its source
+    # — i.e. the source stopped listing it (filled/closed). Active listings are
+    # re-seen on every scrape, so they never expire regardless of this value.
+    # 30 days keeps listings that are still open even if a refresh or two misses them.
+    stale_after_days: int = 30
 
     sources_file: Path = Field(default_factory=lambda: _find_sources_yaml())
     local_sources_file: Path = Field(default_factory=lambda: _PLATFORM_DATA / "local_sources.yaml")

@@ -539,10 +539,35 @@ _last_refresh: dict[str, float] = {}
 _REFRESH_COOLDOWN = 300
 
 
+# Tracks the background scrape so the Refresh button never blocks on it.
+_scrape_state: dict[str, object] = {"running": False, "started_at": 0.0, "last": None}
+
+
+async def _run_refresh() -> None:
+    """Run a full scrape + alerts in the background, recording the outcome."""
+    try:
+        result = await scrape_all()
+        try:
+            result["alerts"] = await check_alerts()
+        except Exception as exc:  # noqa: BLE001
+            result["alerts"] = {"error": str(exc)}
+        _scrape_state["last"] = result
+    except Exception as exc:  # noqa: BLE001
+        _scrape_state["last"] = {"ok": False, "error": str(exc)}
+    finally:
+        _scrape_state["running"] = False
+
+
 @app.post("/api/refresh")
 async def api_refresh() -> JSONResponse:
-    """Refresh all job sources. Rate-limited to once per 5 min."""
+    """Start a refresh in the background and return immediately. The UI polls
+    /api/refresh/status for progress. Rate-limited to once per 5 min."""
     import time
+
+    if _scrape_state["running"]:
+        return JSONResponse(
+            {"ok": True, "running": True, "message": "Already refreshing in the background…"}
+        )
 
     now = time.time()
     last = _last_refresh.get("all", 0)
@@ -554,13 +579,17 @@ async def api_refresh() -> JSONResponse:
         })
 
     _last_refresh["all"] = now
-    result = await asyncio.shield(scrape_all())
-    try:
-        alert_result = await check_alerts()
-        result["alerts"] = alert_result
-    except Exception as exc:  # noqa: BLE001
-        result["alerts"] = {"error": str(exc)}
-    return JSONResponse(result)
+    _scrape_state.update(running=True, started_at=now, last=None)
+    asyncio.create_task(_run_refresh())
+    return JSONResponse(
+        {"ok": True, "running": True, "message": "Refresh started in the background."}
+    )
+
+
+@app.get("/api/refresh/status")
+async def api_refresh_status() -> JSONResponse:
+    """Report whether a background refresh is running and the last result."""
+    return JSONResponse({"running": bool(_scrape_state["running"]), "last": _scrape_state["last"]})
 
 
 # ---------- per-source health page ----------
