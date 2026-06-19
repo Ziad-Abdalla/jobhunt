@@ -535,11 +535,24 @@ def doctor(
     init_db()
     sources = load_sources()
     integrity_ok, integrity_msg = check_integrity()
+
+    # Search-index health: if the FTS index drifted from the jobs table, some
+    # jobs would be unsearchable (deflating counts). Rebuild it if so.
+    from .db import fts_status, rebuild_fts
+    fts_sync, fts_jobs, fts_rows = fts_status()
+    fts_rebuilt = 0
+    if not fts_sync:
+        fts_rebuilt = rebuild_fts()
+
     if not json_output:
         if integrity_ok:
             typer.echo("  db integrity: ok")
         else:
             typer.echo(f"  db integrity: FAIL — {integrity_msg}")
+        if not fts_sync:
+            typer.echo(f"  search index: rebuilt ({fts_jobs} jobs, was {fts_rows} indexed)")
+        else:
+            typer.echo("  search index: ok")
         typer.echo(f"checking {len(sources)} sources...\n")
 
     async def check_source(spec: dict) -> dict:
@@ -594,6 +607,8 @@ def doctor(
             "warn": len(warn),
             "error": len(errors),
             "integrity": {"ok": integrity_ok, "message": integrity_msg},
+            "search_index": {"in_sync": fts_sync, "jobs": fts_jobs,
+                             "indexed": fts_rows, "rebuilt": fts_rebuilt},
             "results": results,
         }, indent=2))
         return

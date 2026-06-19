@@ -267,6 +267,44 @@ def wal_checkpoint() -> None:
         log.debug("wal_checkpoint skipped: %s", exc)
 
 
+def fts_status() -> tuple[bool, int, int]:
+    """Compare the search index to the jobs table. Returns
+    (in_sync, jobs_rows, fts_rows). A drift means some jobs are unsearchable,
+    which silently deflates result counts."""
+    if not has_fts5():
+        return (True, 0, 0)
+    try:
+        with _engine.begin() as conn:
+            if not conn.execute(text(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='jobs_fts'"
+            )).scalar_one_or_none():
+                return (True, 0, 0)
+            jobs = conn.execute(text("SELECT count(*) FROM jobs")).scalar_one()
+            fts = conn.execute(text("SELECT count(*) FROM jobs_fts")).scalar_one()
+        return (jobs == fts, int(jobs), int(fts))
+    except Exception as exc:  # noqa: BLE001
+        log.debug("fts_status skipped: %s", exc)
+        return (True, 0, 0)
+
+
+def rebuild_fts() -> int:
+    """Rebuild the FTS5 search index from the jobs table (idempotent, safe).
+    Fixes any drift so every job is searchable again. Returns rows indexed."""
+    if not has_fts5():
+        return 0
+    try:
+        with _engine.begin() as conn:
+            if not conn.execute(text(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='jobs_fts'"
+            )).scalar_one_or_none():
+                return 0
+            conn.execute(text("INSERT INTO jobs_fts(jobs_fts) VALUES('rebuild')"))
+            return int(conn.execute(text("SELECT count(*) FROM jobs_fts")).scalar_one())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("fts rebuild skipped: %s", exc)
+        return 0
+
+
 def check_integrity() -> tuple[bool, str]:
     """Run SQLite's built-in `PRAGMA integrity_check`. Cheap on small
     databases, slower on multi-GB ones. Returns (ok, message). Used by

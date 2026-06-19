@@ -334,8 +334,12 @@ async def scrape_all() -> dict:
     init_db()
     sources = load_sources()
 
-    # Auto-add Jooble searches for user's configured location.
-    if settings.user_location and settings.jooble_api_key:
+    # Auto-add Jooble searches for the user's configured location — but only when
+    # it names a country ("London, UK"), not a bare city. Jooble resolves a bare
+    # "London" to the wrong place (London, Kentucky), so we require the
+    # disambiguating country before trusting it. Country-qualified entries in
+    # sources.yaml are unaffected.
+    if settings.jooble_api_key and "," in settings.user_location:
         loc = settings.user_location
         for kw in ["software developer", "software engineer", "developer"]:
             sources.append({"source": "jooble", "board": f"{kw}|{loc}"})

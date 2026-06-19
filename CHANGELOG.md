@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.5] — 2026-06-19
+
+### Added / Fixed
+- **`jobhunt doctor` now checks the search index** and rebuilds it if it has
+  drifted from the jobs table, so no job silently becomes unsearchable (which
+  would deflate result counts).
+- **Jooble auto-search only runs for a country-qualified location** ("London,
+  UK"), not a bare city, avoiding wrong-country results (London, Kentucky).
+
 ## [0.13.4] — 2026-06-19
 
 ### Fixed
