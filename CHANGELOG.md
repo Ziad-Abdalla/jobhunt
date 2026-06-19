@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.13.4] — 2026-06-19
+
+### Fixed
+- **Counts no longer inflated by location variants.** The same job from several
+  sources ("London" vs "London, UK" vs "London, England") now collapses to one
+  entry instead of being counted several times.
+- **Update/uninstall pick the right install method** (detected from where the
+  app actually runs, not just what tools are on PATH).
+- **Transient rate-limits (429) and timeouts no longer auto-disable a source** —
+  throttling is retried, not treated as a dead board.
+
 ## [0.13.3] — 2026-06-19
 
 ### Fixed (correctness sweep)

@@ -937,12 +937,26 @@ def _git_install_spec(tag: str) -> str:
 
 
 def _detect_install_method() -> str:
-    """Detect how jobhunt was installed."""
+    """Detect how jobhunt was actually installed.
+
+    Prefer the install location (where THIS code is running from) over a bare
+    "is the tool on PATH" probe — otherwise a `pip install` user who happens to
+    have uv on PATH gets routed into the uv update/uninstall path by mistake.
+    """
     import shutil
     import sys
 
     if getattr(sys, "frozen", False):
         return "binary"
+
+    # Location-based detection: uv tools and pipx install into recognizable dirs.
+    here = str(Path(__file__).resolve()).replace("\\", "/").lower()
+    if "/uv/tools/" in here or "/uv/tool/" in here:
+        return "uv"
+    if "/pipx/venvs/" in here:
+        return "pipx"
+
+    # Fall back to PATH probing only when the path is inconclusive.
     if shutil.which("uv"):
         return "uv"
     if shutil.which("pipx"):

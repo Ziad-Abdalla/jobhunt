@@ -52,3 +52,12 @@ def test_dedup_still_ignores_pure_formatting_noise():
     a = fingerprint("Acme", "Sr. Backend Engineer (Remote)", "London")
     b = fingerprint("Acme", "Backend Engineer", "London")
     assert a == b
+
+
+def test_location_country_suffix_variants_dont_double_count():
+    # The same job aggregated from several sources with different location
+    # strings must collapse to one fingerprint, not inflate the count.
+    base = fingerprint("Acme", "Engineer", "London")
+    assert fingerprint("Acme", "Engineer", "London, UK") == base
+    assert fingerprint("Acme", "Engineer", "London, United Kingdom") == base
+    assert fingerprint("Acme", "Engineer", "London, England") == base

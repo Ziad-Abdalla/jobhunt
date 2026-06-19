@@ -98,6 +98,17 @@ def test_not_disabled_when_zero_jobs_no_error() -> None:
     assert ("test-silent", "co") not in disabled
 
 
+def test_not_disabled_on_transient_rate_limit() -> None:
+    """A source rate-limited (429) on every recent run is being throttled, not
+    broken — it must NOT be auto-disabled (it recovers when the limit clears)."""
+    with db_session() as s:
+        _seed_runs(s, "test-429", "co", n=_AUTO_DISABLE_AFTER,
+                   jobs_seen=0, error="HTTPStatusError: 429 Too Many Requests")
+    with db_session() as s:
+        disabled = _disabled_sources(s)
+    assert ("test-429", "co") not in disabled
+
+
 def test_sources_health_endpoint() -> None:
     """JSON shape contract for the Settings-page badge + skill."""
     client = TestClient(app)

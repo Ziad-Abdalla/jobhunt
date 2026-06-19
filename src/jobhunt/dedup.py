@@ -36,10 +36,20 @@ def normalize_company(company: str) -> str:
     return _WHITESPACE.sub(" ", c).strip()
 
 
+# Trailing country qualifier on a city ("London, UK" / "London, England").
+# Stripped before fingerprinting so the same job from different sources collapses
+# to one row instead of inflating the count.
+_COUNTRY_SUFFIX = re.compile(
+    r",\s*(uk|u\.k\.|united kingdom|great britain|gb|england|scotland|wales|"
+    r"usa|u\.s\.?a?\.?|united states|deutschland|germany)\.?\s*$",
+    re.I,
+)
+
+
 def normalize_location(location: str) -> str:
-    l = location.lower()
-    l = _NON_ALNUM.sub(" ", l)
-    return _WHITESPACE.sub(" ", l).strip()
+    loc = _COUNTRY_SUFFIX.sub("", location.lower().strip())
+    loc = _NON_ALNUM.sub(" ", loc)
+    return _WHITESPACE.sub(" ", loc).strip()
 
 
 def fingerprint(company: str, title: str, location: str) -> str:

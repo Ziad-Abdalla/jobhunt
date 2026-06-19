@@ -309,14 +309,25 @@ def _disabled_sources(session: Session) -> set[tuple[str, str]]:
     for key, runs in grouped.items():
         if len(runs) < _AUTO_DISABLE_AFTER:
             continue
-        # Only disable a source that genuinely ERRORED every recent run. A
-        # healthy board that's simply empty right now (jobs_seen == 0, no error)
-        # must NOT be disabled — small company boards routinely empty out for a
-        # week then repost, and a disabled source is never scraped so it could
-        # never recover ("plentiful" silently shrinking over time).
-        if all(error for error, _ in runs):
+        # Only disable a source that genuinely + persistently ERRORED every recent
+        # run. Two things are deliberately NOT disabling: a board that's simply
+        # empty right now (jobs_seen == 0, no error — it repopulates later), and a
+        # transient rate-limit/timeout (429 / TooManyRequests / Timeout), which is
+        # throttling, not a dead source. Otherwise a busy refresh silently kills
+        # healthy sources and "plentiful" shrinks over time.
+        if all(_is_hard_error(error) for error, _ in runs):
             disabled.add(key)
     return disabled
+
+
+def _is_hard_error(error: str | None) -> bool:
+    """A persistent failure (404, DNS, TLS) — not an empty result or a transient
+    rate-limit/timeout that should be retried rather than disabling the source."""
+    if not error:
+        return False
+    e = error.lower()
+    transient = ("429", "toomanyrequests", "rate limit", "timeout", "timed out")
+    return not any(t in e for t in transient)
 
 
 async def scrape_all() -> dict:
