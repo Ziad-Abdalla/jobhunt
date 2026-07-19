@@ -579,7 +579,14 @@ def doctor(
                 }
 
     async def run_all() -> list[dict]:
-        return await asyncio.gather(*[check_source(s) for s in sources])
+        # Bound concurrency so validating 150+ sources (many sharing a host) doesn't
+        # trip 429/WAF blocks during the maintenance skill's post-add health check.
+        from .concurrency import gather_bounded
+
+        return await gather_bounded(
+            [lambda spec=spec: check_source(spec) for spec in sources],
+            settings.concurrency,
+        )
 
     results = asyncio.run(run_all())
     ok = [r for r in results if r["status"] == "ok"]

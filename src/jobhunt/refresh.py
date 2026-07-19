@@ -128,6 +128,22 @@ def _persist(
         select(Job).where(Job.fingerprint == fp)
     ).scalar_one_or_none()
 
+    # Collision guard: if this shares company/title/location with a job from the SAME
+    # source but a DIFFERENT source_id, it's a genuinely distinct opening — salt the
+    # fingerprint with the source_id so we keep both (and don't overwrite the first
+    # opening's apply URL). Cross-source collisions (a different source) still merge,
+    # preserving aggregator dedup.
+    if (
+        existing is not None
+        and existing.source == raw.source
+        and raw.source_id
+        and (existing.source_id or "") != raw.source_id
+    ):
+        fp = fingerprint(company, raw.title, raw.location, salt=raw.source_id)
+        existing = session.execute(
+            select(Job).where(Job.fingerprint == fp)
+        ).scalar_one_or_none()
+
     ex = extract(raw.description, title=raw.title)
     score = score_job(
         posted_at=raw.posted_at,
@@ -257,16 +273,25 @@ async def _run_scraper(
 _AUTO_DISABLE_AFTER = 3  # consecutive failed scrapes before we skip a source
 
 
-def _disabled_sources(session: Session) -> set[tuple[str, str]]:
-    """Return (source, board) pairs that have failed _AUTO_DISABLE_AFTER
-    consecutive scrapes — these are presumed dead and skipped on the next
-    refresh until something changes. Defensive half of the maintenance
-    hybrid: stop wasting requests on URLs that 404, while the
-    source-maintenance skill researches a replacement.
+def _retry_due(last_attempt: datetime, now: datetime, retry_after_hours: float) -> bool:
+    """True when a disabled source is due for another attempt. Datetimes read back
+    from SQLite are naive; treat a naive timestamp as UTC so the subtraction never
+    raises on aware/naive mixing."""
+    if last_attempt.tzinfo is None:
+        last_attempt = last_attempt.replace(tzinfo=UTC)
+    return (now - last_attempt) >= timedelta(hours=retry_after_hours)
 
-    Uses a window function so we always fetch the latest N rows *per
-    (source, board)*, never a global LIMIT — that guarantees behaviour is
-    independent of how many total scrape_runs the DB carries.
+
+def _disabled_sources(session: Session) -> dict[tuple[str, str], datetime]:
+    """Return {(source, board): last_attempt_time} for pairs that have failed
+    _AUTO_DISABLE_AFTER consecutive scrapes — presumed dead. Defensive half of the
+    maintenance hybrid: stop wasting requests on URLs that 404, while the
+    source-maintenance skill researches a replacement. The returned last-attempt
+    time lets scrape_all periodically re-attempt a disabled source (self-heal) so a
+    transient outage doesn't kill a source forever.
+
+    Uses a window function so we always fetch the latest N rows *per (source, board)*,
+    never a global LIMIT — behaviour is independent of total scrape_runs volume.
     """
     from sqlalchemy import text as _sql_text
 
@@ -292,12 +317,32 @@ def _disabled_sources(session: Session) -> set[tuple[str, str]]:
     for source, board, error, jobs_seen in rows:
         grouped[(source, board or "")].append((error, jobs_seen or 0))
 
-    disabled: set[tuple[str, str]] = set()
+    disabled_keys: set[tuple[str, str]] = set()
     for key, runs in grouped.items():
         if len(runs) < _AUTO_DISABLE_AFTER:
             continue
         if all(error or jobs_seen == 0 for error, jobs_seen in runs):
-            disabled.add(key)
+            disabled_keys.add(key)
+
+    if not disabled_keys:
+        return {}
+
+    # Attach each disabled pair's most-recent attempt time (ORM read → real datetime,
+    # so the type processor applies), scoped to the disabled sources to bound the read.
+    disabled: dict[tuple[str, str], datetime] = {}
+    latest_rows = (
+        session.execute(
+            select(ScrapeRun)
+            .where(ScrapeRun.source.in_({k[0] for k in disabled_keys}))
+            .order_by(ScrapeRun.started_at.desc())
+        )
+        .scalars()
+        .all()
+    )
+    for run in latest_rows:
+        key = (run.source, run.board or "")
+        if key in disabled_keys and key not in disabled:  # first seen = latest
+            disabled[key] = run.started_at
     return disabled
 
 
@@ -314,24 +359,29 @@ async def scrape_all() -> dict:
     if not sources:
         return {"sources": 0, "added": 0, "seen": 0, "removed": 0}
 
-    # Filter out sources that have failed three scrapes in a row — they're
-    # almost certainly dead, and continuing to hit their URLs wastes time
-    # and triggers more 4xx noise in logs. Re-enables automatically on the
-    # next refresh once a single scrape returns ≥1 job.
+    # Skip sources that have failed three scrapes in a row — they're almost
+    # certainly dead, and hammering their URLs wastes time and adds 4xx noise.
+    # BUT re-attempt a disabled source once every `disabled_retry_hours` so a
+    # transient outage (an expired key, a brief 503) can self-heal: the retry
+    # records a fresh scrape_run, and a single ≥1-job result clears the disable.
     with db_session() as s:
         disabled = _disabled_sources(s)
+    retry_ref = _utcnow()
     skipped = 0
     if disabled:
         active = []
         for spec in sources:
             key = (spec.get("source", "?"), str(spec.get("board", "")))
-            if key in disabled:
+            last = disabled.get(key)
+            if last is not None and not _retry_due(
+                last, retry_ref, settings.disabled_retry_hours
+            ):
                 skipped += 1
                 continue
             active.append(spec)
         if skipped:
-            log.info("auto-disabled %d sources after %d consecutive failures",
-                     skipped, _AUTO_DISABLE_AFTER)
+            log.info("skipping %d auto-disabled sources (retry every %.0fh)",
+                     skipped, settings.disabled_retry_hours)
         sources = active
 
     headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}

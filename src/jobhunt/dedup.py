@@ -35,14 +35,34 @@ def normalize_company(company: str) -> str:
     return _WHITESPACE.sub(" ", c).strip()
 
 
+# Pure-remote location phrases (normalized) that all mean the same thing. Collapsing
+# them stops one remote opening arriving from several aggregators as "Remote" /
+# "Worldwide" / "Anywhere" / "100% Remote" from splitting into several DB rows.
+# Region-qualified remotes ("Remote, US", "Remote — Europe") are deliberately NOT in
+# this set: they carry a geography we must keep distinct.
+_REMOTE_SYNONYMS = frozenset({
+    "remote", "anywhere", "worldwide", "global", "distributed",
+    "fully remote", "remote worldwide", "remote global", "remote anywhere",
+    "anywhere in the world", "fully distributed", "remote first",
+    "remote friendly", "work from home", "wfh", "100 remote", "100 remote worldwide",
+})
+
+
 def normalize_location(location: str) -> str:
-    l = location.lower()
-    l = _NON_ALNUM.sub(" ", l)
-    return _WHITESPACE.sub(" ", l).strip()
+    loc = location.lower()
+    loc = _NON_ALNUM.sub(" ", loc)
+    loc = _WHITESPACE.sub(" ", loc).strip()
+    if loc in _REMOTE_SYNONYMS:
+        return "remote"
+    return loc
 
 
-def fingerprint(company: str, title: str, location: str) -> str:
+def fingerprint(company: str, title: str, location: str, salt: str = "") -> str:
     key = f"{normalize_company(company)}|{normalize_title(title)}|{normalize_location(location)}"
+    if salt:
+        # A salt keeps genuinely-distinct openings that share company/title/location
+        # (e.g. two different reqs from the same source) from collapsing into one row.
+        key = f"{key}|{salt}"
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
 
 

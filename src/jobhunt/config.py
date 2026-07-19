@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     request_timeout: float = 20.0
     concurrency: int = 4
     stale_after_days: int = 14
+    # How often to re-attempt a source that was auto-disabled after 3 straight
+    # failures, so a transient outage doesn't kill it forever (self-heal).
+    disabled_retry_hours: float = 24.0
 
     sources_file: Path = Field(default_factory=lambda: _find_sources_yaml())
     local_sources_file: Path = Field(default_factory=lambda: _PLATFORM_DATA / "local_sources.yaml")
