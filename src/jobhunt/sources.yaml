@@ -48,6 +48,27 @@
 - { source: themuse,       board: "",           company: "(The Muse)" }
 
 # ═══════════════════════════════════════════════════════════════════
+#  EGYPT / MENA  (added 2026-07 expansion — free, no auth)
+# ═══════════════════════════════════════════════════════════════════
+
+# Wuzzuf — the largest job board in Egypt. Single RSS firehose, all sectors.
+- { source: wuzzuf,        board: "",           company: "(Wuzzuf Egypt)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  WORLDWIDE REMOTE  (added 2026-07 expansion — free, no auth)
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: remotive,      board: "",                          company: "(Remotive Remote)" }
+- { source: remotive,      board: "software-dev",              company: "(Remotive Software Dev)" }
+- { source: workingnomads, board: "",                          company: "(Working Nomads Remote)" }
+- { source: weworkremotely, board: "remote-programming-jobs",  company: "(WWR Programming)" }
+- { source: weworkremotely, board: "remote-devops-sysadmin-jobs", company: "(WWR DevOps)" }
+- { source: weworkremotely, board: "remote-full-stack-programming-jobs", company: "(WWR Full-Stack)" }
+- { source: weworkremotely, board: "remote-back-end-programming-jobs", company: "(WWR Back-End)" }
+- { source: weworkremotely, board: "remote-front-end-programming-jobs", company: "(WWR Front-End)" }
+- { source: pythonjobs,    board: "",                          company: "(Python.org Jobs)" }
+
+# ═══════════════════════════════════════════════════════════════════
 #  COMPANY BOARDS — Greenhouse
 # ═══════════════════════════════════════════════════════════════════
 

@@ -8,14 +8,19 @@ from .himalayas import HimalayasScraper
 from .jobicy import JobicyScraper
 from .jooble import JoobleScraper
 from .lever import LeverScraper
+from .pythonjobs import PythonJobsScraper
 from .recruitee import RecruiteeScraper
 from .reed import ReedScraper
 from .remoteok import RemoteOKScraper
+from .remotive import RemotiveScraper
 from .simplifyjobs import SimplifyJobsScraper
 from .smartrecruiters import SmartRecruitersScraper
 from .themuse import TheMuseScraper
+from .weworkremotely import WeWorkRemotelyScraper
 from .workable import WorkableScraper
 from .workday import WorkdayScraper
+from .workingnomads import WorkingNomadsScraper
+from .wuzzuf import WuzzufScraper
 
 SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
     "greenhouse": GreenhouseScraper,
@@ -35,6 +40,12 @@ SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
     "jooble": JoobleScraper,
     "arbeitsagentur": ArbeitsagenturScraper,
     "reed": ReedScraper,
+    # Expansion 2026-07 — Egypt + worldwide-remote, all free/no-auth.
+    "wuzzuf": WuzzufScraper,
+    "remotive": RemotiveScraper,
+    "workingnomads": WorkingNomadsScraper,
+    "weworkremotely": WeWorkRemotelyScraper,
+    "pythonjobs": PythonJobsScraper,
 }
 
 __all__ = [
@@ -48,14 +59,19 @@ __all__ = [
     "JobicyScraper",
     "JoobleScraper",
     "LeverScraper",
+    "PythonJobsScraper",
     "RawJob",
     "RecruiteeScraper",
     "ReedScraper",
     "RemoteOKScraper",
+    "RemotiveScraper",
     "SCRAPER_REGISTRY",
     "SimplifyJobsScraper",
     "SmartRecruitersScraper",
     "TheMuseScraper",
+    "WeWorkRemotelyScraper",
     "WorkableScraper",
     "WorkdayScraper",
+    "WorkingNomadsScraper",
+    "WuzzufScraper",
 ]
