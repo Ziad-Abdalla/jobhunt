@@ -68,6 +68,15 @@ rituals in §6; new-API discovery is a periodic active search (§7).
 | `arbeitsagentur` | none | German Federal Employment Agency — all sectors | Praktikum, Ausbildung, Werkstudent, non-tech | DE |
 | `jooble` | **key** | 69-country aggregator | Generalist | Global (with key) |
 | `reed` | **key** | UK's largest job board — all sectors, incl. non-tech | All sectors, UK | UK |
+| `wuzzuf` | none | Largest Egypt job board — all sectors, RSS firehose | All sectors, entry→senior | **Egypt** |
+| `remotive` | none | Curated remote aggregator (JSON) | Remote tech | Global |
+| `workingnomads` | none | Remote aggregator (JSON) | Remote tech | Global |
+| `weworkremotely` | none | Per-category remote RSS | Remote tech | Global |
+| `pythonjobs` | none | python.org job board RSS | Python roles | Global |
+
+> 🗒️ 2026-07 expansion added the 5 rows above (17 → 22 sources): `wuzzuf` closes
+> the Egypt/MENA gap; the four remote sources broaden worldwide-remote coverage.
+> All free, no-auth, live-verified. See `docs/internal/EXPANSION_PLAN_2026_07_20.md`.
 
 > 🗒️ `findajob` (UK DWP) was removed in v0.9.1 — DWP deprecated their
 > `?format=rss` query and every URL now returns HTML. UK non-tech

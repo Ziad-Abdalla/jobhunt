@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] — expansion 2026-07
+
+### Added
+- **5 new free, no-auth sources.** `wuzzuf` (largest Egypt job board — closes the
+  project's zero-Egypt-coverage gap, ~2900 live jobs via RSS), plus worldwide-remote
+  `remotive`, `workingnomads`, `weworkremotely` (per-category), and `pythonjobs`
+  (python.org). 22 adapter types now ship (was 17). One respx test each; all
+  live-verified returning real jobs.
+
+### Fixed
+- **Three silent job-losing pipeline bugs.** (1) Fingerprint collisions overwrote
+  distinct openings' apply URLs — same-source distinct reqs now stay separate rows
+  while cross-source duplicates still merge. (2) Remote-synonym dedup split one remote
+  job into several rows — "Remote"/"Worldwide"/"Anywhere"/"100% Remote" now canonicalize
+  to `remote` (region-qualified remotes stay distinct). (3) Auto-disabled sources never
+  self-healed — they're now re-attempted every `disabled_retry_hours` (default 24h) so a
+  transient outage recovers instead of killing a source forever.
+- **`jobhunt doctor` concurrency cap.** Now bounded by `settings.concurrency` (new
+  `gather_bounded` helper) instead of firing all 150+ sources at once — avoids 429/WAF
+  blocks during the maintenance skill's post-add health check.
+
 ## [0.12.0] — 2026-05-29
 
 ### Removed
