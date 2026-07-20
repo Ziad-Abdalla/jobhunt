@@ -143,12 +143,15 @@ _DESC_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 _REMOTE_STRONG = re.compile(
     r"\bfully[- ]remote\b|\b100%\s*remote\b|\bremote[- ]first\b"
     r"|\bwork[- ]?from[- ]?home\b|\bwfh\b|\bremote[- ]friendly\b"
-    r"|\bremote[- ]eligible\b|\bremote[- ]ok\b",
+    r"|\bremote[- ]eligible\b|\bremote[- ]ok\b"
+    r"|عن\s*بُ?عد|من\s*المنزل",
     re.I,
 )
 _REMOTE_WEAK = re.compile(r"\bremote\b", re.I)
-_HYBRID_RE = re.compile(r"\bhybrid\b", re.I)
-_ONSITE_RE = re.compile(r"\bon[- ]?site\b|\bin[- ]office\b|\bin person\b", re.I)
+_HYBRID_RE = re.compile(r"\bhybrid\b|هجين", re.I)
+_ONSITE_RE = re.compile(
+    r"\bon[- ]?site\b|\bin[- ]office\b|\bin person\b|حضوري|من\s*المقر|في\s*الموقع", re.I
+)
 
 _DEGREE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bph\.?d\b|\bdoctorate\b", re.I), "phd"),
@@ -171,18 +174,21 @@ _YOE_PATTERNS: tuple[re.Pattern[str], ...] = (
 _ETYPE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(
         r"\bfull[- ]?time\b|\bpermanent\s+(?:position|role|employment)\b"
-        r"|\bpermanent\b|\bfull[- ]?zeit\b|\bvollzeit\b",
+        r"|\bpermanent\b|\bfull[- ]?zeit\b|\bvollzeit\b"
+        r"|دوام\s*كامل",
         re.I,
     ), "Full-time"),
-    (re.compile(r"\bpart[- ]?time\b|\bteilzeit\b", re.I), "Part-time"),
+    (re.compile(r"\bpart[- ]?time\b|\bteilzeit\b|دوام\s*جزئي", re.I), "Part-time"),
     (re.compile(
         r"\bcontract(?:or)?\s+(?:position|role)\b|\bcontract\b"
-        r"|\bfreelance\b|\btemporary\b|\bfixed[- ]?term\b",
+        r"|\bfreelance\b|\btemporary\b|\bfixed[- ]?term\b"
+        r"|عمل\s*حر|مستقل|عقد\s*مؤقت",
         re.I,
     ), "Contract"),
     (re.compile(
         r"\binternship\b|\bintern\s+(?:position|role)\b"
-        r"|\bpraktikum\b|\bwerkstudent\b",
+        r"|\bpraktikum\b|\bwerkstudent\b"
+        r"|متدرب|تدريب\s*(?:صيفي|عملي)|برنامج\s*تدريب",
         re.I,
     ), "Internship"),
 )

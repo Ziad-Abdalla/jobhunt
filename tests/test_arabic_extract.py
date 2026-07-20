@@ -69,6 +69,37 @@ class TestArabicYoE:
         assert extract("يشترط 2 سنة خبرة في المجال", title="محاسب").min_years == 2
 
 
+class TestArabicEmploymentType:
+    def test_dawam_kamel_full_time(self):
+        assert extract("مطلوب موظف دوام كامل", title="محاسب").employment_type == "Full-time"
+
+    def test_dawam_juzei_part_time(self):
+        assert extract("وظيفة دوام جزئي مسائي", title="كاشير").employment_type == "Part-time"
+
+    def test_freelance_contract(self):
+        assert extract("فرصة عمل حر عن طريق الإنترنت", title="مصمم").employment_type == "Contract"
+
+    def test_training_program_internship(self):
+        assert extract("انضم إلى برنامج تدريب الصيفي لدينا", title="طالب").employment_type == "Internship"
+
+    def test_plain_arabic_stays_unknown(self):
+        assert extract("مطلوب للتعيين فورا براتب مجزي", title="محاسب").employment_type == "unknown"
+
+
+class TestArabicRemote:
+    def test_an_boad_remote(self):
+        assert extract("العمل عن بعد بالكامل", title="مطور").remote == "remote"
+
+    def test_men_almanzel_remote(self):
+        assert extract("فرصة عمل من المنزل", title="مدخل بيانات").remote == "remote"
+
+    def test_hybrid(self):
+        assert extract("نظام العمل هجين ثلاثة أيام بالمكتب", title="محاسب").remote == "hybrid"
+
+    def test_onsite(self):
+        assert extract("العمل حضوري من المقر الرئيسي", title="محاسب").remote == "onsite"
+
+
 class TestNormalizeDigits:
     def test_arabic_indic_digits(self):
         assert _normalize_digits("خبرة ٣ سنوات") == "خبرة 3 سنوات"
