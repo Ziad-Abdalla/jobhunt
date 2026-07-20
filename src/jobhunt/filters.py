@@ -33,6 +33,9 @@ class JobQuery:
     limit: int = 50
     offset: int = 0
     sort: str = "score"           # score | posted | seen | cv
+    # User's own region ('us'|'uk'|'eu'|'other'|''), from settings.user_location.
+    # '' = unknown -> reachability never penalizes. Set by main._query_from_request.
+    home_region: str = ""
 
 
 _FTS_SAFE_TERM = re.compile(r"[^A-Za-z0-9À-￿#+]+")
@@ -119,14 +122,33 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
     for skill in q.skills:
         stmt = stmt.where(Job.skills.cast(type_=__import__("sqlalchemy").Text).ilike(f'%"{skill}"%'))
 
+    # P4: relevance/CV sorts demote known-unreachable geo buckets and blend
+    # the CV match into the default score. Chronological sorts stay pure.
     if q.sort == "posted":
         stmt = stmt.order_by(Job.posted_at.desc().nullslast(), Job.score.desc())
     elif q.sort == "seen":
         stmt = stmt.order_by(Job.last_seen_at.desc())
-    elif q.sort == "cv":
-        stmt = stmt.order_by(Job.cv_match.desc().nullslast(), Job.score.desc())
     else:
-        stmt = stmt.order_by(Job.score.desc(), Job.posted_at.desc().nullslast())
+        from sqlalchemy import case, func
+
+        from .scoring import CV_BLEND_WEIGHT, reachability_weights
+
+        penalties = {
+            bucket: w
+            for bucket, w in reachability_weights(q.home_region).items()
+            if w != 1.0
+        }
+        reach = case(penalties, value=Job.geo_restrict, else_=1.0) if penalties else 1.0
+        if q.sort == "cv":
+            rank = func.coalesce(Job.cv_match, 0.0) * reach
+            stmt = stmt.order_by(rank.desc(), Job.score.desc())
+        else:
+            rank = (
+                Job.score
+                * (1.0 + CV_BLEND_WEIGHT * func.coalesce(Job.cv_match, 0.0))
+                * reach
+            )
+            stmt = stmt.order_by(rank.desc(), Job.posted_at.desc().nullslast())
     return stmt
 
 
