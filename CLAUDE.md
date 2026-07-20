@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 421 unit tests (was 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 439 unit tests (was 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -103,6 +103,11 @@ ruff check src/              # style + bug lint
 - `board_discovery.py` — P7 offensive maintenance: `jobhunt discover-boards`
   harvests ATS slugs from GitHub company directories → review file (never
   auto-merges; doctor-before-ship).
+- `cv_tailor.py` — P9+P10: `jd_keywords` (tech + generic role vocab),
+  `ats_lint` (parse-readiness checks), `tailor` (keyword-gap report),
+  `render_markdown`. Deterministic, NO LLM, never fabricates. Powers
+  `/apply/tailor/<job>` (+ `.md`), `jobhunt tailor`, and the Cowork export
+  `tailoring` block.
 - `config.py` — pydantic-settings, reads from env vars + `.env` file
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
   normalization + **`_backfill_categories`** (one-time pass on startup)

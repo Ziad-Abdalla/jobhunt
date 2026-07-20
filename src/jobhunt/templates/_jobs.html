@@ -58,7 +58,8 @@
       <span class="source">{{ j.source }}</span>
       {% if j.posted_at %}<span class="dot">·</span><span>{{ j.posted_at | localdate }}</span>{% endif %}
       {% if show_queue_button %}
-        <form method="post" action="/apply/queue/{{ j.id }}" style="display:inline;margin-left:auto;">
+        <a class="apply-link" href="/apply/tailor/{{ j.id }}" style="margin-left:auto;" title="Keyword-gap tailoring sheet + ATS check for this job">Tailor</a>
+        <form method="post" action="/apply/queue/{{ j.id }}" style="display:inline;">
           <button type="submit" title="{% if j.apply_kind == 'aggregator_relay' %}Queue this — a board account may be required to apply. Reviewed drafts only; nothing submits without your approval.{% else %}Queue for application. Reviewed drafts only — nothing submits without your approval.{% endif %}">Queue{% if j.apply_kind == 'aggregator_relay' %} *{% endif %}</button>
         </form>
       {% endif %}

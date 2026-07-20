@@ -2,6 +2,21 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P9 + P10 — CV tailoring + ATS readiness)
+- **Per-job tailoring sheet** (`/apply/tailor/<job>`, download as `.md`, or
+  `jobhunt tailor <job>`). Shows which of a job's keywords your CV already
+  covers and which are missing, a suggested Skills line that leads with the
+  matched keywords (ATS keyword priority), and a fill-in summary scaffold.
+  Deterministic keyword matching — no AI, and it never invents a skill or
+  achievement. Works for non-tech + Egypt/blue-collar roles too (generic
+  role vocabulary, not just software).
+- **ATS-readiness linter.** Flags the things that make applicant-tracking
+  systems mis-parse a resume: missing contact info, missing standard
+  section headers, multi-column/table layouts, garbled encoding, and
+  unreasonable length.
+- The Cowork export carries a per-application `tailoring` block (coverage +
+  matched/missing keywords) so the handoff includes keyword guidance.
+
 ### Added (P7 — off-machine alerts + coverage growth)
 - **Telegram + email alerts.** Saved-search alerts now fan out to Telegram
   (set `JOBHUNT_TELEGRAM_BOT_TOKEN` + `JOBHUNT_TELEGRAM_CHAT_ID`) and email

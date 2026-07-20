@@ -94,6 +94,11 @@ off by default, no passport/ID fields, credential-paste rejection).
   desktop, plus Telegram and email if you configure them (so you catch a
   match while away). Target a search to specific sources, and mark it
   priority for a fast-poll tier that re-checks those sources more often.
+- **CV tailoring + ATS check**: for any job, see which of its keywords your
+  CV already covers and what's missing, get a suggested Skills line, and a
+  resume ATS-readiness check (contact info, sections, layout, length).
+  Deterministic — never invents a skill. Download as markdown or `jobhunt
+  tailor <job>`.
 - **Settings page**: update, clear data, enter API keys, uninstall — all from the UI.
 - **Auto-refresh**: re-scrape every N hours in the background.
 
