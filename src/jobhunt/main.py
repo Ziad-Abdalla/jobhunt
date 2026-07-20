@@ -1495,8 +1495,11 @@ def settings_page(request: Request) -> HTMLResponse:
             "sources_file": str(settings.sources_file),
             "local_sources_file": str(settings.local_sources_file),
             "install_method": _detect_install_method(),
-            "jooble_api_key": settings.jooble_api_key,
-            "reed_api_key": settings.reed_api_key,
+            # Never render the raw key values (they'd be readable by a LAN
+            # peer under HOST=0.0.0.0). Expose only whether each is set;
+            # leaving the field blank on save keeps the stored key.
+            "jooble_api_key_set": bool(settings.jooble_api_key),
+            "reed_api_key_set": bool(settings.reed_api_key),
             "user_location": settings.user_location,
             "source_health": _source_health_summary(),
         },
@@ -1580,12 +1583,17 @@ def api_save_settings(
     rk = reed_api_key.strip()[:256]
     ul = user_location.strip()[:256]
     env = _load_user_env()
-    env["JOBHUNT_JOOBLE_API_KEY"] = jk
-    env["JOBHUNT_REED_API_KEY"] = rk
+    # The key fields render blank (masked) — a blank submit means "keep the
+    # current key", so masking never silently wipes a stored key. Update only
+    # when the user actually typed a new one.
+    if jk:
+        env["JOBHUNT_JOOBLE_API_KEY"] = jk
+        settings.jooble_api_key = jk
+    if rk:
+        env["JOBHUNT_REED_API_KEY"] = rk
+        settings.reed_api_key = rk
     env["JOBHUNT_USER_LOCATION"] = ul
     _save_user_env(env)
-    settings.jooble_api_key = jk
-    settings.reed_api_key = rk
     settings.user_location = ul
     return RedirectResponse("/settings", status_code=303)
 

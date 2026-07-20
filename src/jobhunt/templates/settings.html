@@ -29,8 +29,8 @@
         </label>
         <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
           Jooble API key
-          {% if jooble_api_key %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
-          <input type="text" name="jooble_api_key" value="{{ jooble_api_key }}" placeholder="Paste your Jooble API key here" />
+          {% if jooble_api_key_set %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
+          <input type="password" name="jooble_api_key" value="" autocomplete="off" placeholder="{% if jooble_api_key_set %}Leave blank to keep current key{% else %}Paste your Jooble API key here{% endif %}" />
           <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
             Unlocks jobs in 69 countries.
             <a href="https://jooble.org/api/about" target="_blank" rel="noopener">
@@ -41,8 +41,8 @@
         </label>
         <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
           Reed API key
-          {% if reed_api_key %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
-          <input type="text" name="reed_api_key" value="{{ reed_api_key }}" placeholder="Paste your Reed API key here" />
+          {% if reed_api_key_set %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
+          <input type="password" name="reed_api_key" value="" autocomplete="off" placeholder="{% if reed_api_key_set %}Leave blank to keep current key{% else %}Paste your Reed API key here{% endif %}" />
           <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
             Unlocks UK jobs from Reed.co.uk (all sectors, incl. non-tech for the Local Jobs page).
             <a href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">
