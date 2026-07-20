@@ -51,6 +51,20 @@
             Sign up, copy your key, paste it above, click Save.
           </span>
         </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          JSearch API key (RapidAPI)
+          {% if jsearch_api_key_set %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ key set</span>{% endif %}
+          <input type="password" name="jsearch_api_key" value="" autocomplete="off" placeholder="{% if jsearch_api_key_set %}Leave blank to keep current key{% else %}Paste your JSearch (RapidAPI) key here{% endif %}" />
+          <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
+            Best indirect route to <strong>Egypt/MENA + remote</strong> jobs (Google-for-Jobs
+            aggregation). Free tier is ~200 requests/month, so add just a few targeted
+            <code>jsearch</code> searches on the Sources page (e.g. <code>developer|Egypt</code>,
+            <code>developer|remote</code>) rather than many.
+            <a href="https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch" target="_blank" rel="noopener">
+              <button type="button" class="ghost" style="font-size:var(--fs-xs);padding:2px 8px;">Get a free key →</button>
+            </a>
+          </span>
+        </label>
         <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
           <button type="submit">Save</button>
           <button type="button" id="test-keys-btn" class="ghost">Test keys</button>

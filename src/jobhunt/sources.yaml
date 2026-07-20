@@ -2,7 +2,15 @@
 #
 # Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
 # recruitee, workday, remoteok, hackernews, simplifyjobs, arbeitnow, jobicy,
-# himalayas, themuse, jooble, arbeitsagentur, reed
+# himalayas, themuse, jooble, arbeitsagentur, reed, wuzzuf, remotive,
+# workingnomads, weworkremotely, pythonjobs, jsearch
+#
+# JSearch (jsearch) is a BYO-key indirect Egypt/MENA + remote route
+# (RapidAPI, ~200 req/month free tier — add only a FEW). Set the key on the
+# Settings page, then add targeted searches, e.g.:
+#   - { source: jsearch, board: "developer|Egypt",        company: "(JSearch - Egypt)" }
+#   - { source: jsearch, board: "developer|remote",       company: "(JSearch - remote)" }
+#   - { source: jsearch, board: "software engineer|Cairo", company: "(JSearch - Cairo)" }
 
 # ═══════════════════════════════════════════════════════════════════
 #  INTERN / ENTRY-LEVEL FOCUSED SOURCES

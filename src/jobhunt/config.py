@@ -79,6 +79,11 @@ class Settings(BaseSettings):
 
     jooble_api_key: str = ""
     reed_api_key: str = ""
+    # P8: JSearch (RapidAPI) — the best indirect Egypt/MENA + remote route.
+    # BYO-key, off by default; free tier is ~200 req/month so treat it as a
+    # low-frequency sweep, not a per-refresh source. Redacted in backups
+    # (key name ends in _API_KEY).
+    jsearch_api_key: str = ""
 
     # P6: default-OFF gate for /api/cowork/* (the applicant-data export /
     # write-back used by the Cowork handoff). Even when ON, those endpoints

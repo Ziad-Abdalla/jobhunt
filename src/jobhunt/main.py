@@ -1500,6 +1500,7 @@ def settings_page(request: Request) -> HTMLResponse:
             # leaving the field blank on save keeps the stored key.
             "jooble_api_key_set": bool(settings.jooble_api_key),
             "reed_api_key_set": bool(settings.reed_api_key),
+            "jsearch_api_key_set": bool(settings.jsearch_api_key),
             "user_location": settings.user_location,
             "source_health": _source_health_summary(),
         },
@@ -1576,11 +1577,13 @@ async def api_test_keys(
 def api_save_settings(
     jooble_api_key: str = Form(""),
     reed_api_key: str = Form(""),
+    jsearch_api_key: str = Form(""),
     user_location: str = Form(""),
 ) -> RedirectResponse:
     """Save user settings to a .env file in the data directory."""
     jk = jooble_api_key.strip()[:256]
     rk = reed_api_key.strip()[:256]
+    sk = jsearch_api_key.strip()[:256]
     ul = user_location.strip()[:256]
     env = _load_user_env()
     # The key fields render blank (masked) — a blank submit means "keep the
@@ -1592,6 +1595,9 @@ def api_save_settings(
     if rk:
         env["JOBHUNT_REED_API_KEY"] = rk
         settings.reed_api_key = rk
+    if sk:
+        env["JOBHUNT_JSEARCH_API_KEY"] = sk
+        settings.jsearch_api_key = sk
     env["JOBHUNT_USER_LOCATION"] = ul
     _save_user_env(env)
     settings.user_location = ul

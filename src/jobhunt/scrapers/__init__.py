@@ -7,6 +7,7 @@ from .hackernews import HackerNewsScraper
 from .himalayas import HimalayasScraper
 from .jobicy import JobicyScraper
 from .jooble import JoobleScraper
+from .jsearch import JSearchScraper
 from .lever import LeverScraper
 from .pythonjobs import PythonJobsScraper
 from .recruitee import RecruiteeScraper
@@ -46,6 +47,8 @@ SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
     "workingnomads": WorkingNomadsScraper,
     "weworkremotely": WeWorkRemotelyScraper,
     "pythonjobs": PythonJobsScraper,
+    # P8 — BYO-key indirect Egypt/MENA + remote (off by default, no key).
+    "jsearch": JSearchScraper,
 }
 
 __all__ = [
@@ -56,6 +59,7 @@ __all__ = [
     "GreenhouseScraper",
     "HackerNewsScraper",
     "HimalayasScraper",
+    "JSearchScraper",
     "JobicyScraper",
     "JoobleScraper",
     "LeverScraper",

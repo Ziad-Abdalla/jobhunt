@@ -2,6 +2,15 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P8 — indirect Egypt/MENA + remote via JSearch)
+- **JSearch (RapidAPI) adapter** — a bring-your-own-key, off-by-default
+  source that reaches Egypt/MENA + remote jobs jobhunt can't scrape
+  directly (Google-for-Jobs aggregation over Wuzzuf/Bayt/LinkedIn/company
+  postings). Paste a free RapidAPI key on the Settings page, then add a few
+  targeted `jsearch` searches (e.g. `developer|Egypt`, `developer|remote`).
+  Free-tier-aware (capped, low-frequency). Key is masked + redacted from
+  backups like the other keys.
+
 ### Added (P9 + P10 — CV tailoring + ATS readiness)
 - **Per-job tailoring sheet** (`/apply/tailor/<job>`, download as `.md`, or
   `jobhunt tailor <job>`). Shows which of a job's keywords your CV already
