@@ -12,7 +12,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request,
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import func, select
 
 from . import __version__
@@ -942,6 +942,14 @@ class _ReceiptBody(BaseModel):
             raise ValueError("receipt must be a single line of at most 512 chars")
         return v
 
+    @model_validator(mode="after")
+    def _receipt_xor_error(self) -> "_ReceiptBody":
+        # A submission is either a success (receipt) or a failure (error),
+        # never both — else a 'failed' row keeps a green receipt badge.
+        if self.receipt and self.error:
+            raise ValueError("receipt and error are mutually exclusive")
+        return self
+
 
 @app.post("/api/cowork/draft")
 def cowork_draft(
@@ -950,22 +958,12 @@ def cowork_draft(
     """The actuator reports what it WOULD fill — never a submit. Moves
     queued→drafted (or →failed with an error). The draft is rendered on
     /apply?view=queue for human review (gate 2)."""
-    from .cowork_models import Application, can_transition
-
     new_status = "failed" if body.error else "drafted"
-    with db_session() as s:
-        a = s.get(Application, body.application_id)
-        if a is None:
-            raise HTTPException(status_code=404, detail="no such application")
-        if not can_transition(a.status, new_status):
-            raise HTTPException(
-                status_code=409, detail=f"cannot move {a.status} -> {new_status}"
-            )
-        a.status = new_status
-        a.fields_filled = body.fields_filled
-        a.agent_notes = _trim(body.agent_notes, 2000)
-        a.error = _trim(body.error, 2000)
-        a.updated_at = datetime.now(UTC)
+    _cas_transition(body.application_id, new_status, extra={
+        "fields_filled": body.fields_filled,
+        "agent_notes": _trim(body.agent_notes, 2000),
+        "error": _trim(body.error, 2000),
+    })
     return JSONResponse({"ok": True, "status": new_status})
 
 
@@ -982,19 +980,8 @@ def cowork_claim(
     poll. This is the race guard — a crash-then-rerun (or two overlapping
     actuators) can't both see the same approved row and double-submit. The
     claim is idempotent-safe: a second claim of an already-submitting row
-    409s."""
-    from .cowork_models import Application, can_transition
-
-    with db_session() as s:
-        a = s.get(Application, body.application_id)
-        if a is None:
-            raise HTTPException(status_code=404, detail="no such application")
-        if not can_transition(a.status, "submitting"):
-            raise HTTPException(
-                status_code=409, detail=f"cannot claim from {a.status}"
-            )
-        a.status = "submitting"
-        a.updated_at = datetime.now(UTC)
+    409s (and a concurrent double-claim loses the compare-and-swap)."""
+    _cas_transition(body.application_id, "submitting")
     return JSONResponse({"ok": True, "status": "submitting"})
 
 
@@ -1005,21 +992,11 @@ def cowork_receipt(
     """Post-hoc proof of a submission. Legal only from 'submitting' (the
     claimed state), so a submit that skipped the human approve gate OR the
     claim can never be recorded as success."""
-    from .cowork_models import Application, can_transition
-
     new_status = "failed" if body.error else "submitted"
-    with db_session() as s:
-        a = s.get(Application, body.application_id)
-        if a is None:
-            raise HTTPException(status_code=404, detail="no such application")
-        if not can_transition(a.status, new_status):
-            raise HTTPException(
-                status_code=409, detail=f"cannot move {a.status} -> {new_status}"
-            )
-        a.status = new_status
-        a.receipt = body.receipt
-        a.error = _trim(body.error, 2000)
-        a.updated_at = datetime.now(UTC)
+    _cas_transition(body.application_id, new_status, extra={
+        "receipt": body.receipt,
+        "error": _trim(body.error, 2000),
+    })
     return JSONResponse({"ok": True, "status": new_status})
 
 
@@ -1046,26 +1023,50 @@ def apply_queue_add(
         if existing is None:
             s.add(Application(job_id=job_id))
         elif existing.status in TERMINAL_REQUEUEABLE:
+            # Re-activate a terminal application AND clear the stale artifacts
+            # of the previous attempt, so a fresh queue doesn't show an old
+            # receipt/draft (which would misread as a completed submission).
             existing.status = "queued"
             existing.error = ""
+            existing.receipt = ""
+            existing.fields_filled = {}
+            existing.agent_notes = ""
             existing.updated_at = datetime.now(UTC)
     return RedirectResponse("/apply?view=queue", status_code=303)
 
 
-def _transition_application(app_id: int, new_status: str) -> None:
+def _cas_transition(app_id: int, new_status: str, *, extra: dict | None = None) -> None:
+    """Apply a state transition with a compare-and-swap so concurrent writers
+    can't both succeed (SQLite WAL + a shared pool means two request threads
+    read independently). We validate can_transition on the status we read,
+    then UPDATE … WHERE id=:id AND status=:that_exact_status; a rowcount of 0
+    means someone transitioned first → 409. This closes the claim/draft/
+    receipt TOCTOU race that a plain get-then-set leaves open."""
+    from sqlalchemy import update as _update
+
     from .cowork_models import Application, can_transition
 
     with db_session() as s:
         a = s.get(Application, app_id)
         if a is None:
             raise HTTPException(status_code=404, detail="no such application")
-        if not can_transition(a.status, new_status):
+        current = a.status
+        if not can_transition(current, new_status):
             raise HTTPException(
-                status_code=409,
-                detail=f"cannot move {a.status} -> {new_status}",
+                status_code=409, detail=f"cannot move {current} -> {new_status}"
             )
-        a.status = new_status
-        a.updated_at = datetime.now(UTC)
+        values = {"status": new_status, "updated_at": datetime.now(UTC)}
+        if extra:
+            values.update(extra)
+        result = s.execute(
+            _update(Application)
+            .where(Application.id == app_id, Application.status == current)
+            .values(**values)
+        )
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=409, detail="application state changed concurrently"
+            )
 
 
 @app.post("/apply/queue/{app_id}/approve", response_model=None)
@@ -1073,8 +1074,9 @@ def apply_queue_approve(
     app_id: int, request: Request, _: None = Depends(_require_loopback)
 ):
     """Gate 2: the human approves the reviewed draft. Only drafted→approved
-    is legal — approving straight from queued (no draft to review) is a 409."""
-    _transition_application(app_id, "approved")
+    is legal (per the state machine) — approving from queued (no draft to
+    review) or from submitting (already claimed) is a 409."""
+    _cas_transition(app_id, "approved")
     return RedirectResponse("/apply?view=queue", status_code=303)
 
 
@@ -1082,7 +1084,7 @@ def apply_queue_approve(
 def apply_queue_reject(
     app_id: int, request: Request, _: None = Depends(_require_loopback)
 ):
-    _transition_application(app_id, "rejected")
+    _cas_transition(app_id, "rejected")
     return RedirectResponse("/apply?view=queue", status_code=303)
 
 

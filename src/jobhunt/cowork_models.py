@@ -65,11 +65,16 @@ APPLICATION_STATUSES = (
 # BOTH human gates (queue →queued, approve drafted→approved) AND a claim
 # (approved→submitting). rejected/failed are recoverable: the human can
 # re-queue. drafted→drafted lets the actuator improve a draft in place.
+#
+# submitting has NO path back to approved: a claimed (in-flight) application
+# must NOT be un-claimed, or a second actuator could legitimately re-claim
+# and double-submit. A stuck claim recovers via submitting→failed (the
+# actuator or a human reports failure), then the human re-queues from failed.
 _TRANSITIONS: dict[str, frozenset[str]] = {
     "queued": frozenset({"drafted", "rejected", "failed"}),
     "drafted": frozenset({"drafted", "approved", "rejected", "failed"}),
     "approved": frozenset({"submitting", "drafted", "rejected", "failed"}),
-    "submitting": frozenset({"submitted", "approved", "failed"}),
+    "submitting": frozenset({"submitted", "failed"}),
     "submitted": frozenset(),
     "rejected": frozenset({"queued"}),
     "failed": frozenset({"queued"}),

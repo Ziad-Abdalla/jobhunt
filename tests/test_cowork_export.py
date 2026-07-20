@@ -87,6 +87,8 @@ class TestExportShape:
         assert rec["field_mapping"]["email"] == "z@x.com"
         # Hard-stop domain allow-list.
         assert "boards.greenhouse.io" in rec["allowed_domains"]
+        # Scraped job fields are marked untrusted for the actuator (audit MED-2).
+        assert set(rec["job"]["__untrusted_fields__"]) == {"title", "company", "location"}
         # greenhouse is in AUTO_SUBMIT_DOMAINS (informational, not a license).
         assert rec["job"]["auto_submit_candidate"] is True
 
@@ -232,6 +234,30 @@ class TestWriteback:
             "application_id": 99999999, "fields_filled": {},
         })
         assert r.status_code == 404
+
+    def test_claimed_cannot_revert_to_approved(self):
+        # Audit HIGH-1: an approved→submitting (claimed) app must not be
+        # reverted to approved via the approve endpoint (double-submit hole).
+        app_id = _queue()
+        with db_session() as s:
+            s.get(Application, app_id).status = "submitting"
+        # The human approve action targets /apply/queue/{id}/approve (a
+        # non-/api POST → needs a same-origin header for the CSRF gate).
+        r = local.post(f"/apply/queue/{app_id}/approve", follow_redirects=False,
+                       headers={"origin": "http://127.0.0.1"})
+        assert r.status_code == 409
+        with db_session() as s:
+            assert s.get(Application, app_id).status == "submitting"
+
+    def test_receipt_and_error_mutually_exclusive(self):
+        # Audit LOW-1: a submission is a success XOR a failure, never both.
+        app_id = _queue()
+        with db_session() as s:
+            s.get(Application, app_id).status = "submitting"
+        r = local.post("/api/cowork/receipt", json={
+            "application_id": app_id, "receipt": "msg-1", "error": "boom",
+        })
+        assert r.status_code == 422
 
 
 class TestCliMirror:

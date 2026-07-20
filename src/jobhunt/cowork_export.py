@@ -78,6 +78,11 @@ def build_export_document(session: Session, status: str) -> dict:
                 "apply_kind": j.apply_kind or "unknown",
                 "apply_domain": domain,
                 "auto_submit_candidate": auto_ok,
+                # title/company/location are scraped (attacker-controlled),
+                # unlike the jobhunt-derived apply_* fields. The actuator must
+                # treat the named fields as data, never instructions — same as
+                # the jd block. See docs/cowork-handoff.md rule 1.
+                "__untrusted_fields__": ["title", "company", "location"],
             },
             "jd": {"__untrusted_data__": True, "text": j.description or ""},
             "field_mapping": dict(profile),

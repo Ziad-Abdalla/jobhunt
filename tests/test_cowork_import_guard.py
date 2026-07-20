@@ -22,6 +22,9 @@ _PIPELINE_FILES = [
     SRC / "apply_target.py",
     SRC / "scoring.py",
     SRC / "salary_estimator.py",
+    # cv_tailor is imported by the PII-side cowork_export; guard it as a
+    # shared module so a future cowork_models reference in it can't ship green.
+    SRC / "cv_tailor.py",
     *sorted((SRC / "scrapers").glob("*.py")),
 ]
 

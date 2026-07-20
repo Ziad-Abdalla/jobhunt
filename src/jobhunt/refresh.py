@@ -275,6 +275,14 @@ def _persist(
     return False
 
 
+def _scrub_secrets(text: str) -> str:
+    """Redact any configured API key that leaked into an error/URL string."""
+    for secret in (settings.jooble_api_key, settings.reed_api_key):
+        if secret and secret in text:
+            text = text.replace(secret, "***REDACTED***")
+    return text
+
+
 async def _run_scraper(
     client: httpx.AsyncClient, spec: dict, sem: asyncio.Semaphore
 ) -> tuple[str, list[RawJob], str | None]:
@@ -289,8 +297,13 @@ async def _run_scraper(
             jobs = [j async for j in scraper.fetch()]
             return (source, jobs, None)
         except Exception as exc:  # noqa: BLE001 — we want to log and continue per source
-            log.warning("scraper %s/%s failed: %s", source, board, exc)
-            return (source, [], f"{type(exc).__name__}: {exc}")
+            # Some scrapers put an API key in the request URL (e.g. Jooble
+            # `.../{key}`); httpx errors echo the full URL, which would write
+            # the live key to logs + scrape_runs.error + /api/sources/health.
+            # Scrub known secrets before they leave this function.
+            msg = _scrub_secrets(f"{type(exc).__name__}: {exc}")
+            log.warning("scraper %s/%s failed: %s", source, board, msg)
+            return (source, [], msg)
 
 
 _AUTO_DISABLE_AFTER = 3  # consecutive failed scrapes before we skip a source

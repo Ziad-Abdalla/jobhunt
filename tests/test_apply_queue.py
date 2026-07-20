@@ -124,6 +124,28 @@ class TestRequeue:
                 Application.job_id == _job_id()
             ).count() == 1
 
+    def test_requeue_clears_stale_artifacts(self):
+        # Audit LOW-1: re-queuing a terminal row must clear the old receipt/
+        # draft so it doesn't misread as a completed submission.
+        local.post(f"/apply/queue/{_job_id()}")
+        with db_session() as s:
+            a = s.query(Application).filter(Application.job_id == _job_id()).one()
+            a.status = "submitted"
+            a.receipt = "old-msg-id"
+            a.fields_filled = {"full_name": "Z"}
+            a.agent_notes = "old notes"
+            app_id = a.id
+        # submitted isn't re-queueable; force to failed to exercise re-queue.
+        with db_session() as s:
+            s.get(Application, app_id).status = "failed"
+        local.post(f"/apply/queue/{_job_id()}")
+        with db_session() as s:
+            a = s.get(Application, app_id)
+            assert a.status == "queued"
+            assert a.receipt == ""
+            assert a.fields_filled == {}
+            assert a.agent_notes == ""
+
 
 class TestQueueView:
     def test_queue_view_lists_application(self):

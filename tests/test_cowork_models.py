@@ -85,6 +85,10 @@ def test_state_machine_shape() -> None:
     assert not can_transition("approved", "submitted")   # skips the claim
     assert not can_transition("submitted", "approved")
     assert not can_transition("submitted", "queued")     # submitted is terminal
+    # A claimed (in-flight) application must NOT revert to approved — that
+    # would let a second actuator re-claim and double-submit (audit HIGH-1).
+    assert not can_transition("submitting", "approved")
+    assert can_transition("submitting", "failed")        # the only recovery
 
 
 def test_profile_defaults_empty() -> None:
