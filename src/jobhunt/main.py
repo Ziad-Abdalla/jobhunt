@@ -838,8 +838,12 @@ def _tailor_for_job(job_id: int):
 
 
 @app.get("/apply/tailor/{job_id:int}", response_class=HTMLResponse)
-def apply_tailor(request: Request, job_id: int) -> HTMLResponse:
-    """Keyword-gap tailoring sheet + ATS lint for a job vs the loaded CV."""
+def apply_tailor(
+    request: Request, job_id: int, _: None = Depends(_require_loopback)
+) -> HTMLResponse:
+    """Keyword-gap tailoring sheet + ATS lint for a job vs the loaded CV.
+    Loopback-gated: it renders the CV's skill inventory (applicant data),
+    like /profile and the queue view."""
     report, job, cv_loaded = _tailor_for_job(job_id)
     return templates.TemplateResponse(
         request,
@@ -855,8 +859,11 @@ def apply_tailor(request: Request, job_id: int) -> HTMLResponse:
 
 
 @app.get("/apply/tailor/{job_id:int}.md")
-def apply_tailor_md(job_id: int) -> Response:
-    """The tailoring sheet as a downloadable markdown file."""
+def apply_tailor_md(
+    request: Request, job_id: int, _: None = Depends(_require_loopback)
+) -> Response:
+    """The tailoring sheet as a downloadable markdown file. Loopback-gated —
+    it embeds the applicant's name + CV skill inventory."""
     from .cv_tailor import render_markdown
 
     report, job, _ = _tailor_for_job(job_id)

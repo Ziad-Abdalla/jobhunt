@@ -60,7 +60,28 @@ _STOPWORDS = frozenset({
 })
 
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_PHONE_RE = re.compile(r"(?:\+?\d[\d\s().-]{6,}\d)")
+# Candidate phone runs; validated by digit count below so employment date
+# ranges ("2019-2023") and salary bands ("50,000-80,000") don't false-match.
+_PHONE_RE = re.compile(r"\+?[\d][\d\s().-]{6,}\d")
+
+
+def _has_phone(text: str) -> bool:
+    for m in _PHONE_RE.finditer(text):
+        digits = sum(c.isdigit() for c in m.group(0))
+        if 9 <= digits <= 15:  # real phone numbers; a 4-4 year range has 8
+            return True
+    return False
+
+
+def _token_in(tok: str, text: str) -> bool:
+    """Boundary-safe token match that also handles symbol-tail tokens
+    (c++, c#) which a plain \\b can never match, and skips 1-char tokens in
+    free text (a bare 'r'/'c' false-positives)."""
+    if len(tok) == 1:
+        return False  # single-char langs credited only via the skills set
+    if tok[-1] in "+#":
+        return re.search(rf"(?<![\w+#]){re.escape(tok)}(?![\w+#])", text) is not None
+    return re.search(rf"\b{re.escape(tok)}\b", text) is not None
 _SECTION_RE = re.compile(
     r"\b(experience|employment|work history|education|skills|"
     r"projects|qualifications|summary|profile)\b",
@@ -82,7 +103,7 @@ def jd_keywords(job: Any) -> list[str]:
             kw.add(str(lang).lower())
     title = (job.title or "").lower()
     for tok in _TITLE_KEYWORDS:
-        if re.search(rf"\b{re.escape(tok)}\b", title):
+        if _token_in(tok, title):
             kw.add(tok)
     # Generic terms present in the title OR description.
     haystack = f"{title}\n{(job.description or '').lower()}"
@@ -90,7 +111,7 @@ def jd_keywords(job: Any) -> list[str]:
         if " " in term:
             if term in haystack:
                 kw.add(term)
-        elif re.search(rf"\b{re.escape(term)}\b", haystack):
+        elif _token_in(term, haystack):
             kw.add(term)
     return sorted(kw)
 
@@ -110,7 +131,7 @@ def ats_lint(cv_text: str) -> list[dict]:
     else:
         add("bad", "contact_email",
             "No email address detected — ATS may fail to create your record.")
-    if _PHONE_RE.search(text):
+    if _has_phone(text):
         add("ok", "contact_phone", "Phone number found.")
     else:
         add("warn", "contact_phone", "No phone number detected.")
@@ -133,7 +154,11 @@ def ats_lint(cv_text: str) -> list[dict]:
             "Education / Skills headers to parse your resume.")
 
     # Layout: heavy tab/pipe runs signal multi-column tables that ATS mangle.
-    multicol = len(re.findall(r"\t{2,}|(?:\s\|\s.*){2,}", text))
+    # Count without a nested quantifier (avoids the bounded backtracking of
+    # `(?:\s\|\s.*){2,}`): tab-runs plus lines with ≥2 " | " separators.
+    multicol = len(re.findall(r"\t{2,}", text)) + sum(
+        line.count(" | ") >= 2 for line in text.splitlines()
+    )
     if multicol >= 4:
         add("warn", "layout",
             "Multi-column / table layout detected (tabs or pipes) — many ATS "
@@ -171,34 +196,46 @@ class TailorReport:
     ats: list[dict] = field(default_factory=list)
 
 
+def keyword_gap(
+    job: Any, cv_skills: list[str], cv_languages: list[str], cv_text: str
+) -> tuple[list[str], list[str], int, str]:
+    """The keyword half of tailoring, WITHOUT the ATS lint — so callers that
+    only need coverage (e.g. the Cowork export, per-application) don't pay to
+    scan the whole CV for ATS findings they discard. Returns
+    (matched, missing, coverage_pct, suggested_skills_line)."""
+    demand = jd_keywords(job)
+    have = {s.lower() for s in (cv_skills or []) if s}
+    have |= {s.lower() for s in (cv_languages or []) if s}
+    cv_low = (cv_text or "").lower()
+
+    def in_cv(kw: str) -> bool:
+        # `have` first (credits pre-extracted c++/c#/r); then prose, boundary-
+        # safe and skipping 1-char tokens (which would false-match in prose).
+        return kw in have or _token_in(kw, cv_low)
+
+    matched = [k for k in demand if in_cv(k)]
+    missing = [k for k in demand if not in_cv(k)]
+    coverage = round(100 * len(matched) / len(demand)) if demand else 0
+
+    # Suggested skills line: JD-matched first (ATS keyword priority), then the
+    # CV's other skills, then missing ones flagged to add-if-true.
+    other = [s for s in sorted(have) if s not in matched]
+    line = ", ".join(list(matched) + other)
+    if missing:
+        line += "  —  add if you have it: " + ", ".join(missing)
+    return matched, missing, coverage, line
+
+
 def tailor(
     job: Any,
     cv_skills: list[str],
     cv_languages: list[str],
     cv_text: str,
 ) -> TailorReport:
-    """Keyword-gap analysis of a CV against a target job."""
-    demand = jd_keywords(job)
-    have = {s.lower() for s in (cv_skills or []) if s}
-    have |= {s.lower() for s in (cv_languages or []) if s}
-    # Also credit keywords that literally appear in the CV prose.
-    cv_low = (cv_text or "").lower()
-
-    def in_cv(kw: str) -> bool:
-        return kw in have or re.search(rf"\b{re.escape(kw)}\b", cv_low) is not None
-
-    matched = [k for k in demand if in_cv(k)]
-    missing = [k for k in demand if not in_cv(k)]
-    coverage = round(100 * len(matched) / len(demand)) if demand else 0
-
-    # Suggested skills line: JD-matched skills first (ATS keyword priority),
-    # then the CV's other skills, then missing ones flagged to add-if-true.
-    other = [s for s in sorted(have) if s not in matched]
-    parts = list(matched) + other
-    line = ", ".join(parts)
-    if missing:
-        line += "  —  add if you have it: " + ", ".join(missing)
-
+    """Full tailoring: keyword gap + ATS lint."""
+    matched, missing, coverage, line = keyword_gap(
+        job, cv_skills, cv_languages, cv_text
+    )
     return TailorReport(
         job_id=getattr(job, "id", 0),
         matched=matched,

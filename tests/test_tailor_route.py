@@ -80,6 +80,15 @@ class TestTailorRoute:
         assert client.get("/apply/tailor/99999999").status_code == 404
         assert client.get("/apply/tailor/99999999.md").status_code == 404
 
+    def test_loopback_gated(self):
+        # Applicant data (CV skills, name in the .md) — remote peers refused,
+        # like /profile and the queue view.
+        remote = TestClient(app, base_url="http://127.0.0.1",
+                            client=("203.0.113.9", 50000))
+        _load_cv()
+        assert remote.get(f"/apply/tailor/{_job_id()}").status_code == 403
+        assert remote.get(f"/apply/tailor/{_job_id()}.md").status_code == 403
+
 
 class TestExportTailoring:
     def test_export_carries_tailoring_block(self, monkeypatch):

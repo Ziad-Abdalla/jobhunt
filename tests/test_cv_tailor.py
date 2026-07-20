@@ -74,6 +74,15 @@ class TestAtsLint:
         codes = self._codes("jane@example.com +20100 EXPERIENCE EDUCATION SKILLS")
         assert codes["length"] in ("warn", "bad")
 
+    def test_phone_not_fooled_by_date_or_salary_ranges(self):
+        # Employment date ranges + salary bands must NOT count as a phone.
+        cv = ("jane@x.com\nEXPERIENCE 2019-2023 earned 50,000-80,000 EGP\n"
+              "EDUCATION 2015-2019\nSKILLS python " + "w " * 80)
+        assert self._codes(cv)["contact_phone"] == "warn"
+        # A real phone is still detected.
+        cv2 = cv.replace("jane@x.com", "jane@x.com +20 100 123 4567")
+        assert self._codes(cv2)["contact_phone"] == "ok"
+
     def test_bad_encoding_flagged(self):
         cv = "jane@example.com\n+20 100\nEXPERIENCE\ncaf� bad\nEDUCATION\nSKILLS " + "w " * 80
         codes = self._codes(cv)
@@ -102,6 +111,22 @@ class TestTailor:
         r = tailor(job, cv_skills=[], cv_languages=[], cv_text="")
         assert r.coverage_pct == 0
         assert set(r.missing) >= {"docker", "python"}
+
+    def test_single_char_lang_not_prose_matched(self):
+        # A JD demanding "r" must not be credited by a stray "r" in CV prose;
+        # only the extracted skills set counts it.
+        job = _Job("Data Scientist", [], ["r"])
+        r1 = tailor(job, cv_skills=[], cv_languages=[],
+                    cv_text="Strong R&D background and research skills. " * 10)
+        assert "r" in r1.missing  # prose "R&D" doesn't credit it
+        r2 = tailor(job, cv_skills=[], cv_languages=["r"], cv_text="x " * 50)
+        assert "r" in r2.matched  # the skills set does
+
+    def test_cplusplus_matched_in_prose(self):
+        job = _Job("C++ Engineer", [], ["c++"])
+        r = tailor(job, cv_skills=[], cv_languages=[],
+                   cv_text="Built systems in C++ for 5 years. " * 10)
+        assert "c++" in r.matched  # symbol-tail token now matches prose
 
     def test_empty_jd_no_crash(self):
         job = _Job("Mystery Role", [], [])

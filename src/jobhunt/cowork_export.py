@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from .apply_target import AUTO_SUBMIT_DOMAINS, classify_apply
 from .cowork_models import ApplicantProfile, Application
-from .cv_tailor import tailor
+from .cv_tailor import keyword_gap
 from .models import CVProfile, Job
 
 # Fixed field vocabulary — jobhunt generates the mapping; the actuator must
@@ -26,12 +26,16 @@ FIELD_MAPPING_KEYS = (
 
 
 def _tailoring_block(job: Job, cv_skills: list, cv_languages: list, cv_text: str) -> dict:
-    r = tailor(job, cv_skills, cv_languages, cv_text)
+    # keyword_gap (not tailor) — the export never uses the ATS findings, so
+    # don't scan the whole CV for them once per application.
+    matched, missing, coverage, line = keyword_gap(
+        job, cv_skills, cv_languages, cv_text
+    )
     return {
-        "coverage_pct": r.coverage_pct,
-        "matched": r.matched,
-        "missing": r.missing,
-        "suggested_skills_line": r.suggested_skills_line,
+        "coverage_pct": coverage,
+        "matched": matched,
+        "missing": missing,
+        "suggested_skills_line": line,
     }
 
 
@@ -78,9 +82,10 @@ def build_export_document(session: Session, status: str) -> dict:
             "jd": {"__untrusted_data__": True, "text": j.description or ""},
             "field_mapping": dict(profile),
             "allowed_domains": allowed,
-            # P9: per-job keyword tailoring guidance. Only DERIVED lists cross
-            # (matched/missing keywords + coverage) — the raw CV is already in
-            # the top-level cv_text; nothing new about the applicant leaks.
+            # P9: per-job keyword tailoring guidance. Derived from the CV
+            # (coverage + matched/missing keywords + a suggested skills line
+            # that includes the CV's skill set). Nothing new about the
+            # applicant leaks — the full CV is already the top-level cv_text.
             "tailoring": _tailoring_block(j, cv_skills, cv_languages, cv_text),
         })
 
