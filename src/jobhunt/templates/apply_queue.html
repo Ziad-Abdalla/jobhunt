@@ -71,6 +71,7 @@
               <button type="submit" title="Put this job back in the queue to try again">Re-queue</button>
             </form>
           {% endif %}
+          <a class="apply-link" href="/apply/tailor/{{ r.job.id }}">Tailor</a>
           {% if r.app.receipt %}<span class="badge ok" title="submission receipt (message id)">receipt: {{ r.app.receipt }}</span>{% endif %}
           {% if r.app.error %}<span class="badge bad" title="actuator error">{{ r.app.error }}</span>{% endif %}
           <span style="color:var(--text-3);font:var(--fs-xs)/1 var(--font-body);">updated {{ r.app.updated_at | localdate }}</span>

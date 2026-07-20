@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from .apply_target import AUTO_SUBMIT_DOMAINS, classify_apply
 from .cowork_models import ApplicantProfile, Application
+from .cv_tailor import tailor
 from .models import CVProfile, Job
 
 # Fixed field vocabulary — jobhunt generates the mapping; the actuator must
@@ -22,6 +23,16 @@ FIELD_MAPPING_KEYS = (
     "full_name", "email", "phone", "location", "linkedin_url", "github_url",
     "portfolio_url", "work_authorization", "salary_expectation", "cover_note",
 )
+
+
+def _tailoring_block(job: Job, cv_skills: list, cv_languages: list, cv_text: str) -> dict:
+    r = tailor(job, cv_skills, cv_languages, cv_text)
+    return {
+        "coverage_pct": r.coverage_pct,
+        "matched": r.matched,
+        "missing": r.missing,
+        "suggested_skills_line": r.suggested_skills_line,
+    }
 
 
 def build_export_document(session: Session, status: str) -> dict:
@@ -36,6 +47,10 @@ def build_export_document(session: Session, status: str) -> dict:
         .where(Application.status == status)
         .order_by(Application.created_at)
     ).all()
+
+    cv = session.get(CVProfile, 1)
+    cv_skills = list(cv.detected_skills or []) if cv else []
+    cv_languages = list(cv.detected_languages or []) if cv else []
 
     applications = []
     for a, j in rows:
@@ -63,6 +78,10 @@ def build_export_document(session: Session, status: str) -> dict:
             "jd": {"__untrusted_data__": True, "text": j.description or ""},
             "field_mapping": dict(profile),
             "allowed_domains": allowed,
+            # P9: per-job keyword tailoring guidance. Only DERIVED lists cross
+            # (matched/missing keywords + coverage) — the raw CV is already in
+            # the top-level cv_text; nothing new about the applicant leaks.
+            "tailoring": _tailoring_block(j, cv_skills, cv_languages, cv_text),
         })
 
     return {

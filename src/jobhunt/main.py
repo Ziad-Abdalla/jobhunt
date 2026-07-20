@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, field_validator
@@ -805,6 +805,72 @@ def apply_page(
             "kind_counts": kind_counts,
             "queue_count": queue_count,
         },
+    )
+
+
+# ---------- P9+P10: CV tailoring + ATS lint ----------
+
+
+def _tailor_for_job(job_id: int):
+    """Build a TailorReport for a job against the loaded CV. Returns
+    (report, job, cv_loaded) or raises 404 if the job is gone."""
+    from .cv_tailor import tailor
+
+    with db_session() as s:
+        job = s.get(Job, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="no such job")
+        cv = s.get(CVProfile, 1)
+        cv_skills = list(cv.detected_skills or []) if cv else []
+        cv_languages = list(cv.detected_languages or []) if cv else []
+        cv_text = (cv.text or "") if cv else ""
+        cv_loaded = cv is not None
+        # Detach the values we need before the session closes.
+        job_view = {
+            "id": job.id, "title": job.title, "company": job.company,
+            "location": job.location, "skills": list(job.skills or []),
+            "languages": list(job.languages or []),
+            "description": job.description or "",
+        }
+    job_obj = type("J", (), job_view)
+    report = tailor(job_obj, cv_skills, cv_languages, cv_text)
+    return report, job_obj, cv_loaded
+
+
+@app.get("/apply/tailor/{job_id:int}", response_class=HTMLResponse)
+def apply_tailor(request: Request, job_id: int) -> HTMLResponse:
+    """Keyword-gap tailoring sheet + ATS lint for a job vs the loaded CV."""
+    report, job, cv_loaded = _tailor_for_job(job_id)
+    return templates.TemplateResponse(
+        request,
+        "tailor.html",
+        {
+            "nav": "apply",
+            "today": _today(),
+            "report": report,
+            "job": job,
+            "cv_loaded": cv_loaded,
+        },
+    )
+
+
+@app.get("/apply/tailor/{job_id:int}.md")
+def apply_tailor_md(job_id: int) -> Response:
+    """The tailoring sheet as a downloadable markdown file."""
+    from .cv_tailor import render_markdown
+
+    report, job, _ = _tailor_for_job(job_id)
+    name = ""
+    with db_session() as s:
+        from .cowork_models import ApplicantProfile
+        p = s.get(ApplicantProfile, 1)
+        if p:
+            name = p.full_name or ""
+    md = render_markdown(report, job, applicant_name=name)
+    return Response(
+        content=md,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="tailoring-{job_id}.md"'},
     )
 
 

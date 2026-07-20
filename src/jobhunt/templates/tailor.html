@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — tailor CV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
+  <script src="/static/app.js?v={{ version }}" defer></script>
+</head>
+<body data-page="tailor">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:820px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Tailor for: <span dir="auto">{{ job.title }}</span></h1>
+    <p class="muted"><span dir="auto">{{ job.company }}</span>{% if job.location %} · {{ job.location }}{% endif %}
+      · <a href="/apply/tailor/{{ job.id }}.md">download as markdown ↓</a></p>
+
+    {% if not cv_loaded %}
+      <div class="form-card">
+        <p>No CV loaded, so keyword matching is limited. <a href="/cv">Upload your CV →</a>
+        to see which of this job's keywords you already cover and what's missing.</p>
+      </div>
+    {% endif %}
+
+    <section style="margin:var(--sp-4) 0;">
+      <h2>Keyword coverage: {{ report.coverage_pct }}%</h2>
+      <div style="background:var(--bg-3);border-radius:6px;height:12px;overflow:hidden;max-width:400px;">
+        <div style="background:var(--green);height:100%;width:{{ report.coverage_pct }}%;"></div>
+      </div>
+      <p style="margin-top:var(--sp-3);">
+        <strong>Already in your CV:</strong>
+        {% for k in report.matched %}<span class="badge ok">{{ k }}</span> {% endfor %}
+        {% if not report.matched %}<span class="muted">(none yet)</span>{% endif %}
+      </p>
+      <p>
+        <strong>Missing — add if you genuinely have them:</strong>
+        {% for k in report.missing %}<span class="badge warn">{{ k }}</span> {% endfor %}
+        {% if not report.missing %}<span class="muted">(none — great coverage)</span>{% endif %}
+      </p>
+    </section>
+
+    <section style="margin:var(--sp-4) 0;">
+      <h2>Suggested Skills line</h2>
+      <p class="muted">ATS match on keywords — lead with the ones this job asks for.</p>
+      <code class="alert-query" style="display:block;padding:var(--sp-3);white-space:normal;">{{ report.suggested_skills_line or '(add your skills)' }}</code>
+    </section>
+
+    <section style="margin:var(--sp-4) 0;">
+      <h2>ATS readiness</h2>
+      <ul style="list-style:none;padding:0;">
+        {% for f in report.ats %}
+        <li style="margin:var(--sp-2) 0;">
+          <span class="badge {% if f.level == 'ok' %}ok{% elif f.level == 'warn' %}warn{% else %}bad{% endif %}">{{ f.level }}</span>
+          {{ f.message }}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <p class="muted" style="font:var(--fs-sm)/1.5 var(--font-body);">
+      Keyword alignment only — jobhunt never invents a skill or achievement.
+      Never add anything you can't back up in an interview.
+    </p>
+  </main>
+</body>
+</html>

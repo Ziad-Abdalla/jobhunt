@@ -125,6 +125,35 @@ def apply_export(
     typer.echo(_json.dumps(doc, ensure_ascii=False, indent=2))
 
 
+@app.command()
+def tailor(job_id: int = typer.Argument(..., help="Job id to tailor against.")) -> None:
+    """Print a keyword-gap tailoring sheet (+ ATS lint) for a job vs your CV."""
+    from .cv_tailor import render_markdown
+    from .cv_tailor import tailor as _tailor
+    from .db import db_session as _dbs
+    from .models import CVProfile, Job
+
+    init_db()
+    with _dbs() as s:
+        job = s.get(Job, job_id)
+        if job is None:
+            typer.echo(f"no such job: {job_id}", err=True)
+            raise typer.Exit(code=2)
+        cv = s.get(CVProfile, 1)
+        cv_skills = list(cv.detected_skills or []) if cv else []
+        cv_languages = list(cv.detected_languages or []) if cv else []
+        cv_text = (cv.text or "") if cv else ""
+        job_view = type("J", (), {
+            "id": job.id, "title": job.title, "company": job.company,
+            "location": job.location, "skills": list(job.skills or []),
+            "languages": list(job.languages or []), "description": job.description or "",
+        })
+        report = _tailor(job_view, cv_skills, cv_languages, cv_text)
+    if not cv:
+        typer.echo("(no CV loaded — upload one at /cv for keyword matching)\n", err=True)
+    typer.echo(render_markdown(report, job_view))
+
+
 @app.command(name="discover-boards")
 def discover_boards(
     output: Path = typer.Option(
