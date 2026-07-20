@@ -55,6 +55,9 @@ _EMPLOYMENT_TYPE_MAP: dict[str, str] = {
     "fixed term": "Contract",
     "casual": "Contract",
     "per diem": "Contract",
+    "freelance / project": "Contract",
+    # Wuzzuf shift-based roles are hourly/rotational — closest canonical bucket.
+    "shift based": "Part-time",
     # Internship
     "internship": "Internship",
     "intern": "Internship",
@@ -165,8 +168,9 @@ def _persist(
     if remote == "unknown" and raw.location and "," in raw.location:
         remote = "onsite"
 
-    # ── Level ──
-    level = ex.level
+    # ── Level ── (structured source metadata beats regex extraction)
+    level = raw.level_structured or ex.level
+    min_years = raw.min_years_structured if raw.min_years_structured is not None else ex.min_years
     # "Software Engineer" with no qualifier is mid-level (industry convention) —
     # but only for Latin text. For Arabic-dominant postings with no keyword hit
     # we keep "unknown": guessing actively mislabels them (P3).
@@ -214,7 +218,7 @@ def _persist(
             location=raw.location,
             remote=remote,
             level=level,
-            min_years=ex.min_years,
+            min_years=min_years,
             degree=ex.degree,
             employment_type=employment_type,
             salary_min=salary_min,
@@ -242,7 +246,7 @@ def _persist(
     existing.description_hash = description_hash(existing.description)
     existing.remote = remote
     existing.level = level
-    existing.min_years = ex.min_years
+    existing.min_years = min_years
     existing.degree = ex.degree
     existing.employment_type = employment_type
     existing.salary_min = salary_min if salary_min is not None else existing.salary_min

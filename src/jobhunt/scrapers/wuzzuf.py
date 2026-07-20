@@ -9,6 +9,7 @@ Endpoint: https://wuzzuf.net/feeds/all-jobs.xml
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 from datetime import datetime
 
@@ -18,6 +19,31 @@ from dateutil import parser as dateparser
 from .base import BaseScraper, RawJob
 
 _FEED_URL = "https://wuzzuf.net/feeds/all-jobs.xml"
+
+# Wuzzuf's <career_level> vocabulary → jobhunt's level values. Structured
+# metadata beats regex guessing — especially for Arabic-language postings.
+_CAREER_LEVEL_MAP = {
+    "student": "intern",
+    "entry level": "entry",
+    "experienced (non-manager)": "mid",
+    "manager": "lead",
+}
+
+_EXPERIENCE_RE = re.compile(r"(\d+)")
+
+
+def _map_career_level(raw: str) -> str:
+    key = raw.lower().strip()
+    if key.startswith("senior management"):
+        return "senior"
+    return _CAREER_LEVEL_MAP.get(key, "")
+
+
+def _parse_experience_years(raw: str) -> int | None:
+    if "no exp" in raw.lower():
+        return None
+    m = _EXPERIENCE_RE.search(raw)
+    return int(m.group(1)) if m else None
 
 
 def _tag_text(item, name: str) -> str:
@@ -63,6 +89,9 @@ class WuzzufScraper(BaseScraper):
                 except (ValueError, TypeError, OverflowError):
                     posted_at = None
 
+            career_level = _tag_text(item, "career_level")
+            experience = _tag_text(item, "experience")
+
             yield RawJob(
                 source=self.source,
                 source_id=source_id,
@@ -73,9 +102,11 @@ class WuzzufScraper(BaseScraper):
                 description=description,
                 posted_at=posted_at,
                 employment_type=_tag_text(item, "job_type"),
+                level_structured=_map_career_level(career_level),
+                min_years_structured=_parse_experience_years(experience),
                 extra={
-                    "career_level": _tag_text(item, "career_level"),
+                    "career_level": career_level,
                     "roles": _tag_text(item, "roles"),
-                    "experience": _tag_text(item, "experience"),
+                    "experience": experience,
                 },
             )

@@ -29,6 +29,8 @@ class RawJob:
     salary_currency: str = ""
     remote_structured: str = ""  # when the API gives us remote/onsite/hybrid directly
     visa_sponsorship: str = ""   # "yes", "no", or "" (unknown)
+    level_structured: str = ""   # when the source states the career level directly
+    min_years_structured: int | None = None  # when the source states required experience
 
 
 class BaseScraper(abc.ABC):
