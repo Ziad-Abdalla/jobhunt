@@ -116,6 +116,29 @@ def test_api_jobs_exposes_geo():
         assert "geo_restrict" in body["results"][0]
 
 
+def test_region_map_has_egypt_block():
+    from jobhunt.main import _REGION_MAP
+    assert "cairo" in _REGION_MAP
+    assert "egypt" in _REGION_MAP["cairo"]
+    assert "القاهرة" in _REGION_MAP
+    assert "مصر" in _REGION_MAP
+
+
+def test_local_cairo_finds_egypt_jobs(clean_db):
+    init_db()
+    with db_session() as s:
+        s.add(Job(
+            fingerprint="egytest0000000000000000000000000", source=_TEST_SOURCE,
+            source_id="wz-loc", url="https://wuzzuf.net/jobs/p/loc",
+            company="RegionMapAcme Egypt", title="عامل نظافة", location="Cairo, Egypt",
+            category="nontech", description="x" * 60,
+        ))
+    client = TestClient(app)
+    resp = client.get("/local", params={"location": "cairo"})
+    assert resp.status_code == 200
+    assert "RegionMapAcme Egypt" in resp.text
+
+
 def test_index_renders_geo_dropdown():
     init_db()
     client = TestClient(app)

@@ -377,6 +377,22 @@ _REGION_MAP: dict[str, list[str]] = {
     "nürnberg": ["nürnberg", "nuremberg", "bavaria", "bayern", "germany"],
     "germany": ["germany", "deutschland", "berlin", "münchen"],
     "deutschland": ["deutschland", "germany", "berlin", "münchen"],
+    # Egypt areas (P3) — Wuzzuf locations look like "Cairo, Egypt".
+    "cairo": ["cairo", "egypt", "new cairo", "nasr city", "heliopolis", "maadi"],
+    "giza": ["giza", "egypt", "6th of october", "sheikh zayed"],
+    "alexandria": ["alexandria", "egypt"],
+    "new cairo": ["new cairo", "cairo", "egypt"],
+    "6th of october": ["6th of october", "giza", "egypt"],
+    "maadi": ["maadi", "cairo", "egypt"],
+    "nasr city": ["nasr city", "cairo", "egypt"],
+    "heliopolis": ["heliopolis", "cairo", "egypt"],
+    "mansoura": ["mansoura", "egypt"],
+    "tanta": ["tanta", "egypt"],
+    "egypt": ["egypt", "cairo", "giza", "alexandria"],
+    "القاهرة": ["القاهرة", "cairo", "egypt"],
+    "الجيزة": ["الجيزة", "giza", "egypt"],
+    "الإسكندرية": ["الإسكندرية", "alexandria", "egypt"],
+    "مصر": ["مصر", "egypt", "cairo"],
 }
 
 
