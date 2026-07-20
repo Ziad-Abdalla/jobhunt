@@ -43,6 +43,23 @@ async def _job() -> None:
         log.exception("scheduler: scrape failed")
 
 
+async def _fast_poll_job() -> None:
+    """P7 fast-poll tier: scrape ONLY the sources referenced by priority
+    saved searches, then check alerts. Gives those searches a tight loop
+    without re-scraping everything. No-op when no priority sources exist."""
+    from .alerts import check_alerts, collect_priority_sources
+
+    srcs = collect_priority_sources()
+    if not srcs:
+        return
+    try:
+        log.info("scheduler: fast-poll scraping %d priority sources", len(srcs))
+        await scrape_all(only_sources=srcs)
+        await check_alerts()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("scheduler: fast-poll failed: %s", exc)
+
+
 def start(interval_minutes: int | None = None) -> None:
     global _scheduler
     if _scheduler is not None:
@@ -53,6 +70,12 @@ def start(interval_minutes: int | None = None) -> None:
         return
     _scheduler = AsyncIOScheduler(timezone="UTC")
     _scheduler.add_job(_job, "interval", minutes=interval, id="refresh", max_instances=1)
+    fast = settings.fast_poll_minutes
+    if fast > 0:
+        _scheduler.add_job(
+            _fast_poll_job, "interval", minutes=fast, id="fast-poll", max_instances=1
+        )
+        log.info("scheduler: fast-poll tier every %d minutes", fast)
     _scheduler.start()
     log.info("scheduler: started; refreshing every %d minutes", interval)
 

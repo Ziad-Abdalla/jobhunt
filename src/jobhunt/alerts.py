@@ -38,6 +38,21 @@ def _query_from_dict(data: dict) -> JobQuery:
     )
 
 
+def collect_priority_sources() -> set[str]:
+    """Union of `sources` across all priority saved searches — the source
+    set the P7 fast-poll tier scrapes on the tight interval. A priority
+    search with no source filter contributes nothing here (scraping *all*
+    sources fast would defeat the point); it still benefits from the normal
+    full interval."""
+    out: set[str] = set()
+    with db_session() as s:
+        for ss in s.execute(select(SavedSearch)).scalars().all():
+            data = ss.query_json or {}
+            if data.get("priority"):
+                out.update(data.get("sources") or [])
+    return out
+
+
 async def check_alerts() -> dict:
     """Iterate saved searches, find unseen matches, notify."""
     notified_total = 0

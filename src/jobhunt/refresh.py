@@ -369,9 +369,14 @@ def _disabled_sources(session: Session) -> dict[tuple[str, str], datetime]:
     return disabled
 
 
-async def scrape_all() -> dict:
+async def scrape_all(only_sources: set[str] | None = None) -> dict:
+    """Scrape configured sources. When `only_sources` is given, restrict the
+    pass to specs whose `source` is in that set — the P7 fast-poll tier uses
+    this to re-check a handful of priority sources without hitting all 150+."""
     init_db()
     sources = load_sources()
+    if only_sources:
+        sources = [s for s in sources if s.get("source") in only_sources]
 
     # Auto-add Jooble searches for user's configured location.
     if settings.user_location and settings.jooble_api_key:
