@@ -21,6 +21,7 @@ from .db import db_session, init_db
 from .filters import JobQuery, count, facets, search
 from .models import CVProfile, Job, SavedSearch, ScrapeRun
 from .refresh import scrape_all
+from .scoring import home_region_from_location
 from .sources_admin import (
     add_source as sources_add,
 )
@@ -188,6 +189,7 @@ def _query_from_request(
         geo=geo.strip(),
         min_cv_match=_safe_float(min_cv_match),
         sort=sort or "score",
+        home_region=home_region_from_location(settings.user_location),
         limit=max(1, min(_safe_int(limit) or 50, 200)),
         offset=max(0, _safe_int(offset) or 0),
     )

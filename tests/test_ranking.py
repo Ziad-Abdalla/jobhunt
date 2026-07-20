@@ -123,3 +123,23 @@ def test_cv_sort_null_matches_rank_last() -> None:
         {"id": "b", "score": 0.1, "cv_match": 0.2},
     ])
     assert _order("cv") == ["b", "a"]
+
+
+def test_query_from_request_fills_home_region(monkeypatch) -> None:
+    from jobhunt import main as main_mod
+    from jobhunt.scoring import home_region_from_location
+
+    home_region_from_location.cache_clear()
+    monkeypatch.setattr(main_mod.settings, "user_location", "Cairo, Egypt")
+    q = main_mod._query_from_request(
+        "", "", "", "", "", "", None, [], [], None, "score", 50, 0,
+    )
+    assert q.home_region == "other"
+
+    home_region_from_location.cache_clear()
+    monkeypatch.setattr(main_mod.settings, "user_location", "")
+    q = main_mod._query_from_request(
+        "", "", "", "", "", "", None, [], [], None, "score", 50, 0,
+    )
+    assert q.home_region == ""
+    home_region_from_location.cache_clear()
