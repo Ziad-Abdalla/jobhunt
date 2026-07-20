@@ -160,6 +160,9 @@
         {% else %}
           <p class="info-pill">Upload a <a href="/cv">CV</a> to enable semantic match.</p>
         {% endif %}
+        {% if home_region %}
+          <p class="info-pill">Location set — jobs restricted to regions you're not in rank lower.</p>
+        {% endif %}
       </form>
     </aside>
 

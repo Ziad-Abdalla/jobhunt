@@ -10,6 +10,10 @@
   jobs geo-restricted to a region you're not in (e.g. "US only" seen from
   Cairo) are demoted (×0.35) in relevance and CV sorts — demoted, never
   hidden, and `unknown`/`restricted-other` buckets are never penalized.
+  The region resolves only from a *recognized* country name (English or
+  native spelling, EEA counts as EU); unrecognized locations like
+  "New York, NY" never penalize anything. Cards show the eligibility badge
+  and the sidebar discloses when demotion is active.
 
 ### Added (P3 — Egypt/Arabic extraction quality)
 - **Arabic-aware extraction.** Level, employment type, remote/hybrid/onsite,

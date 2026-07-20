@@ -24,8 +24,38 @@ def test_home_region_examples() -> None:
 def test_home_region_unknown_and_edge() -> None:
     assert home_region_from_location("") == ""
     assert home_region_from_location("   ") == ""
-    # Unrecognized text is 'other' (a real place we don't map), not ''.
-    assert home_region_from_location("Atlantis") == "other"
+    # Unrecognized text must be '' (never penalize on a guess), NOT 'other' —
+    # otherwise "New York, NY" would demote a US user's reachable us-only jobs.
+    assert home_region_from_location("Atlantis") == ""
+
+
+def test_home_region_city_state_forms_never_penalize() -> None:
+    # The most common US location format carries no country token; it must
+    # resolve to '' (no penalty), not 'other' (review finding, 2026-07-20).
+    for loc in ("New York, NY", "San Francisco, CA", "Austin, TX",
+                "Seattle, Washington", "Los Angeles"):
+        assert home_region_from_location(loc) == "", loc
+
+
+def test_home_region_native_language_names() -> None:
+    # Native spellings must not fall through to '' (review finding).
+    assert home_region_from_location("München, Deutschland") == "eu"
+    assert home_region_from_location("Wien, Österreich") == "eu"
+    assert home_region_from_location("Madrid, España") == "eu"
+    assert home_region_from_location("Warszawa, Polska") == "eu"
+
+
+def test_home_region_eea_counts_as_eu() -> None:
+    # "EU only" postings routinely mean EU/EEA.
+    assert home_region_from_location("Oslo, Norway") == "eu"
+
+
+def test_home_region_recognized_other_countries() -> None:
+    assert home_region_from_location("Toronto, Canada") == "other"
+    assert home_region_from_location("Dubai, United Arab Emirates") == "other"
+    assert home_region_from_location("القاهرة، مصر") == "other"
+    # "Georgia" is deliberately unmapped (US state / country homograph).
+    assert home_region_from_location("Tbilisi, Georgia") == ""
 
 
 def test_northern_ireland_is_uk_dublin_is_eu() -> None:

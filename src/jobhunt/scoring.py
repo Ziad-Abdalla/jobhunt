@@ -55,12 +55,39 @@ _UK_TOKENS = (
     "united kingdom", "northern ireland", "great britain", "britain",
     "england", "scotland", "wales", "uk", "gb",
 )
+# EU-27 (English + common native names) plus EEA members — "EU only" postings
+# routinely say EU/EEA, so Norway/Iceland/Liechtenstein count as reachable.
 _EU_TOKENS = (
     "austria", "belgium", "bulgaria", "croatia", "cyprus", "czechia",
     "czech republic", "denmark", "estonia", "finland", "france", "germany",
     "greece", "hungary", "ireland", "italy", "latvia", "lithuania",
     "luxembourg", "malta", "netherlands", "poland", "portugal", "romania",
     "slovakia", "slovenia", "spain", "sweden",
+    "deutschland", "österreich", "oesterreich", "españa", "espana",
+    "italia", "polska", "nederland", "belgië", "belgie", "belgique",
+    "sverige", "suomi", "danmark", "česko", "cesko", "slovensko",
+    "hrvatska", "magyarország", "magyarorszag", "éire", "eire",
+    "norway", "norge", "iceland", "liechtenstein",
+)
+# Recognized non-US/UK/EU countries -> 'other' (all three X-only buckets are
+# unreachable). Deliberately conservative: anything NOT in one of these lists
+# (e.g. "New York, NY", "Atlantis") returns '' so ranking never penalizes on a
+# guess — same don't-guess ethos as the P3 extractor. "Georgia" is omitted on
+# purpose (US state / country homograph).
+_OTHER_TOKENS = (
+    "egypt", "مصر",
+    "australia", "new zealand", "canada",
+    "india", "pakistan", "bangladesh", "sri lanka", "nepal",
+    "china", "japan", "south korea", "korea", "singapore", "hong kong",
+    "taiwan", "philippines", "indonesia", "vietnam", "thailand", "malaysia",
+    "turkey", "türkiye", "turkiye", "ukraine", "serbia", "bosnia",
+    "albania", "moldova", "belarus", "russia", "switzerland",
+    "brazil", "argentina", "chile", "colombia", "peru", "mexico", "uruguay",
+    "south africa", "nigeria", "kenya", "ghana", "ethiopia",
+    "morocco", "tunisia", "algeria", "libya", "sudan",
+    "jordan", "lebanon", "iraq", "israel", "palestine",
+    "saudi arabia", "united arab emirates", "uae", "qatar", "kuwait",
+    "bahrain", "oman", "yemen",
 )
 
 
@@ -74,7 +101,9 @@ def home_region_from_location(user_location: str) -> str:
 
     Token/phrase match on country names ("Cairo, Egypt", "Berlin, Germany").
     UK is checked before EU so "Northern Ireland" never matches "Ireland".
-    Empty input -> '' (unknown: never penalize); unrecognized -> 'other'.
+    Empty OR unrecognized input -> '' (unknown: never penalize) — "New York,
+    NY" must not demote us-only jobs for a US user; only a *recognized*
+    non-US/UK/EU country returns 'other'.
     """
     text = " ".join(
         "".join(ch if ch.isalnum() else " " for ch in (user_location or "").lower()).split()
@@ -87,7 +116,9 @@ def home_region_from_location(user_location: str) -> str:
         return "uk"
     if any(_has_token(text, t) for t in _EU_TOKENS):
         return "eu"
-    return "other"
+    if any(_has_token(text, t) for t in _OTHER_TOKENS):
+        return "other"
+    return ""
 
 
 def reachability_weights(home_region: str) -> dict[str, float]:

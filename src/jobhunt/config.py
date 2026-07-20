@@ -64,7 +64,10 @@ class Settings(BaseSettings):
     jooble_api_key: str = ""
     reed_api_key: str = ""
 
-    # User's location — when set, Jooble automatically fetches local jobs for this area.
+    # User's location — used two ways: Jooble automatically fetches local jobs
+    # for this area, and (P4) ranking demotes jobs geo-restricted to regions
+    # you're not in (see scoring.home_region_from_location). Include the
+    # country name so the region resolves; unrecognized text never penalizes.
     # Examples: "London, UK", "Berlin, Germany", "Cairo, Egypt", "Sydney, Australia"
     user_location: str = ""
 

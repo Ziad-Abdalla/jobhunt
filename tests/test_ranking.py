@@ -125,6 +125,29 @@ def test_cv_sort_null_matches_rank_last() -> None:
     assert _order("cv") == ["b", "a"]
 
 
+def test_cv_sort_null_ties_with_zero_score_breaks() -> None:
+    # DELIBERATE post-P4 behavior (review-pinned): NULL and explicit 0.0 both
+    # coalesce to 0 in the cv sort; the higher-quality job wins the tie.
+    # Pre-P4 nullslast put the explicit 0.0 first.
+    _seed([
+        {"id": "a", "score": 5.0, "cv_match": None},
+        {"id": "c", "score": 1.0, "cv_match": 0.0},
+    ])
+    assert _order("cv") == ["a", "c"]
+
+
+def test_multiplicative_blend_strands_zero_score_jobs() -> None:
+    # DELIBERATE property (review-pinned): the blend multiplies the quality
+    # score, so score=0 stays rank 0 even at cv_match=1.0. Such jobs remain
+    # findable via sort=cv.
+    _seed([
+        {"id": "a", "score": 0.0, "cv_match": 1.0},
+        {"id": "b", "score": 0.5, "cv_match": 0.0},
+    ])
+    assert _order("score") == ["b", "a"]
+    assert _order("cv") == ["a", "b"]
+
+
 def test_query_from_request_fills_home_region(monkeypatch) -> None:
     from jobhunt import main as main_mod
     from jobhunt.scoring import home_region_from_location

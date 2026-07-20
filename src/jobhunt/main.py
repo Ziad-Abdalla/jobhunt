@@ -211,6 +211,7 @@ def index(request: Request) -> HTMLResponse:
             "facets": f,
             "total": total,
             "cv_loaded": cv_loaded,
+            "home_region": home_region_from_location(settings.user_location),
             "nav": "search",
             "today": _today(),
             "last_updated": _last_updated_str(),

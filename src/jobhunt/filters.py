@@ -61,7 +61,13 @@ def _fts_query(q: str) -> str | None:
     return " ".join(parts)
 
 
-def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
+def _apply(
+    stmt: Select[tuple[Job]],
+    q: JobQuery,
+    *,
+    order: bool = True,
+    cv_active: bool = True,
+) -> Select[tuple[Job]]:
     if q.q:
         # Prefer FTS5 when available — 10-100× faster than triple-LIKE at
         # 24k+ rows. Falls back to LIKE if the SQLite build lacks FTS5 or
@@ -124,6 +130,9 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
 
     # P4: relevance/CV sorts demote known-unreachable geo buckets and blend
     # the CV match into the default score. Chronological sorts stay pure.
+    if not order:
+        # count() path: ORDER BY on an aggregate is a no-op — skip it.
+        return stmt
     if q.sort == "posted":
         stmt = stmt.order_by(Job.posted_at.desc().nullslast(), Job.score.desc())
     elif q.sort == "seen":
@@ -142,6 +151,11 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
         if q.sort == "cv":
             rank = func.coalesce(Job.cv_match, 0.0) * reach
             stmt = stmt.order_by(rank.desc(), Job.score.desc())
+        elif not penalties and not cv_active:
+            # Fast path: no penalties + every cv_match NULL means the blended
+            # expression is provably the identity — keep the indexed pre-P4
+            # ordering (~1ms vs ~150ms full-scan sort at 27k rows).
+            stmt = stmt.order_by(Job.score.desc(), Job.posted_at.desc().nullslast())
         else:
             rank = (
                 Job.score
@@ -153,14 +167,22 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
 
 
 def search(session: Session, q: JobQuery) -> list[Job]:
-    stmt = _apply(select(Job), q).limit(q.limit).offset(q.offset)
+    # cv_active: any job carries a CV match (indexed, ~µs). Lets the default
+    # sort keep its fast index path until a CV is actually matched.
+    cv_active = (
+        session.execute(
+            select(Job.id).where(Job.cv_match.is_not(None)).limit(1)
+        ).first()
+        is not None
+    )
+    stmt = _apply(select(Job), q, cv_active=cv_active).limit(q.limit).offset(q.offset)
     return list(session.execute(stmt).scalars().all())
 
 
 def count(session: Session, q: JobQuery) -> int:
     from sqlalchemy import func
 
-    stmt = _apply(select(func.count()).select_from(Job), q)
+    stmt = _apply(select(func.count()).select_from(Job), q, order=False)
     return session.execute(stmt).scalar_one()
 
 
