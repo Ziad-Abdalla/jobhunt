@@ -35,7 +35,7 @@
       {% if j.degree and j.degree != 'unknown' %}<span class="badge">{{ j.degree }}</span>{% endif %}
       {% if j.employment_type and j.employment_type != 'unknown' %}<span class="badge">{{ j.employment_type }}</span>{% endif %}
       {% if j.visa_sponsorship == 'yes' %}<span class="badge ok">visa sponsor</span>{% endif %}
-      {% if show_apply_badge and j.apply_kind and j.apply_kind != 'unknown' %}<span class="badge apply-{{ j.apply_kind }} {% if j.apply_kind == 'ats' %}ok{% elif j.apply_kind == 'aggregator_relay' %}warn{% else %}bad{% endif %}" title="Application form host: {{ j.apply_domain }}">{% if j.apply_kind == 'ats' %}ATS form{% elif j.apply_kind == 'aggregator_relay' %}board relay{% else %}own site{% endif %}</span>{% endif %}
+      {% if show_apply_badge and j.apply_kind and j.apply_kind != 'unknown' %}<span class="badge apply-{{ j.apply_kind }} {% if j.apply_kind == 'ats' %}ok{% elif j.apply_kind == 'aggregator_relay' %}warn{% else %}bad{% endif %}" title="Apply link host: {{ j.apply_domain }}">{% if j.apply_kind == 'ats' %}ATS form{% elif j.apply_kind == 'aggregator_relay' %}job board{% else %}own site{% endif %}</span>{% endif %}
       {% if j.salary_min or j.salary_max %}
         <span class="badge salary{% if j.salary_estimated %} estimated{% endif %}" title="{{ 'Estimated from role level and location' if j.salary_estimated else 'From job posting' }}">
           {%- if j.salary_estimated %}~{% endif -%}

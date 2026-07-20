@@ -265,8 +265,9 @@ def _persist(
     existing.languages = ex.languages
     existing.category = category
     existing.geo_restrict = geo_restrict
-    # Classify from the URL the row actually carries: raw.url when present,
-    # else the existing URL (the "existing.url" fallback above).
+    # Re-classify from the row's URL so a bucket change on re-scrape sticks.
+    # (raw.url is always truthy here — _persist returns early without it —
+    # so existing.url was just refreshed to it above.)
     existing.apply_kind, existing.apply_domain = classify_apply(existing.url)
     existing.score = score
     if raw.posted_at and not existing.posted_at:

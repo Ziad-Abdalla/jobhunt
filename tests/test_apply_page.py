@@ -55,7 +55,7 @@ class TestApplyPage:
         assert r.status_code == 200
         body = r.text
         assert "ATS form" in body
-        assert "Board relay" in body
+        assert "Job board" in body
         assert "Company site" in body
 
     def test_kind_filter_narrows(self):

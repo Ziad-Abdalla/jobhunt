@@ -203,6 +203,13 @@ def _maybe_start_backfill() -> None:
 # 'unknown' explicitly so a row is never revisited. Self-gating: once no
 # NULLs remain there is nothing to scan — no user_version coupling with the
 # P3 refingerprint gate (which retries on failure and owns that counter).
+#
+# Known trade-offs (shared with the category backfill, accepted): the
+# started-flag latches for the process lifetime even if a chunk fails
+# (remaining NULLs read as 'unknown' via coalesce until the next boot
+# resumes them), and a _persist update committing between a chunk's SELECT
+# and UPDATE can be transiently overwritten with the same-URL classification
+# (self-heals on the next scrape).
 
 _APPLY_BACKFILL_THREAD_STARTED = False
 

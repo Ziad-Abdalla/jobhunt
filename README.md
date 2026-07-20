@@ -58,14 +58,24 @@ Employment Agency) is free and no API key needed.
 Contract, freelance, and temporary software roles. Filter by keyword, work
 mode, and salary. Sorted by most recently posted.
 
+### Apply
+Where does applying actually happen? Every job's apply link is classified:
+**ATS form** (a structured, hosted form — Greenhouse, Lever, Ashby, Workday, …),
+**job board** (you apply on the board itself — sometimes with a board
+account, like Wuzzuf — or its listing points on to the real form), or
+**company site** (an arbitrary form on the company's own site). Filter the
+ranked list by application flow and pick targets by effort.
+
 ---
 
 ## Features
 
-- **17 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+- **22 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
   Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs, Arbeitnow, Jobicy,
   Himalayas, TheMuse, Arbeitsagentur (Germany — all sectors, no key),
-  Jooble (69 countries), Reed (UK — all sectors, broad keyword set)
+  Jooble (69 countries), Reed (UK — all sectors, broad keyword set),
+  Wuzzuf (Egypt — all sectors, no key), Remotive, Working Nomads,
+  We Work Remotely, python.org Jobs
 - **Intern/junior focused**: 3,300+ entry-level roles. Detects intern, graduate,
   trainee, apprentice, co-op, Ausbildung, Werkstudent, and "0-1 years" patterns.
 - **Salary on every job**: real data where available, plus a self-calibrating estimator.

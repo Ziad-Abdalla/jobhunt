@@ -2,6 +2,30 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P5 — apply-target classification + /apply page)
+- **Every job's apply link is classified** by what sits behind it:
+  `ats` (a hosted form on a known ATS — Greenhouse, Lever, Ashby, Workable,
+  Workday, …), `aggregator_relay` (applying goes through a job board —
+  either on the board itself, like Wuzzuf, or one hop to the real form), or
+  `company_site` (an arbitrary web form on the company's own site). Pure
+  URL-host classification against curated allow-lists — no guessing, and
+  hostile-URL hardening (WHATWG backslash normalization, strict DNS host
+  gate) so a crafted link can't earn a false "ATS" label. New
+  `apply_kind`/`apply_domain` fields, backfilled in the background on first
+  boot after upgrade.
+- **New /apply page.** "Where does applying actually happen?" — filter the
+  ranked job list by application flow (green ATS form / amber job board /
+  red own-site badges, with live counts per bucket). Groundwork for the
+  Cowork application handoff (P6); `AUTO_SUBMIT_DOMAINS` marks the
+  Greenhouse/Lever-class subset that assisted apply may ever target.
+- `/api/jobs` now returns `apply_kind` and `apply_domain`.
+
+### Fixed (P5)
+- **`ix_jobs_geo_restrict` now exists on upgraded databases.** The P3
+  migration added the column but never the index (SQLite `ALTER` doesn't
+  create model indexes); geo-filtered queries on upgraded installs were
+  full-scanning.
+
 ### Added (P4 — ranking reflects reachability)
 - **Relevance sort blends CV match.** Once a CV is uploaded, the default
   "relevance" sort ranks by `score × (1 + 1.5·cv_match)` — no more manually

@@ -131,3 +131,53 @@ def test_bare_apex_matches_suffix_table() -> None:
     kind, dom = classify_apply("https://greenhouse.io/anything")
     assert kind == "ats"
     assert dom == "greenhouse.io"
+
+
+def test_userinfo_trick_uses_real_host() -> None:
+    # urlsplit().hostname excludes userinfo — "greenhouse.io@evil.com"
+    # must classify by the REAL host, never the decoy before the @.
+    kind, dom = classify_apply("https://greenhouse.io@evil.com/x")
+    assert kind == "company_site"
+    assert dom == "evil.com"
+
+
+def test_trailing_dot_and_deep_subdomain() -> None:
+    kind, dom = classify_apply("https://boards.greenhouse.io.:443/x")
+    assert (kind, dom) == ("ats", "boards.greenhouse.io")
+    kind, _ = classify_apply("https://sub.jobs.lever.co/x")
+    assert kind == "ats"
+
+
+def test_ipv6_and_dotless_hosts_unknown() -> None:
+    assert classify_apply("https://[2001:db8::1]/apply").kind == "unknown"
+    assert classify_apply("https://localhost/x").kind == "unknown"
+
+
+def test_backslash_parser_differential() -> None:
+    # Browsers (WHATWG) treat "\" as "/" in http(s) URLs; urlsplit does not.
+    # Without normalization this URL classifies by the decoy ATS host while
+    # a browser navigates to evil.com. Review-pinned (P5 correctness lane).
+    kind, dom = classify_apply("https://evil.com\\@greenhouse.io/x")
+    assert kind == "company_site"
+    assert dom == "evil.com"
+
+
+def test_non_dns_hosts_unknown() -> None:
+    # Unicode / percent-junk hosts never reach a trusted bucket.
+    assert classify_apply("https://münchen.de/jobs").kind == "unknown"
+    assert classify_apply("https://foo%00bar.com/x").kind == "unknown"
+
+
+def test_enterprise_ats_additions() -> None:
+    assert classify_apply("https://career5.successfactors.eu/x").kind == "ats"
+    assert classify_apply("https://jpmc.fa.oraclecloud.com/hcmUI/x").kind == "ats"
+
+
+def test_auto_submit_subset_is_within_ats_table() -> None:
+    # P6 contract: assisted submission may only key on this subset, and the
+    # subset must stay inside the ATS table (review-pinned).
+    from jobhunt.apply_target import _ATS_DOMAINS, AUTO_SUBMIT_DOMAINS
+
+    assert AUTO_SUBMIT_DOMAINS <= _ATS_DOMAINS
+    assert "taleo.net" not in AUTO_SUBMIT_DOMAINS
+    assert "myworkdayjobs.com" not in AUTO_SUBMIT_DOMAINS

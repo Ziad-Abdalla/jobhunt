@@ -16,8 +16,9 @@
     <h1>Apply</h1>
     <p>Where does applying actually happen? Every job's apply link is classified by
     what sits behind it: a structured <span class="badge ok">ATS form</span>
-    (Greenhouse, Lever, …), a <span class="badge warn">board relay</span> (the
-    listing page on a job board — the real form is one hop away), or the company's
+    (Greenhouse, Lever, …), a <span class="badge warn">job board</span> (you apply
+    on the board itself — sometimes with a board account, like Wuzzuf — or its
+    listing points on to the real form), or the company's
     <span class="badge bad">own site</span> (an arbitrary web form). Pick your
     targets by effort.</p>
 
@@ -32,7 +33,7 @@
           <select name="kind">
             <option value="" {% if not kind %}selected{% endif %}>Any ({{ "{:,}".format(kind_counts['ats'] + kind_counts['aggregator_relay'] + kind_counts['company_site'] + kind_counts['unknown']) }})</option>
             <option value="ats" {% if kind == 'ats' %}selected{% endif %}>ATS form ({{ "{:,}".format(kind_counts['ats']) }})</option>
-            <option value="aggregator_relay" {% if kind == 'aggregator_relay' %}selected{% endif %}>Board relay ({{ "{:,}".format(kind_counts['aggregator_relay']) }})</option>
+            <option value="aggregator_relay" {% if kind == 'aggregator_relay' %}selected{% endif %}>Job board ({{ "{:,}".format(kind_counts['aggregator_relay']) }})</option>
             <option value="company_site" {% if kind == 'company_site' %}selected{% endif %}>Company site ({{ "{:,}".format(kind_counts['company_site']) }})</option>
             <option value="unknown" {% if kind == 'unknown' %}selected{% endif %}>Unknown ({{ "{:,}".format(kind_counts['unknown']) }})</option>
           </select>

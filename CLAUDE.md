@@ -4,13 +4,16 @@
 Local-first Python job aggregator. FastAPI + Jinja2 + HTMX + SQLite. No build step.
 PyPI: `jobhunt-app`. CLI: `jobhunt`. MIT licensed, public repo.
 
-## 3 Sections
+## 4 Sections
 - **Jobs** (`/`) — main search, 16 filters, thousands of jobs from 160+ sources
   (tech-focused, plus Egypt via Wuzzuf).
 - **Local Jobs** (`/local`) — **zero-experience local roles (cleaning, retail,
   warehouse, hospitality, care, customer service, driving)** with a *What kind of
   work* toggle for tech. UK + Germany focus. Defaults to `category=nontech`.
 - **Freelance** (`/freelance`) — contract/freelance roles
+- **Apply** (`/apply`) — P5 collection view: jobs grouped by application flow
+  (`apply_kind`: ats / aggregator_relay / company_site / unknown). Feeds the
+  P6 Cowork handoff.
 
 ## Session continuity
 Resume anchor: [`docs/internal/SESSION_LOG.md`](docs/internal/SESSION_LOG.md) — read the latest entry
@@ -63,7 +66,7 @@ ruff check src/              # style + bug lint
 ```
 
 ## Architecture
-- `main.py` — all routes (7 pages + ~15 API endpoints incl. /api/uninstall-now)
+- `main.py` — all routes (8 pages + ~15 API endpoints incl. /api/uninstall-now)
 - `scrapers/` — 22 adapters (findajob removed in v0.9.1; 2026-07 added wuzzuf [Egypt],
   remotive, workingnomads, weworkremotely, pythonjobs — all free/no-auth)
 - `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
@@ -77,13 +80,19 @@ ruff check src/              # style + bug lint
 - `scoring.py` — transparent 0–4 quality score + P4 reachability
   (`home_region_from_location`, `reachability_weights`). Stored `cv_match`
   stays pure fit — never bake geo into it; ranking applies it at query time.
+- `apply_target.py` — **`classify_apply(url)`** → (apply_kind, apply_domain):
+  pure URL-host classification against curated ATS/aggregator allow-lists,
+  suffix-safe matching, never guesses from host tokens. Feeds `/apply` + the
+  P6 Cowork routing, so false 'ats' labels are the failure mode to avoid.
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `config.py` — pydantic-settings, reads from env vars + `.env` file
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
   normalization + **`_backfill_categories`** (one-time pass on startup)
 - `models.py` — `Job.category` ('tech' / 'nontech' / 'other') +
   `Job.geo_restrict` ('us-only' / 'uk-only' / 'eu-only' / 'restricted-other' /
-  'unrestricted' / 'unknown')
+  'unrestricted' / 'unknown') + `Job.apply_kind` (nullable — NULL means
+  "pre-P5, not yet backfilled"; readers coalesce to 'unknown') /
+  `Job.apply_domain`
 
 ## Distribution
 - PyPI: `pip install jobhunt-app` / `uv tool install jobhunt-app`
