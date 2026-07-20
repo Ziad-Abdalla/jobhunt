@@ -12,6 +12,7 @@ import yaml
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .apply_target import classify_apply
 from .config import settings
 from .db import db_session, init_db
 from .dedup import description_hash, fingerprint
@@ -207,6 +208,7 @@ def _persist(
 
     category = classify_category(raw.title, raw.description)
     geo_restrict = extract_geo(raw.description, title=raw.title)
+    apply_kind, apply_domain = classify_apply(raw.url)
 
     if existing is None:
         job = Job(
@@ -229,6 +231,8 @@ def _persist(
             salary_estimated=salary_estimated,
             category=category,
             geo_restrict=geo_restrict,
+            apply_kind=apply_kind,
+            apply_domain=apply_domain,
             skills=ex.skills,
             languages=ex.languages,
             description=raw.description,
@@ -261,6 +265,9 @@ def _persist(
     existing.languages = ex.languages
     existing.category = category
     existing.geo_restrict = geo_restrict
+    # Classify from the URL the row actually carries: raw.url when present,
+    # else the existing URL (the "existing.url" fallback above).
+    existing.apply_kind, existing.apply_domain = classify_apply(existing.url)
     existing.score = score
     if raw.posted_at and not existing.posted_at:
         existing.posted_at = raw.posted_at

@@ -50,6 +50,14 @@ class Job(Base):
     # restricted-other | unrestricted | unknown. Computed by extract.extract_geo.
     geo_restrict: Mapped[str] = mapped_column(String(24), default="unknown", index=True)
 
+    # Application-flow bucket (P5): ats | aggregator_relay | company_site |
+    # unknown. Computed by apply_target.classify_apply. Nullable with no
+    # default: pre-P5 rows stay NULL until the one-time backfill rewrites
+    # them (NULL is the backfill's own sentinel; readers coalesce to
+    # 'unknown'). _persist always writes a value.
+    apply_kind: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    apply_domain: Mapped[str] = mapped_column(String(256), default="")
+
     skills: Mapped[list[str]] = mapped_column(JSON, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, default=list)
 

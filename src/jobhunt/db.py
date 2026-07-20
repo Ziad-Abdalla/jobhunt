@@ -58,11 +58,25 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
             "geo_restrict",
             "ALTER TABLE jobs ADD COLUMN geo_restrict VARCHAR(24) DEFAULT 'unknown'",
         ),
+        # P5: nullable on purpose — NULL marks "not yet classified" for the
+        # one-time backfill; _persist writes a value on every insert/update.
+        ("apply_kind", "ALTER TABLE jobs ADD COLUMN apply_kind VARCHAR(16)"),
+        ("apply_domain", "ALTER TABLE jobs ADD COLUMN apply_domain VARCHAR(256) DEFAULT ''"),
     ],
     "scrape_runs": [
         ("board", "ALTER TABLE scrape_runs ADD COLUMN board VARCHAR(128) DEFAULT ''"),
     ],
 }
+
+
+# `ALTER TABLE … ADD COLUMN` doesn't create the model's column index on an
+# UPGRADED database (create_all skips existing tables), so indexed forward
+# columns need explicit DDL. geo_restrict shipped in P3 without this — the
+# statement below repairs upgraded installs on next boot.
+_FORWARD_INDEXES: list[str] = [
+    "CREATE INDEX IF NOT EXISTS ix_jobs_geo_restrict ON jobs (geo_restrict)",
+    "CREATE INDEX IF NOT EXISTS ix_jobs_apply_kind ON jobs (apply_kind)",
+]
 
 
 def _apply_forward_migrations() -> None:
@@ -78,6 +92,8 @@ def _apply_forward_migrations() -> None:
                 if col_name not in existing:
                     log.info("migrating: %s", ddl)
                     conn.execute(text(ddl))
+        for ddl in _FORWARD_INDEXES:
+            conn.execute(text(ddl))
 
 
 def _normalize_employment_types() -> None:
@@ -179,6 +195,81 @@ def _maybe_start_backfill() -> None:
         name="jobhunt-backfill",
     ).start()
     _BACKFILL_THREAD_STARTED = True
+
+
+# ── P5: one-time apply-target backfill ────────────────────────────────────
+# Pre-P5 rows have apply_kind NULL (the forward ALTER adds the column with
+# no default). The backfill rewrites NULL → classify_apply(url), writing
+# 'unknown' explicitly so a row is never revisited. Self-gating: once no
+# NULLs remain there is nothing to scan — no user_version coupling with the
+# P3 refingerprint gate (which retries on failure and owns that counter).
+
+_APPLY_BACKFILL_THREAD_STARTED = False
+
+
+def _apply_backfill_chunk_once() -> int:
+    """Classify up to _BACKFILL_CHUNK NULL-apply_kind rows. Returns rows done."""
+    from .apply_target import classify_apply
+
+    with _engine.begin() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT id, url FROM jobs WHERE apply_kind IS NULL LIMIT :limit"
+            ),
+            {"limit": _BACKFILL_CHUNK},
+        ).fetchall()
+        if not rows:
+            return 0
+        for row_id, url in rows:
+            kind, domain = classify_apply(url or "")
+            conn.execute(
+                text(
+                    "UPDATE jobs SET apply_kind = :kind, apply_domain = :domain "
+                    "WHERE id = :id"
+                ),
+                {"kind": kind, "domain": domain, "id": row_id},
+            )
+    return len(rows)
+
+
+def _apply_backfill_async() -> None:
+    while True:
+        try:
+            n = _apply_backfill_chunk_once()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("apply-target backfill chunk failed: %s", exc)
+            return
+        if n < _BACKFILL_CHUNK:
+            log.info("apply-target backfill: finished")
+            return
+
+
+def _maybe_start_apply_backfill() -> None:
+    """Kick off the apply-target backfill in the background when any NULL
+    rows remain. Same never-block-boot pattern as the category backfill."""
+    global _APPLY_BACKFILL_THREAD_STARTED
+    if _APPLY_BACKFILL_THREAD_STARTED:
+        return
+
+    insp = inspect(_engine)
+    if not insp.has_table("jobs"):
+        return
+    with _engine.begin() as conn:
+        remaining = conn.execute(
+            text("SELECT COUNT(*) FROM jobs WHERE apply_kind IS NULL")
+        ).scalar_one()
+    if not remaining:
+        return
+
+    import threading
+
+    log.info("apply-target backfill: %d rows queued (background)", remaining)
+    threading.Thread(
+        target=_apply_backfill_async,
+        daemon=True,
+        name="jobhunt-apply-backfill",
+    ).start()
+    _APPLY_BACKFILL_THREAD_STARTED = True
 
 
 _FTS_AVAILABLE: bool | None = None
@@ -422,6 +513,7 @@ def init_db() -> None:
     _maybe_refingerprint()
     _setup_fts()
     _maybe_start_backfill()
+    _maybe_start_apply_backfill()
 
 
 @contextmanager
