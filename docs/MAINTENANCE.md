@@ -73,6 +73,7 @@ rituals in §6; new-API discovery is a periodic active search (§7).
 | `workingnomads` | none | Remote aggregator (JSON) | Remote tech | Global |
 | `weworkremotely` | none | Per-category remote RSS | Remote tech | Global |
 | `pythonjobs` | none | python.org job board RSS | Python roles | Global |
+| `jsearch` | **key** | JSearch/RapidAPI — Google-for-Jobs aggregation | Egypt/MENA + remote (indirect) | **Egypt/MENA** (with key) |
 
 > 🗒️ 2026-07 expansion added the 5 rows above (17 → 22 sources): `wuzzuf` closes
 > the Egypt/MENA gap; the four remote sources broaden worldwide-remote coverage.
