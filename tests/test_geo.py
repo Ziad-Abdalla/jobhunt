@@ -139,6 +139,21 @@ def test_local_cairo_finds_egypt_jobs(clean_db):
     assert "RegionMapAcme Egypt" in resp.text
 
 
+def test_job_cards_render_dir_auto(clean_db):
+    init_db()
+    with db_session() as s:
+        s.add(Job(
+            fingerprint="rtltest0000000000000000000000000", source=_TEST_SOURCE,
+            source_id="wz-rtl", url="https://wuzzuf.net/jobs/p/rtl",
+            company="RtlAcme Egypt", title="محاسب", location="Cairo, Egypt",
+            description="x" * 60,
+        ))
+    client = TestClient(app)
+    resp = client.get("/jobs", params={"company": "RtlAcme"})
+    assert resp.status_code == 200
+    assert 'dir="auto"' in resp.text
+
+
 def test_index_renders_geo_dropdown():
     init_db()
     client = TestClient(app)

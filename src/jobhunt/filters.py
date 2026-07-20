@@ -27,7 +27,8 @@ class JobQuery:
     employment_type: str = ""        # full-time | part-time | contract | internship
     min_salary: int | None = None     # minimum annual salary
     visa_sponsorship: str = ""        # yes | no | ""
-    geo: str = ""                     # us-only | uk-only | eu-only | restricted-other | unrestricted | unknown | ""
+    # us-only | uk-only | eu-only | restricted-other | unrestricted | unknown
+    geo: str = ""
     min_cv_match: float | None = None  # 0..1
     limit: int = 50
     offset: int = 0

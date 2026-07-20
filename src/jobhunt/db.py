@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -52,7 +54,10 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("salary_estimated", "ALTER TABLE jobs ADD COLUMN salary_estimated BOOLEAN DEFAULT 0"),
         ("visa_sponsorship", "ALTER TABLE jobs ADD COLUMN visa_sponsorship VARCHAR(32) DEFAULT 'unknown'"),
         ("category", "ALTER TABLE jobs ADD COLUMN category VARCHAR(16) DEFAULT 'other'"),
-        ("geo_restrict", "ALTER TABLE jobs ADD COLUMN geo_restrict VARCHAR(24) DEFAULT 'unknown'"),
+        (
+            "geo_restrict",
+            "ALTER TABLE jobs ADD COLUMN geo_restrict VARCHAR(24) DEFAULT 'unknown'",
+        ),
     ],
     "scrape_runs": [
         ("board", "ALTER TABLE scrape_runs ADD COLUMN board VARCHAR(128) DEFAULT ''"),
@@ -280,30 +285,27 @@ def wal_checkpoint() -> None:
 # recognize old-scheme fingerprints, both plain and P1-salted (source_id).
 # ---------------------------------------------------------------------------
 
-import hashlib as _hashlib
-import re as _re
-
-_LEGACY_WS = _re.compile(r"\s+")
-_LEGACY_NON_ALNUM = _re.compile(r"[^a-z0-9 ]+")
+_LEGACY_WS = re.compile(r"\s+")
+_LEGACY_NON_ALNUM = re.compile(r"[^a-z0-9 ]+")
 
 
 def _legacy_norm_title(title: str) -> str:
     t = title.lower()
-    t = _re.sub(r"\(.*?\)", " ", t)
-    t = _re.sub(r"\[.*?\]", " ", t)
-    t = _re.sub(
+    t = re.sub(r"\(.*?\)", " ", t)
+    t = re.sub(r"\[.*?\]", " ", t)
+    t = re.sub(
         r"\b(sr\.?|senior|jr\.?|junior|staff|principal|lead|"
         r"intern|internship|new grad|entry[- ]level)\b",
         " ", t,
     )
-    t = _re.sub(r"\b(remote|hybrid|onsite|on[- ]site)\b", " ", t)
+    t = re.sub(r"\b(remote|hybrid|onsite|on[- ]site)\b", " ", t)
     t = _LEGACY_NON_ALNUM.sub(" ", t)
     return _LEGACY_WS.sub(" ", t).strip()
 
 
 def _legacy_norm_company(company: str) -> str:
     c = company.lower()
-    c = _re.sub(r"\b(inc|llc|ltd|gmbh|sa|sas|plc|corp|corporation)\b\.?", "", c)
+    c = re.sub(r"\b(inc|llc|ltd|gmbh|sa|sas|plc|corp|corporation)\b\.?", "", c)
     c = _LEGACY_NON_ALNUM.sub(" ", c)
     return _LEGACY_WS.sub(" ", c).strip()
 
@@ -332,7 +334,7 @@ def _legacy_fingerprint(company: str, title: str, location: str, salt: str = "")
     )
     if salt:
         key = f"{key}|{salt}"
-    return _hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
 
 
 def _refingerprint_once() -> int:

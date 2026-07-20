@@ -2,6 +2,30 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P3 — Egypt/Arabic extraction quality)
+- **Arabic-aware extraction.** Level, employment type, remote/hybrid/onsite,
+  and years-of-experience keyword tables now cover Arabic (Wuzzuf postings);
+  Arabic-Indic digits are normalized before numeric extraction. Arabic
+  postings with no signal stay `unknown` instead of being guessed
+  mid/Full-time — they now appear correctly in junior/intern filters.
+- **Wuzzuf structured metadata.** `career_level` / `experience` / `job_type`
+  now map directly to level, min-years, and employment type
+  (structured-fields-first, regex as fallback).
+- **Remote eligibility filter.** New `geo_restrict` field
+  (us-only / uk-only / eu-only / restricted-other / unrestricted / unknown)
+  extracted from every JD, filterable on the Jobs page — "Remote (US only)"
+  no longer looks apply-able from Egypt.
+- **Egypt/GCC salary estimates.** Estimator gains egypt (EGP) and gcc (AED)
+  regions; Cairo jobs no longer priced as generic-USD "other".
+- **/local knows Egypt.** Cairo/Giza/Alexandria (+ Arabic aliases) region
+  expansions; job cards render Arabic titles RTL via `dir="auto"`.
+
+### Fixed (P3)
+- **Arabic titles no longer break dedup.** Fingerprint normalization is
+  Unicode-aware + NFC (previously an all-Arabic title normalized to an empty
+  string); a one-time migration rewrites affected stored fingerprints
+  (gated on `PRAGMA user_version`).
+
 ### Added
 - **5 new free, no-auth sources.** `wuzzuf` (largest Egypt job board — closes the
   project's zero-Egypt-coverage gap, ~2900 live jobs via RSS), plus worldwide-remote

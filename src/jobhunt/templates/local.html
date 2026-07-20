@@ -106,13 +106,13 @@
         {% for j in jobs %}
         <li class="card">
           <div class="card-head">
-            <a class="title" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">{{ j.title }}</a>
+            <a class="title" dir="auto" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">{{ j.title }}</a>
             <div class="head-meta">
               {% if j.level and j.level != 'unknown' %}<span class="badge ok">{{ j.level }}</span>{% endif %}
             </div>
           </div>
           <div class="card-meta">
-            <span class="company">{{ j.company }}</span>
+            <span class="company" dir="auto">{{ j.company }}</span>
             {% if j.location %}<span class="dot">·</span><span>{{ j.location }}</span>{% endif %}
             {% if j.remote and j.remote != 'unknown' %}<span class="badge remote-{{ j.remote }}">{{ j.remote }}</span>{% endif %}
             {% if j.employment_type and j.employment_type != 'unknown' %}<span class="badge">{{ j.employment_type }}</span>{% endif %}

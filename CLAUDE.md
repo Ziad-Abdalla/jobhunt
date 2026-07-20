@@ -5,7 +5,7 @@ Local-first Python job aggregator. FastAPI + Jinja2 + HTMX + SQLite. No build st
 PyPI: `jobhunt-app`. CLI: `jobhunt`. MIT licensed, public repo.
 
 ## 3 Sections
-- **Jobs** (`/`) — main search, 15 filters, thousands of jobs from 160+ sources
+- **Jobs** (`/`) — main search, 16 filters, thousands of jobs from 160+ sources
   (tech-focused, plus Egypt via Wuzzuf).
 - **Local Jobs** (`/local`) — **zero-experience local roles (cleaning, retail,
   warehouse, hospitality, care, customer service, driving)** with a *What kind of
@@ -69,13 +69,17 @@ ruff check src/              # style + bug lint
 - `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
 - `refresh.py` — scrape pipeline + employment type normalization + category derivation
 - `extract.py` — regex extractors (level, remote, salary, skills, languages,
-  **`classify_category`** → tech/nontech/other)
-- `filters.py` — search query builder, 15 stackable filters
+  **`classify_category`** → tech/nontech/other, **`extract_geo`** →
+  remote-eligibility buckets, Arabic keyword tables + `is_arabic_dominant`
+  don't-guess guard, Arabic-Indic digit normalization)
+- `filters.py` — search query builder, 16 stackable filters
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `config.py` — pydantic-settings, reads from env vars + `.env` file
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
   normalization + **`_backfill_categories`** (one-time pass on startup)
-- `models.py` — `Job.category` column ('tech' / 'nontech' / 'other')
+- `models.py` — `Job.category` ('tech' / 'nontech' / 'other') +
+  `Job.geo_restrict` ('us-only' / 'uk-only' / 'eu-only' / 'restricted-other' /
+  'unrestricted' / 'unknown')
 
 ## Distribution
 - PyPI: `pip install jobhunt-app` / `uv tool install jobhunt-app`

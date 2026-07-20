@@ -37,9 +37,14 @@ jobhunt
 
 ### Jobs (main search)
 Thousands of software roles from 130+ company boards.
-Filters: keyword, company, location, remote/hybrid/onsite, level, job type,
-salary, degree, experience, languages, skills, posted date, visa sponsorship,
-CV match, sort order.
+Filters: keyword, company, location, remote/hybrid/onsite, remote eligibility
+(worldwide-friendly vs US/EU/UK-only), level, job type, salary, degree,
+experience, languages, skills, posted date, visa sponsorship, CV match,
+sort order.
+
+Egypt coverage via Wuzzuf is fully filterable: extraction understands Arabic
+job postings (level, job type, remote, years of experience), estimates Cairo
+salaries in EGP, and renders Arabic titles right-to-left.
 
 ### Local Jobs
 Zero-experience local work near you — cleaning, retail, warehouse, hospitality,
