@@ -57,7 +57,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 245 unit tests (was 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 260 unit tests (was 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -72,7 +72,11 @@ ruff check src/              # style + bug lint
   **`classify_category`** → tech/nontech/other, **`extract_geo`** →
   remote-eligibility buckets, Arabic keyword tables + `is_arabic_dominant`
   don't-guess guard, Arabic-Indic digit normalization)
-- `filters.py` — search query builder, 16 stackable filters
+- `filters.py` — search query builder, 16 stackable filters + the P4 rank
+  expression (relevance = `score × (1 + 1.5·cv_match) × reach_weight`)
+- `scoring.py` — transparent 0–4 quality score + P4 reachability
+  (`home_region_from_location`, `reachability_weights`). Stored `cv_match`
+  stays pure fit — never bake geo into it; ranking applies it at query time.
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `config.py` — pydantic-settings, reads from env vars + `.env` file
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type

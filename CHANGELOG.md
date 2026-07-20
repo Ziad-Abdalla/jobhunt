@@ -2,6 +2,15 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P4 — ranking reflects reachability)
+- **Relevance sort blends CV match.** Once a CV is uploaded, the default
+  "relevance" sort ranks by `score × (1 + 1.5·cv_match)` — no more manually
+  switching to the CV sort and losing recency. The stored match % is unchanged.
+- **Unreachable remote jobs sink.** When `JOBHUNT_USER_LOCATION` is set,
+  jobs geo-restricted to a region you're not in (e.g. "US only" seen from
+  Cairo) are demoted (×0.35) in relevance and CV sorts — demoted, never
+  hidden, and `unknown`/`restricted-other` buckets are never penalized.
+
 ### Added (P3 — Egypt/Arabic extraction quality)
 - **Arabic-aware extraction.** Level, employment type, remote/hybrid/onsite,
   and years-of-experience keyword tables now cover Arabic (Wuzzuf postings);

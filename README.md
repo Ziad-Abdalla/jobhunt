@@ -71,7 +71,9 @@ mode, and salary. Sorted by most recently posted.
 - **Salary on every job**: real data where available, plus a self-calibrating estimator.
 - **CV match**: upload your CV and sort jobs by how well they fit your experience.
   Works without any extra install — keyword overlap by default, free
-  semantic-similarity upgrade via `jobhunt-app[match]`.
+  semantic-similarity upgrade via `jobhunt-app[match]`. Once loaded, the default
+  relevance sort blends the match score automatically; set
+  `JOBHUNT_USER_LOCATION` and geo-restricted jobs you can't apply to sink too.
 - **Saved search alerts**: desktop notifications when new matching jobs appear.
 - **Settings page**: update, clear data, enter API keys, uninstall — all from the UI.
 - **Auto-refresh**: re-scrape every N hours in the background.
