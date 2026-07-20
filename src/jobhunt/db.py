@@ -514,6 +514,11 @@ def check_integrity() -> tuple[bool, str]:
 
 
 def init_db() -> None:
+    # Register the PII tables (own module — see the P6 import guard) with
+    # Base.metadata before create_all. db.py is NOT part of the scrape
+    # pipeline, so this import doesn't weaken the locality gate.
+    from . import cowork_models  # noqa: F401
+
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)
     _normalize_employment_types()
