@@ -91,6 +91,40 @@ def _find_free_port(preferred: int) -> int:
         return s.getsockname()[1]
 
 
+apply_app = typer.Typer(help="Application-queue commands (Cowork handoff).")
+app.add_typer(apply_app, name="apply")
+
+
+@apply_app.command("export")
+def apply_export(
+    status: str = typer.Option("queued", help="queued | drafted | approved | submitted"),
+) -> None:
+    """Print the Cowork handoff JSON (mirror of GET /api/cowork/export).
+
+    Honors the same default-OFF toggle as the HTTP endpoint; the CLI runs
+    on the local machine by definition, so the loopback gate is satisfied."""
+    import json as _json
+
+    from .config import settings as _settings
+    from .cowork_export import build_export_document
+    from .cowork_models import APPLICATION_STATUSES
+    from .db import db_session as _dbs
+
+    if not _settings.cowork_export:
+        typer.echo(
+            "Cowork export is disabled. Set JOBHUNT_COWORK_EXPORT=1 to enable.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    if status not in APPLICATION_STATUSES:
+        typer.echo(f"unknown status: {status}", err=True)
+        raise typer.Exit(code=2)
+    init_db()
+    with _dbs() as s:
+        doc = build_export_document(s, status)
+    typer.echo(_json.dumps(doc, ensure_ascii=False, indent=2))
+
+
 @app.command()
 def scrape() -> None:
     """Run all configured scrapers, dedup, and sweep stale listings."""

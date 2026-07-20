@@ -169,3 +169,29 @@ class TestWriteback:
             "application_id": 99999999, "fields_filled": {},
         })
         assert r.status_code == 404
+
+
+class TestCliMirror:
+    def test_cli_export_matches_route(self):
+        import json
+
+        from typer.testing import CliRunner
+
+        from jobhunt.cli import app as cli_app
+
+        _queue()
+        result = CliRunner().invoke(cli_app, ["apply", "export", "--status", "queued"])
+        assert result.exit_code == 0, result.output
+        doc = json.loads(result.output)
+        api_doc = local.get("/api/cowork/export", params={"status": "queued"}).json()
+        assert doc["applications"] == api_doc["applications"]
+
+    def test_cli_refuses_when_toggle_off(self, monkeypatch):
+        from typer.testing import CliRunner
+
+        from jobhunt.cli import app as cli_app
+        from jobhunt.config import settings
+
+        monkeypatch.setattr(settings, "cowork_export", False)
+        result = CliRunner().invoke(cli_app, ["apply", "export"])
+        assert result.exit_code == 2
