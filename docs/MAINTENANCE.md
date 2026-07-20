@@ -325,6 +325,9 @@ survives without you having to remember the whole maintenance picture.
 2026-05-28  add     arbeitsagentur/Kundenservice                    — DE non-tech parity with UK Reed Customer Service          — v0.10.2
 2026-05-28  add     arbeitsagentur/Pflegehelfer                     — DE non-tech parity with UK Reed Care                      — v0.10.2
 2026-05-28  add     arbeitsagentur/Sicherheitsmitarbeiter           — DE non-tech parity with UK Reed Security                  — v0.10.2
+2026-07-20  add     greenhouse/tamara                              — MENA (Saudi) fintech; live-verified 39 jobs              — P7 expansion
+2026-07-20  add     greenhouse/careem                              — MENA (UAE/Egypt) super-app; live-verified 28 jobs        — P7 expansion
+2026-07-20  remove  greenhouse/unity3d                             — 404; Unity left public greenhouse, no findable ATS slug  — doctor pass (170 sources: 130 ok, 39 warn, 1 error)
 ```
 
 When the skill runs, it appends its findings here as `verify` /
