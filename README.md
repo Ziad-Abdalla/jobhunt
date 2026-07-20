@@ -90,7 +90,10 @@ off by default, no passport/ID fields, credential-paste rejection).
   semantic-similarity upgrade via `jobhunt-app[match]`. Once loaded, the default
   relevance sort blends the match score automatically; set
   `JOBHUNT_USER_LOCATION` and geo-restricted jobs you can't apply to sink too.
-- **Saved search alerts**: desktop notifications when new matching jobs appear.
+- **Saved search alerts**: get notified when new matching jobs appear —
+  desktop, plus Telegram and email if you configure them (so you catch a
+  match while away). Target a search to specific sources, and mark it
+  priority for a fast-poll tier that re-checks those sources more often.
 - **Settings page**: update, clear data, enter API keys, uninstall — all from the UI.
 - **Auto-refresh**: re-scrape every N hours in the background.
 

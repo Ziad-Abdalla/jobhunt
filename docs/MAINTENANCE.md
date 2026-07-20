@@ -244,6 +244,16 @@ If a check fails, file an audit entry (§10) and run the
 
 ## 7. Periodic active search (every ~6 months)
 
+**New in P7 (2026-07):** `jobhunt discover-boards` automates the "harvest new
+ATS board slugs" half. It fetches public GitHub company directories
+(remoteintech/remote-jobs, awesome-remote-job), extracts Greenhouse/Lever/
+Ashby/Workable/SmartRecruiters/Recruitee slugs, dedupes against the current
+`sources.yaml`, and writes UNVERIFIED candidates to
+`data/discovered_boards.yaml`. It NEVER edits `sources.yaml` — run
+`jobhunt doctor` against the merged entries and drop any 404s before shipping
+(the verify-before-ship rule). Known limitation: directories that link to
+per-company profile files (rather than embedding ATS URLs) are under-harvested.
+
 The skill does the heavy lifting, but a human eye every six months
 catches things the skill won't:
 - New free APIs we don't know to search for.

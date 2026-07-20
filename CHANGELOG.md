@@ -2,6 +2,23 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P7 — off-machine alerts + coverage growth)
+- **Telegram + email alerts.** Saved-search alerts now fan out to Telegram
+  (set `JOBHUNT_TELEGRAM_BOT_TOKEN` + `JOBHUNT_TELEGRAM_CHAT_ID`) and email
+  (`JOBHUNT_SMTP_HOST` + `JOBHUNT_SMTP_TO`, STARTTLS) on top of the desktop
+  notification — so you catch a new match while away from the machine. Each
+  channel self-gates on its config; with nothing set, behavior is exactly
+  the old desktop-only. Tokens/passwords are redacted from `jobhunt backup`.
+- **Per-search source filter + priority fast-poll.** A saved search can
+  target only chosen sources, and a "priority" search gets a fast-poll tier
+  (`JOBHUNT_FAST_POLL_MINUTES`) that re-scrapes just its sources on a tight
+  interval — an early-application edge without hammering all 150+ sources.
+- **`jobhunt discover-boards`.** Harvests new ATS board slugs from public
+  GitHub company directories and writes UNVERIFIED candidates to a review
+  file (never straight into `sources.yaml` — run `jobhunt doctor` first).
+- **2 MENA employer boards** (Tamara, Careem via Greenhouse — live-verified),
+  widening Egypt/GCC coverage.
+
 ### Added (P6 — applicant profile + Cowork application handoff)
 - **Applicant profile (`/profile`).** The details application forms ask for,
   entered once. Local-only by construction: the page and every handoff

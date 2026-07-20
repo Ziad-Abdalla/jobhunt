@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 399 unit tests (was 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 419 unit tests (was 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -98,6 +98,11 @@ ruff check src/              # style + bug lint
   Shared by `/api/cowork/export` and `jobhunt apply export`. Contract doc:
   `docs/cowork-handoff.md`.
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
+- `channels.py` — P7 off-machine alerts: `send_all()` fans one alert to
+  desktop + Telegram + email; each self-gates on config (empty = off).
+- `board_discovery.py` — P7 offensive maintenance: `jobhunt discover-boards`
+  harvests ATS slugs from GitHub company directories → review file (never
+  auto-merges; doctor-before-ship).
 - `config.py` — pydantic-settings, reads from env vars + `.env` file
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
   normalization + **`_backfill_categories`** (one-time pass on startup)
