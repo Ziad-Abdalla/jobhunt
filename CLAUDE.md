@@ -71,9 +71,11 @@ ruff check src/              # style + bug lint
 ```
 
 ## Architecture
-- `main.py` — all routes (8 pages + ~15 API endpoints incl. /api/uninstall-now)
-- `scrapers/` — 22 adapters (findajob removed in v0.9.1; 2026-07 added wuzzuf [Egypt],
-  remotive, workingnomads, weworkremotely, pythonjobs — all free/no-auth)
+- `main.py` — all routes (10 pages incl. /apply, /apply/tailor, /profile;
+  + ~20 API endpoints incl. /api/uninstall-now, /api/cowork/*)
+- `scrapers/` — 23 adapters (findajob removed in v0.9.1; 2026-07 added wuzzuf [Egypt],
+  remotive, workingnomads, weworkremotely, pythonjobs — free/no-auth; jsearch [P8,
+  BYO-key RapidAPI, indirect Egypt/MENA+remote, off by default])
 - `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
 - `refresh.py` — scrape pipeline + employment type normalization + category derivation
 - `extract.py` — regex extractors (level, remote, salary, skills, languages,

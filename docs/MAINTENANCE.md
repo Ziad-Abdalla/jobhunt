@@ -47,7 +47,7 @@ rituals in §6; new-API discovery is a periodic active search (§7).
 
 ---
 
-## 2. The 17 sources we ship today
+## 2. The 23 source adapters we ship today
 
 | Source | Auth | Coverage | Strong for | Country bias |
 |---|---|---|---|---|
@@ -75,9 +75,10 @@ rituals in §6; new-API discovery is a periodic active search (§7).
 | `pythonjobs` | none | python.org job board RSS | Python roles | Global |
 | `jsearch` | **key** | JSearch/RapidAPI — Google-for-Jobs aggregation | Egypt/MENA + remote (indirect) | **Egypt/MENA** (with key) |
 
-> 🗒️ 2026-07 expansion added the 5 rows above (17 → 22 sources): `wuzzuf` closes
-> the Egypt/MENA gap; the four remote sources broaden worldwide-remote coverage.
-> All free, no-auth, live-verified. See `docs/internal/EXPANSION_PLAN_2026_07_20.md`.
+> 🗒️ 2026-07 expansion (17 → 23 adapters): first `wuzzuf` + 4 remote sources
+> (all free, no-auth, live-verified) closed the Egypt/MENA + worldwide-remote
+> gaps; later `jsearch` (P8, BYO-key RapidAPI, indirect Egypt/MENA + remote,
+> off by default) was added. See `docs/internal/EXPANSION_PLAN_2026_07_20.md`.
 
 > 🗒️ `findajob` (UK DWP) was removed in v0.9.1 — DWP deprecated their
 > `?format=rss` query and every URL now returns HTML. UK non-tech
