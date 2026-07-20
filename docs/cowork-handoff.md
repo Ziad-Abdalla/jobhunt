@@ -18,25 +18,49 @@ repo so the consumer can read it from the export's `contract` field.
 
 ## Endpoints (all loopback-only + `JOBHUNT_COWORK_EXPORT=1` required)
 
+Every endpoint additionally validates the **Host header** is a loopback
+hostname (anti-DNS-rebinding) on top of the loopback socket-peer check.
+
 - `GET /api/cowork/export?status=queued` — applications to draft.
-- `GET /api/cowork/export?status=approved` — drafts the human approved.
+- `GET /api/cowork/export?status=approved` — drafts the human approved and
+  ready to claim. (Any of the six statuses is queryable; these two drive the
+  loop.)
 - `POST /api/cowork/draft` `{application_id, fields_filled, agent_notes}` —
-  report a draft (or `{application_id, error}` to mark failure).
+  report a draft (or `{application_id, error}` to mark failure). Re-drafting
+  an already-drafted application is allowed (report an improved draft).
+- `POST /api/cowork/claim` `{application_id}` — claim an **approved**
+  application before acting (→ `submitting`). This is the race guard: a
+  claimed application drops out of the `status=approved` poll, so a
+  crash-then-rerun or two overlapping actuators can't double-submit.
 - `POST /api/cowork/receipt` `{application_id, receipt}` — post-hoc proof
-  after submitting an **approved** application (or `{…, error}`).
+  after submitting a **claimed** (`submitting`) application (or `{…, error}`).
 - CLI mirror: `jobhunt apply export --status queued`.
 
 ## State machine (server-enforced)
 
 ```
-queued ──draft──▶ drafted ──human Approve──▶ approved ──receipt──▶ submitted
-   │                 │  └──human Reject──▶ rejected (terminal)
-   └──────────error──┴─────────────────────▶ failed  (terminal)
+queued ─draft→ drafted ─human Approve→ approved ─claim→ submitting ─receipt→ submitted
+  │  ⤷─────────  ⤷ (re-draft)              │ │                 │
+  │            └─human Reject→ rejected ⇢ (re-queue) queued     └─error→ failed
+  └────────────────── error → failed ⇢ (re-queue) queued
+                       human Cancel: approved → rejected
 ```
 
-A receipt for anything but an `approved` application is refused (409). The
-two human gates — queueing the job, approving the draft — cannot be
-skipped by the actuator, by construction.
+A receipt is refused (409) for anything but a `submitting` application, and a
+claim is refused for anything but `approved` — so a submit that skipped the
+human approve gate OR the claim can never be recorded. `rejected` and
+`failed` are **not** dead ends: the human can re-queue the job (e.g. after
+sorting out a board account). The two human gates — queueing the job and
+approving the draft — cannot be skipped by the actuator, by construction.
+
+## The loop, for an actuator
+
+1. `GET export?status=queued` → for each, fill from `field_mapping`, `POST
+   /draft`.
+2. Human reviews drafts at `/apply?view=queue`, clicks Approve.
+3. `GET export?status=approved` → `POST /claim` each **before** acting →
+   submit via your own browser/email → `POST /receipt`. Always claim first;
+   never act on an `approved` record you didn't just claim.
 
 ## Non-negotiable rules for the actuator
 
@@ -52,8 +76,10 @@ skipped by the actuator, by construction.
 3. **`allowed_domains` is a hard stop.** If a form, redirect, or submit
    target leaves the list, abort and report `error` — never a warning,
    never "just this once".
-4. **Draft ≠ submit.** `POST /draft` reports what you *would* fill. Submit
-   only applications you fetched from `status=approved`.
+4. **Draft ≠ submit; claim before you submit.** `POST /draft` reports what
+   you *would* fill. Submit only applications you fetched from
+   `status=approved` **and then claimed** (`POST /claim` → `submitting`). If
+   the claim 409s, another run already took it — do not submit.
 5. **Receipt is a message id.** One line, ≤512 chars. Never send message
    content, credentials, cookies, or tokens back to jobhunt.
 6. **`auto_submit_candidate` is information, not a license.** It marks

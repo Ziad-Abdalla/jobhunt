@@ -11,9 +11,9 @@ from jobhunt.main import app
 from jobhunt.models import Job
 
 _TEST_COMPANY = "ApplyQueueAcme"
-_ORIGIN = {"origin": "http://testserver"}
-local = TestClient(app, client=("127.0.0.1", 50000), headers=_ORIGIN)
-remote = TestClient(app, client=("203.0.113.9", 50000), headers=_ORIGIN)
+_ORIGIN = {"origin": "http://127.0.0.1"}
+local = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000), headers=_ORIGIN)
+remote = TestClient(app, base_url="http://127.0.0.1", client=("203.0.113.9", 50000), headers=_ORIGIN)
 
 
 def _job_id() -> int:
@@ -91,6 +91,38 @@ class TestApproveReject:
         assert r.status_code in (302, 303)
         with db_session() as s:
             assert s.get(Application, app_id).status == "rejected"
+
+    def test_cancel_after_approve(self):
+        app_id = self._queued()
+        with db_session() as s:
+            a = s.get(Application, app_id)
+            a.status = "approved"
+        r = local.post(f"/apply/queue/{app_id}/reject", follow_redirects=False)
+        assert r.status_code in (302, 303)
+        with db_session() as s:
+            assert s.get(Application, app_id).status == "rejected"
+
+
+class TestRequeue:
+    def test_requeue_after_rejected(self):
+        # A rejected/failed application is NOT a dead end — the Queue button
+        # re-activates it (important for board-account Wuzzuf jobs).
+        local.post(f"/apply/queue/{_job_id()}")
+        with db_session() as s:
+            a = s.query(Application).filter(Application.job_id == _job_id()).one()
+            a.status = "failed"
+            a.error = "board account required"
+            app_id = a.id
+        local.post(f"/apply/queue/{_job_id()}")
+        with db_session() as s:
+            a = s.get(Application, app_id)
+            assert a.status == "queued"
+            assert a.error == ""
+        # Still one row — re-queue reuses it, never duplicates.
+        with db_session() as s:
+            assert s.query(Application).filter(
+                Application.job_id == _job_id()
+            ).count() == 1
 
 
 class TestQueueView:

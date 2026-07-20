@@ -9,11 +9,11 @@ from jobhunt.cowork_models import ApplicantProfile
 from jobhunt.db import db_session, init_db
 from jobhunt.main import app
 
-# Browser form POSTs carry a same-origin Origin header; the app's CSRF
-# middleware requires it on non-/api/ state changes.
-_ORIGIN = {"origin": "http://testserver"}
-local = TestClient(app, client=("127.0.0.1", 50000), headers=_ORIGIN)
-remote = TestClient(app, client=("203.0.113.9", 50000), headers=_ORIGIN)
+# base_url gives a loopback Host header (the anti-DNS-rebinding gate); the
+# matching Origin satisfies the CSRF middleware on non-/api POSTs.
+_ORIGIN = {"origin": "http://127.0.0.1"}
+local = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000), headers=_ORIGIN)
+remote = TestClient(app, base_url="http://127.0.0.1", client=("203.0.113.9", 50000), headers=_ORIGIN)
 
 
 @pytest.fixture(autouse=True)
@@ -38,6 +38,29 @@ class TestLoopbackGate:
 
     def test_loopback_ok(self):
         assert local.get("/profile").status_code == 200
+
+    def test_dns_rebinding_host_rejected(self):
+        # Loopback SOCKET peer but an attacker-controlled Host (the DNS
+        # rebinding vector) must still be refused.
+        rebind = TestClient(
+            app, base_url="http://evil.example.com",
+            client=("127.0.0.1", 50000), headers={"origin": "http://evil.example.com"},
+        )
+        assert rebind.get("/profile").status_code == 403
+
+    def test_ipv4_mapped_loopback_allowed(self):
+        # Dual-stack (HOST=::) reports IPv4 clients as ::ffff:127.0.0.1.
+        mapped = TestClient(
+            app, base_url="http://127.0.0.1",
+            client=("::ffff:127.0.0.1", 50000), headers={"origin": "http://127.0.0.1"},
+        )
+        assert mapped.get("/profile").status_code == 200
+
+    def test_spoofed_forwarded_for_ignored(self):
+        # A remote peer can't fake loopback via X-Forwarded-For — the gate
+        # reads the socket peer, not the header.
+        r = remote.get("/profile", headers={"x-forwarded-for": "127.0.0.1"})
+        assert r.status_code == 403
 
 
 class TestSaveLoad:

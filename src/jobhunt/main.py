@@ -567,15 +567,38 @@ def freelance_page(
 # ---------- P6: loopback gate + applicant profile ----------
 
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1"})
+_LOOPBACK_HOSTNAMES = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def _normalize_peer(host: str) -> str:
+    # Dual-stack (HOST=::) reports an IPv4 client as ::ffff:127.0.0.1 — treat
+    # only that exact mapped-loopback form as loopback (never broaden to
+    # arbitrary mapped addresses).
+    return host[7:] if host.startswith("::ffff:") else host
+
+
+def _host_header_hostname(host_header: str) -> str:
+    """Hostname portion of a Host header, port + IPv6 brackets stripped."""
+    h = host_header.strip()
+    if h.startswith("["):  # [::1] or [::1]:8765
+        end = h.find("]")
+        return h[1:end] if end != -1 else h[1:]
+    return h.split(":")[0]
 
 
 def _require_loopback(request: Request) -> None:
     """PII endpoints answer the local machine only, INDEPENDENT of the bind
     host: with HOST=0.0.0.0 (phone-on-LAN browsing) /profile and
-    /api/cowork/* still refuse remote peers. Reads the socket peer — never
-    a spoofable header."""
+    /api/cowork/* still refuse remote peers.
+
+    Two checks, both required: (1) the socket peer is loopback (unspoofable),
+    and (2) the Host header names a loopback hostname. The Host check defeats
+    DNS rebinding — a malicious site that rebinds its name to 127.0.0.1 has a
+    loopback *peer* but an attacker-controlled *Host*, which this rejects."""
     client = request.client
-    if client is None or client.host not in _LOOPBACK_HOSTS:
+    peer = _normalize_peer(client.host) if client else ""
+    host_ok = _host_header_hostname(request.headers.get("host", "")) in _LOOPBACK_HOSTNAMES
+    if peer not in _LOOPBACK_HOSTS or not host_ok:
         raise HTTPException(
             status_code=403,
             detail="This page holds applicant data and only answers loopback "
@@ -757,6 +780,10 @@ def apply_page(
         kind_counts["unknown"] += grouped.get(None, 0)
         total = kind_counts[kind] if kind else sum(kind_counts.values())
         db_total = s.execute(select(func.count()).select_from(Job)).scalar_one()
+        from .cowork_models import Application
+        queue_count = s.execute(
+            select(func.count()).select_from(Application)
+        ).scalar_one()
     return templates.TemplateResponse(
         request,
         "apply.html",
@@ -771,10 +798,12 @@ def apply_page(
             "db_empty": db_total == 0,
             "default_source_count": 130,
             "show_apply_badge": True,
+            "show_queue_button": True,
             "kind": kind,
             "q": q.strip(),
             "remote": remote.strip(),
             "kind_counts": kind_counts,
+            "queue_count": queue_count,
         },
     )
 
@@ -867,13 +896,42 @@ def cowork_draft(
     return JSONResponse({"ok": True, "status": new_status})
 
 
+class _ClaimBody(BaseModel):
+    application_id: int
+
+
+@app.post("/api/cowork/claim")
+def cowork_claim(
+    body: _ClaimBody, request: Request, _: None = Depends(_require_cowork)
+) -> JSONResponse:
+    """Actuator claims an approved application before acting on it: moves
+    approved→submitting, which drops it out of the `status=approved` export
+    poll. This is the race guard — a crash-then-rerun (or two overlapping
+    actuators) can't both see the same approved row and double-submit. The
+    claim is idempotent-safe: a second claim of an already-submitting row
+    409s."""
+    from .cowork_models import Application, can_transition
+
+    with db_session() as s:
+        a = s.get(Application, body.application_id)
+        if a is None:
+            raise HTTPException(status_code=404, detail="no such application")
+        if not can_transition(a.status, "submitting"):
+            raise HTTPException(
+                status_code=409, detail=f"cannot claim from {a.status}"
+            )
+        a.status = "submitting"
+        a.updated_at = datetime.now(UTC)
+    return JSONResponse({"ok": True, "status": "submitting"})
+
+
 @app.post("/api/cowork/receipt")
 def cowork_receipt(
     body: _ReceiptBody, request: Request, _: None = Depends(_require_cowork)
 ) -> JSONResponse:
-    """Post-hoc proof of a submission the human approved. Refused unless the
-    application is 'approved' — a submit that skipped gate 2 can never be
-    recorded as success."""
+    """Post-hoc proof of a submission. Legal only from 'submitting' (the
+    claimed state), so a submit that skipped the human approve gate OR the
+    claim can never be recorded as success."""
     from .cowork_models import Application, can_transition
 
     new_status = "failed" if body.error else "submitted"
@@ -899,8 +957,11 @@ def cowork_receipt(
 def apply_queue_add(
     job_id: int, request: Request, _: None = Depends(_require_loopback)
 ):
-    """Gate 1: the human queues a job for application. Idempotent."""
-    from .cowork_models import Application
+    """Gate 1: the human queues a job for application. Idempotent for an
+    active application; re-activates a terminal one (rejected/failed) so a
+    job that couldn't be actuated the first time (e.g. a board-account
+    Wuzzuf role) isn't a permanent dead-end."""
+    from .cowork_models import TERMINAL_REQUEUEABLE, Application
 
     with db_session() as s:
         job = s.get(Job, job_id)
@@ -911,6 +972,10 @@ def apply_queue_add(
         ).scalar_one_or_none()
         if existing is None:
             s.add(Application(job_id=job_id))
+        elif existing.status in TERMINAL_REQUEUEABLE:
+            existing.status = "queued"
+            existing.error = ""
+            existing.updated_at = datetime.now(UTC)
     return RedirectResponse("/apply?view=queue", status_code=303)
 
 

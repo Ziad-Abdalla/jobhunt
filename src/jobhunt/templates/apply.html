@@ -13,7 +13,7 @@
   {% include "_nav.html" %}
 
   <main class="page" style="max-width:900px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
-    <h1>Apply <a href="/apply?view=queue" style="font:600 var(--fs-sm)/1 var(--font-body);margin-left:var(--sp-3);">Queue →</a></h1>
+    <h1>Apply <a href="/apply?view=queue" style="font:600 var(--fs-sm)/1 var(--font-body);margin-left:var(--sp-3);">Queue{% if queue_count %} ({{ queue_count }}){% endif %} →</a></h1>
     <p>Where does applying actually happen? Every job's apply link is classified by
     what sits behind it: a structured <span class="badge ok">ATS form</span>
     (Greenhouse, Lever, …), a <span class="badge warn">job board</span> (you apply

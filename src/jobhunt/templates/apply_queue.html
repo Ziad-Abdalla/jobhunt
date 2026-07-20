@@ -61,9 +61,14 @@
               <button type="submit">Approve draft</button>
             </form>
           {% endif %}
-          {% if r.app.status in ('queued', 'drafted') %}
+          {% if r.app.status in ('queued', 'drafted', 'approved') %}
             <form method="post" action="/apply/queue/{{ r.app.id }}/reject" style="display:inline;">
-              <button type="submit">Reject</button>
+              <button type="submit" title="{% if r.app.status == 'approved' %}Cancel before it's submitted{% else %}Remove from the queue{% endif %}">{% if r.app.status == 'approved' %}Cancel{% else %}Reject{% endif %}</button>
+            </form>
+          {% endif %}
+          {% if r.app.status in ('rejected', 'failed') %}
+            <form method="post" action="/apply/queue/{{ r.job.id }}" style="display:inline;">
+              <button type="submit" title="Put this job back in the queue to try again">Re-queue</button>
             </form>
           {% endif %}
           {% if r.app.receipt %}<span class="badge ok" title="submission receipt (message id)">receipt: {{ r.app.receipt }}</span>{% endif %}

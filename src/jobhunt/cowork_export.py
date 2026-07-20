@@ -24,13 +24,6 @@ FIELD_MAPPING_KEYS = (
 )
 
 
-def _registrable_parent(domain: str) -> str | None:
-    parts = domain.split(".")
-    if len(parts) > 2:
-        return ".".join(parts[-2:])
-    return None
-
-
 def build_export_document(session: Session, status: str) -> dict:
     p = session.get(ApplicantProfile, 1)
     profile = {k: (getattr(p, k, "") or "") for k in FIELD_MAPPING_KEYS} if p \
@@ -47,10 +40,11 @@ def build_export_document(session: Session, status: str) -> dict:
     applications = []
     for a, j in rows:
         domain = j.apply_domain or classify_apply(j.url).domain
+        # The exact apply host only. A "registrable parent" convenience
+        # (last two labels) would whitelist a whole public suffix on
+        # multi-label TLDs (careers.acme.co.uk → co.uk), defeating the
+        # hard-stop the allow-list exists to be. Exact host is the safe floor.
         allowed = [domain] if domain else []
-        parent = _registrable_parent(domain) if domain else None
-        if parent:
-            allowed.append(parent)
         auto_ok = bool(domain) and any(
             domain == d or domain.endswith("." + d) for d in AUTO_SUBMIT_DOMAINS
         )

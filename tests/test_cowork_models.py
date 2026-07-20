@@ -67,19 +67,62 @@ def test_application_unique_per_job() -> None:
 
 def test_state_machine_shape() -> None:
     assert set(APPLICATION_STATUSES) == {
-        "queued", "drafted", "approved", "submitted", "rejected", "failed",
+        "queued", "drafted", "approved", "submitting", "submitted",
+        "rejected", "failed",
     }
     assert can_transition("queued", "drafted")
     assert can_transition("drafted", "approved")
     assert can_transition("drafted", "rejected")
-    assert can_transition("approved", "submitted")
+    assert can_transition("drafted", "drafted")        # re-draft in place
+    assert can_transition("approved", "submitting")    # claim (race guard)
+    assert can_transition("submitting", "submitted")
+    assert can_transition("approved", "rejected")      # human cancel
+    assert can_transition("rejected", "queued")        # re-queue
+    assert can_transition("failed", "queued")          # re-queue
     assert can_transition("queued", "failed")
-    assert not can_transition("queued", "submitted")   # skips both human gates
-    assert not can_transition("drafted", "submitted")  # skips approve gate
+    assert not can_transition("queued", "submitted")     # skips all gates
+    assert not can_transition("drafted", "submitted")    # skips approve
+    assert not can_transition("approved", "submitted")   # skips the claim
     assert not can_transition("submitted", "approved")
-    assert not can_transition("rejected", "approved")
+    assert not can_transition("submitted", "queued")     # submitted is terminal
 
 
 def test_profile_defaults_empty() -> None:
     p = ApplicantProfile(id=1)
     assert p.full_name == "" or p.full_name is None
+
+
+def test_stale_sweep_protects_active_applications() -> None:
+    # A stale job with an ACTIVE application must survive the sweep (else the
+    # user's queued/approved application is silently orphaned); a stale job
+    # with a TERMINAL application is fine to sweep.
+    from datetime import timedelta
+
+    from jobhunt.cowork_models import _utcnow as _cw_utcnow
+    from jobhunt.refresh import sweep_stale
+
+    from sqlalchemy import text as _text
+
+    old = _cw_utcnow() - timedelta(days=999)
+    with db_session() as s:
+        # Clear any orphaned applications so a reused SQLite rowid can't
+        # collide with the fresh jobs below (unique job_id).
+        s.execute(_text("DELETE FROM applications WHERE job_id NOT IN (SELECT id FROM jobs)"))
+    with db_session() as s:
+        for tag, fp in (("active", "5" * 20), ("terminal", "6" * 20)):
+            s.add(Job(
+                fingerprint=f"sweepapp-{fp}", source="test-cw", source_id=tag,
+                url=f"https://x.com/{tag}", company=_TEST_COMPANY,
+                title=f"Sweep {tag}", description="d" * 60, last_seen_at=old,
+            ))
+    with db_session() as s:
+        active_job = s.query(Job).filter(Job.title == "Sweep active").one()
+        term_job = s.query(Job).filter(Job.title == "Sweep terminal").one()
+        s.add(Application(job_id=active_job.id, status="approved"))
+        s.add(Application(job_id=term_job.id, status="rejected"))
+        active_id, term_id = active_job.id, term_job.id
+    with db_session() as s:
+        sweep_stale(s)
+    with db_session() as s:
+        assert s.get(Job, active_id) is not None  # protected
+        assert s.get(Job, term_id) is None         # swept (terminal app)

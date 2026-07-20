@@ -11,8 +11,8 @@ from jobhunt.main import app
 from jobhunt.models import Job
 
 _TEST_COMPANY = "CoworkExportAcme"
-local = TestClient(app, client=("127.0.0.1", 50000))
-remote = TestClient(app, client=("203.0.113.9", 50000))
+local = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000))
+remote = TestClient(app, base_url="http://127.0.0.1", client=("203.0.113.9", 50000))
 
 
 def _clean():
@@ -96,9 +96,43 @@ class TestExportShape:
         assert [a for a in data["applications"]
                 if a["job"]["company"] == _TEST_COMPANY] == []
 
+    def test_allowed_domains_exact_host_only(self):
+        # No registrable-parent widening — a multi-label TLD must not leak a
+        # public suffix into the hard-stop allow-list.
+        _queue()
+        rec = next(a for a in local.get(
+            "/api/cowork/export", params={"status": "queued"}
+        ).json()["applications"] if a["job"]["company"] == _TEST_COMPANY)
+        assert rec["allowed_domains"] == ["boards.greenhouse.io"]
+
+    def test_field_mapping_is_exactly_the_fixed_vocabulary(self):
+        _queue()
+        rec = next(a for a in local.get(
+            "/api/cowork/export", params={"status": "queued"}
+        ).json()["applications"] if a["job"]["company"] == _TEST_COMPANY)
+        from jobhunt.cowork_export import FIELD_MAPPING_KEYS
+        assert set(rec["field_mapping"]) == set(FIELD_MAPPING_KEYS)
+
+    def test_auto_submit_candidate_false_for_enterprise_ats(self):
+        with db_session() as s:
+            j = s.query(Job).filter(Job.company == _TEST_COMPANY).one()
+            j.url = "https://acme.taleo.net/careersection/x"
+            j.apply_domain = "acme.taleo.net"
+        _queue()
+        rec = next(a for a in local.get(
+            "/api/cowork/export", params={"status": "queued"}
+        ).json()["applications"] if a["job"]["company"] == _TEST_COMPANY)
+        assert rec["job"]["apply_kind"] == "ats" or rec["job"]["apply_domain"]
+        assert rec["job"]["auto_submit_candidate"] is False
+
+    def test_unknown_status_400(self):
+        assert local.get(
+            "/api/cowork/export", params={"status": "bogus"}
+        ).status_code == 400
+
 
 class TestWriteback:
-    def test_draft_then_approve_then_receipt(self):
+    def test_draft_claim_receipt_full_flow(self):
         app_id = _queue()
         r = local.post("/api/cowork/draft", json={
             "application_id": app_id,
@@ -109,16 +143,35 @@ class TestWriteback:
         with db_session() as s:
             assert s.get(Application, app_id).status == "drafted"
 
-        # Receipt BEFORE human approval must be refused (gate 2 enforced
-        # server-side): drafted -> submitted is not a legal transition.
-        r = local.post("/api/cowork/receipt", json={
+        # Receipt BEFORE human approval must be refused (gate 2 server-side).
+        assert local.post("/api/cowork/receipt", json={
             "application_id": app_id, "receipt": "msg-id-123",
-        })
-        assert r.status_code == 409
+        }).status_code == 409
+
+        # Claim before approval also refused.
+        assert local.post("/api/cowork/claim", json={
+            "application_id": app_id,
+        }).status_code == 409
 
         with db_session() as s:
-            a = s.get(Application, app_id)
-            a.status = "approved"  # the human gate (tested via UI elsewhere)
+            s.get(Application, app_id).status = "approved"  # human approve gate
+
+        # Receipt without a claim is refused — the claim is the race guard.
+        assert local.post("/api/cowork/receipt", json={
+            "application_id": app_id, "receipt": "msg-id-123",
+        }).status_code == 409
+
+        # Claim, then receipt.
+        assert local.post("/api/cowork/claim", json={
+            "application_id": app_id,
+        }).status_code == 200
+        with db_session() as s:
+            assert s.get(Application, app_id).status == "submitting"
+        # A second claim of an already-claimed app is refused (no double-submit).
+        assert local.post("/api/cowork/claim", json={
+            "application_id": app_id,
+        }).status_code == 409
+
         r = local.post("/api/cowork/receipt", json={
             "application_id": app_id, "receipt": "msg-id-123",
         })
@@ -127,6 +180,16 @@ class TestWriteback:
             a = s.get(Application, app_id)
             assert a.status == "submitted"
             assert a.receipt == "msg-id-123"
+
+    def test_claimed_app_drops_out_of_approved_poll(self):
+        app_id = _queue()
+        with db_session() as s:
+            s.get(Application, app_id).status = "approved"
+        before = local.get("/api/cowork/export", params={"status": "approved"}).json()
+        assert any(a["id"] == app_id for a in before["applications"])
+        local.post("/api/cowork/claim", json={"application_id": app_id})
+        after = local.get("/api/cowork/export", params={"status": "approved"}).json()
+        assert not any(a["id"] == app_id for a in after["applications"])
 
     def test_draft_error_marks_failed(self):
         app_id = _queue()

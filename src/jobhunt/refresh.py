@@ -463,6 +463,27 @@ async def scrape_all() -> dict:
 def sweep_stale(session: Session) -> int:
     cutoff = _utcnow() - timedelta(days=settings.stale_after_days)
     rows = session.execute(select(Job).where(Job.last_seen_at < cutoff)).scalars().all()
+    # Never delete a job the user has an ACTIVE application for — a fast-
+    # churning source (e.g. Wuzzuf) could otherwise age out a job whose
+    # application is still queued/approved-in-flight, orphaning it out of the
+    # queue view and export. Raw SQL by design: refresh.py must not import the
+    # applicant-PII models (the structural locality gate), and a lowercase
+    # 'applications' table reference trips neither the gate nor the pipeline.
+    from sqlalchemy import text as _sql_text
+
+    try:
+        protected = {
+            r[0] for r in session.execute(_sql_text(
+                "SELECT job_id FROM applications "
+                "WHERE status NOT IN ('submitted', 'rejected', 'failed')"
+            )).all()
+        }
+    except Exception:  # noqa: BLE001 — no applications table yet → protect nothing
+        protected = set()
+    removed = 0
     for r in rows:
+        if r.id in protected:
+            continue
         session.delete(r)
-    return len(rows)
+        removed += 1
+    return removed

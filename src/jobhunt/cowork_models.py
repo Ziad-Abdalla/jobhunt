@@ -50,24 +50,33 @@ class ApplicantProfile(Base):
 
 
 APPLICATION_STATUSES = (
-    "queued",     # human queued the job on /apply (gate 1)
-    "drafted",    # Cowork reported what it WOULD fill (not a submit)
-    "approved",   # human approved the draft (gate 2)
-    "submitted",  # Cowork submitted + posted the receipt (msg-id only)
-    "rejected",   # human rejected the draft — terminal
-    "failed",     # actuator failure (e.g. off-allowlist redirect) — terminal
+    "queued",      # human queued the job on /apply (gate 1)
+    "drafted",     # Cowork reported what it WOULD fill (not a submit)
+    "approved",    # human approved the draft (gate 2)
+    "submitting",  # actuator CLAIMED the approved app (excluded from the
+                   # approved poll) — a lock that stops a crash-then-rerun
+                   # double-submit
+    "submitted",   # actuator submitted + posted the receipt (msg-id only)
+    "rejected",    # human rejected — re-queueable
+    "failed",      # actuator failure (e.g. off-allowlist redirect) — re-queueable
 )
 
 # Server-enforced transitions. Nothing reaches 'submitted' without passing
-# BOTH human gates: queue (→queued) and approve (drafted→approved).
+# BOTH human gates (queue →queued, approve drafted→approved) AND a claim
+# (approved→submitting). rejected/failed are recoverable: the human can
+# re-queue. drafted→drafted lets the actuator improve a draft in place.
 _TRANSITIONS: dict[str, frozenset[str]] = {
     "queued": frozenset({"drafted", "rejected", "failed"}),
-    "drafted": frozenset({"approved", "rejected", "failed"}),
-    "approved": frozenset({"submitted", "failed"}),
+    "drafted": frozenset({"drafted", "approved", "rejected", "failed"}),
+    "approved": frozenset({"submitting", "drafted", "rejected", "failed"}),
+    "submitting": frozenset({"submitted", "approved", "failed"}),
     "submitted": frozenset(),
-    "rejected": frozenset(),
-    "failed": frozenset(),
+    "rejected": frozenset({"queued"}),
+    "failed": frozenset({"queued"}),
 }
+
+# Statuses from which the human "Queue" button re-activates an application.
+TERMINAL_REQUEUEABLE = frozenset({"rejected", "failed"})
 
 
 def can_transition(current: str, new: str) -> bool:
