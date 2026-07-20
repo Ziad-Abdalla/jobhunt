@@ -2,6 +2,26 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (P6 — applicant profile + Cowork application handoff)
+- **Applicant profile (`/profile`).** The details application forms ask for,
+  entered once. Local-only by construction: the page and every handoff
+  endpoint answer loopback requests only (even with `JOBHUNT_HOST=0.0.0.0`),
+  the schema has no passport/national-ID fields, and saving refuses
+  key-like text (AWS/`sk-`/`ghp_`/PEM/JWT patterns) so credentials can
+  never land in the store.
+- **Application queue with two human gates.** Queue a job on /apply
+  (gate 1); when an assistant drafts it, the exact fields it would fill
+  are shown for review, and nothing submits without your Approve (gate 2)
+  — enforced server-side: a submission receipt for an unapproved
+  application is refused.
+- **Local handoff API for assistants** (`/api/cowork/export`, `/draft`,
+  `/receipt` + `jobhunt apply export`), default-OFF behind
+  `JOBHUNT_COWORK_EXPORT=1` and loopback-only. Job descriptions are
+  exported wrapped as `__untrusted_data__` (never instructions), field
+  values come only from a fixed jobhunt-generated mapping, and each
+  application carries a hard-stop domain allow-list. Contract:
+  `docs/cowork-handoff.md`. jobhunt holds zero Gmail/OAuth credentials.
+
 ### Added (P5 — apply-target classification + /apply page)
 - **Every job's apply link is classified** by what sits behind it:
   `ats` (a hosted form on a known ATS — Greenhouse, Lever, Ashby, Workable,

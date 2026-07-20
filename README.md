@@ -66,6 +66,12 @@ account, like Wuzzuf — or its listing points on to the real form), or
 **company site** (an arbitrary form on the company's own site). Filter the
 ranked list by application flow and pick targets by effort.
 
+Queue jobs you want to apply to, keep your applicant details in a local-only
+profile, and let a local assistant draft applications — every draft is shown
+for your review and **nothing is ever submitted without your approval**.
+Your profile never leaves your machine (loopback-only endpoints, export API
+off by default, no passport/ID fields, credential-paste rejection).
+
 ---
 
 ## Features

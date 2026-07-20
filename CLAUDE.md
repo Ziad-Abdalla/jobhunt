@@ -12,8 +12,13 @@ PyPI: `jobhunt-app`. CLI: `jobhunt`. MIT licensed, public repo.
   work* toggle for tech. UK + Germany focus. Defaults to `category=nontech`.
 - **Freelance** (`/freelance`) — contract/freelance roles
 - **Apply** (`/apply`) — P5 collection view: jobs grouped by application flow
-  (`apply_kind`: ats / aggregator_relay / company_site / unknown). Feeds the
-  P6 Cowork handoff.
+  (`apply_kind`: ats / aggregator_relay / company_site / unknown), plus the
+  P6 queue (`/apply?view=queue`, loopback-gated) with the two human gates
+  (Queue → review draft → Approve).
+- **Profile** (`/profile`) — P6 applicant profile. Loopback-only, minimal
+  PII (no passport/ID fields), secret-paste rejection. PII models live in
+  `cowork_models.py` — the scrape pipeline may NEVER import it
+  (test_cowork_import_guard.py enforces structurally).
 
 ## Session continuity
 Resume anchor: [`docs/internal/SESSION_LOG.md`](docs/internal/SESSION_LOG.md) — read the latest entry
@@ -60,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 348 unit tests (was 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 399 unit tests (was 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -84,6 +89,14 @@ ruff check src/              # style + bug lint
   pure URL-host classification against curated ATS/aggregator allow-lists,
   suffix-safe matching, never guesses from host tokens. Feeds `/apply` + the
   P6 Cowork routing, so false 'ats' labels are the failure mode to avoid.
+  `AUTO_SUBMIT_DOMAINS` = the ONLY subset assisted submission may key on.
+- `cowork_models.py` — ApplicantProfile + Application (state machine:
+  queued→drafted→approved→submitted, terminal rejected/failed). PII module —
+  scrape pipeline must never import it (structural grep gate).
+- `cowork_export.py` — `build_export_document()`: the handoff JSON (JD as
+  `__untrusted_data__`, fixed field_mapping, allowed_domains hard stop).
+  Shared by `/api/cowork/export` and `jobhunt apply export`. Contract doc:
+  `docs/cowork-handoff.md`.
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `config.py` — pydantic-settings, reads from env vars + `.env` file
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
