@@ -22,6 +22,43 @@ _TITLE_KEYWORDS = tuple(SKILL_TOKENS) + tuple(LANGUAGE_TOKENS) + (
     "mobile", "android", "ios", "qa", "security", "cloud",
 )
 
+# Generic, universally-applicable job-skill terms — so tailoring works for
+# non-tech + Egypt/blue-collar roles too, not just software. Multi-word
+# phrases are matched as substrings; single words as word-boundary tokens.
+_GENERAL_KEYWORDS: tuple[str, ...] = (
+    # soft / cross-role
+    "communication", "teamwork", "leadership", "negotiation", "presentation",
+    "customer service", "problem solving", "time management", "organization",
+    "attention to detail", "multitasking",
+    # office / admin
+    "excel", "microsoft office", "powerpoint", "word", "outlook", "sap",
+    "data entry", "bookkeeping", "accounting", "invoicing", "reporting",
+    "scheduling", "administration", "reception",
+    # sales / marketing
+    "sales", "marketing", "crm", "salesforce", "seo", "social media",
+    "cold calling", "lead generation", "account management", "retail",
+    # trades / local / logistics (the /local + Egypt persona)
+    "driving", "driving license", "forklift", "warehouse", "inventory",
+    "logistics", "delivery", "cleaning", "cooking", "hospitality", "catering",
+    "security", "maintenance", "packaging", "shift work",
+    # care / education / health
+    "nursing", "caregiving", "childcare", "teaching", "tutoring", "first aid",
+    # languages (natural, not programming)
+    "english", "arabic", "french", "german", "fluent",
+    # finance / analysis
+    "analysis", "budgeting", "forecasting", "compliance", "procurement",
+)
+
+_STOPWORDS = frozenset({
+    "the", "and", "for", "with", "you", "our", "will", "are", "have", "this",
+    "that", "your", "job", "work", "team", "role", "must", "should", "able",
+    "who", "all", "any", "from", "was", "were", "has", "had", "can", "may",
+    "we", "us", "a", "an", "to", "of", "in", "on", "at", "is", "as", "be",
+    "or", "by", "it", "if", "not", "but", "they", "their", "them", "his",
+    "her", "she", "he", "candidate", "candidates", "experience", "years",
+    "company", "position", "responsibilities", "requirements", "including",
+})
+
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _PHONE_RE = re.compile(r"(?:\+?\d[\d\s().-]{6,}\d)")
 _SECTION_RE = re.compile(
@@ -33,7 +70,9 @@ _SECTION_RE = re.compile(
 
 def jd_keywords(job: Any) -> list[str]:
     """The target job's demand signal: extracted skills + languages + notable
-    title tokens. Deduped, lowercased, stable-sorted."""
+    title tokens + generic role terms (so non-tech + Egypt/blue-collar jobs
+    get real keyword guidance, not just software roles). Deduped, lowercased,
+    stable-sorted."""
     kw: set[str] = set()
     for s in (job.skills or []):
         if s:
@@ -45,6 +84,14 @@ def jd_keywords(job: Any) -> list[str]:
     for tok in _TITLE_KEYWORDS:
         if re.search(rf"\b{re.escape(tok)}\b", title):
             kw.add(tok)
+    # Generic terms present in the title OR description.
+    haystack = f"{title}\n{(job.description or '').lower()}"
+    for term in _GENERAL_KEYWORDS:
+        if " " in term:
+            if term in haystack:
+                kw.add(term)
+        elif re.search(rf"\b{re.escape(term)}\b", haystack):
+            kw.add(term)
     return sorted(kw)
 
 

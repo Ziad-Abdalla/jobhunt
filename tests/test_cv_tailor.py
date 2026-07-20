@@ -24,6 +24,20 @@ class TestJdKeywords:
         assert "django" in kw  # from the title
         assert kw == sorted(set(kw))  # deduped + stable
 
+    def test_general_terms_for_nontech_roles(self):
+        # A non-tech job (the /local + Egypt persona) still gets real keyword
+        # guidance from the generic vocabulary.
+        job = _Job(
+            "Warehouse Assistant",
+            [], [],
+            description="Forklift license required. Inventory management, "
+                        "packaging, and delivery. Good communication and teamwork.",
+        )
+        kw = jd_keywords(job)
+        for term in ("forklift", "warehouse", "inventory", "packaging",
+                     "delivery", "communication", "teamwork"):
+            assert term in kw, term
+
 
 class TestAtsLint:
     def _codes(self, text):
