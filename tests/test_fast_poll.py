@@ -53,3 +53,24 @@ def test_collect_priority_sources_unions_priority_searches():
 
 def test_fast_poll_off_by_default():
     assert settings.fast_poll_minutes == 0
+
+
+def test_only_sources_excludes_jooble_autoappend(monkeypatch):
+    # The Jooble location auto-append must NOT fire on a fast-poll pass that
+    # didn't ask for jooble (else the tight interval hammers Jooble's API).
+    monkeypatch.setattr(settings, "user_location", "Cairo, Egypt")
+    monkeypatch.setattr(settings, "jooble_api_key", "k")
+    appended = []
+    import jobhunt.refresh as refresh_mod
+    real_gather = refresh_mod.asyncio.gather
+
+    async def _spy_gather(*coros, **kw):
+        appended.append(len(coros))
+        return []
+
+    monkeypatch.setattr(refresh_mod.asyncio, "gather", _spy_gather)
+    # only_sources without jooble → no jooble specs added; a non-existent
+    # source means zero specs, so scrape_all returns before gather.
+    result = asyncio.run(scrape_all(only_sources={"no-such-source"}))
+    monkeypatch.setattr(refresh_mod.asyncio, "gather", real_gather)
+    assert result["sources"] == 0  # jooble was NOT appended past the filter

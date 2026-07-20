@@ -20,12 +20,17 @@ log = logging.getLogger(__name__)
 
 _scheduler: AsyncIOScheduler | None = None
 _last_run: dict[str, object] = {"at": None, "result": None, "error": None}
+# Serialize the full-refresh and fast-poll jobs: both call scrape_all, and two
+# concurrent scrapes contend on the single SQLite writer. max_instances=1 only
+# stops a job overlapping ITSELF; this lock stops the two jobs overlapping.
+_scrape_lock = asyncio.Lock()
 
 
 async def _job() -> None:
     log.info("scheduler: starting scheduled scrape")
     try:
-        result = await scrape_all()
+        async with _scrape_lock:
+            result = await scrape_all()
         _last_run["at"] = datetime.now(UTC).isoformat()
         _last_run["result"] = result
         _last_run["error"] = None
@@ -54,7 +59,8 @@ async def _fast_poll_job() -> None:
         return
     try:
         log.info("scheduler: fast-poll scraping %d priority sources", len(srcs))
-        await scrape_all(only_sources=srcs)
+        async with _scrape_lock:
+            await scrape_all(only_sources=srcs)
         await check_alerts()
     except Exception as exc:  # noqa: BLE001
         log.warning("scheduler: fast-poll failed: %s", exc)

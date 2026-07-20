@@ -44,7 +44,9 @@ def _send_telegram(title: str, body: str, url: str | None) -> bool:
             return True
         log.debug("telegram send returned %s", r.status_code)
     except Exception as exc:  # noqa: BLE001
-        log.debug("telegram send failed: %s", exc)
+        # Log the exception TYPE only — the bot token is in the request URL
+        # and str(exc) for a transport error can echo it.
+        log.debug("telegram send failed: %s", type(exc).__name__)
     return False
 
 
@@ -55,12 +57,14 @@ def _send_email(title: str, body: str, url: str | None) -> bool:
     to = settings.smtp_to
     if not host or not to:
         return False
-    msg = EmailMessage()
-    msg["Subject"] = title
-    msg["From"] = settings.smtp_from or settings.smtp_user or to
-    msg["To"] = to
-    msg.set_content(f"{body}\n\n{url}" if url else body)
     try:
+        # Build inside the try too: header assignment can raise on an odd
+        # config value, and this module's contract is "never raises".
+        msg = EmailMessage()
+        msg["Subject"] = title
+        msg["From"] = settings.smtp_from or settings.smtp_user or to
+        msg["To"] = to
+        msg.set_content(f"{body}\n\n{url}" if url else body)
         with smtplib.SMTP(host, settings.smtp_port or 587, timeout=10) as smtp:
             try:
                 smtp.starttls()

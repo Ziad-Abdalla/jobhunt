@@ -341,11 +341,15 @@ def _redact_env(env_text: str) -> str:
     global _API_KEY_LINE_RE
     if _API_KEY_LINE_RE is None:
         # Any JOBHUNT_* line whose key ends in a secret-bearing suffix:
-        # API_KEY, TOKEN, PASSWORD, or SECRET (covers Jooble/Reed keys plus
-        # the P7 TELEGRAM_BOT_TOKEN and SMTP_PASSWORD).
+        # API_KEY, TOKEN, PASSWORD, PWD, PASS, SECRET, CREDENTIAL (covers
+        # Jooble/Reed keys plus the P7 TELEGRAM_BOT_TOKEN and SMTP_PASSWORD).
+        # IGNORECASE because pydantic-settings loads env keys case-
+        # insensitively — a lowercase `.env` key is live, so it must redact.
+        # Tolerates a leading `export `.
         _API_KEY_LINE_RE = re.compile(
-            r"^(JOBHUNT_[A-Z0-9_]*?(?:API_KEY|TOKEN|PASSWORD|SECRET))\s*=.*$",
-            re.MULTILINE,
+            r"^(\s*(?:export\s+)?JOBHUNT_[A-Z0-9_]*?"
+            r"(?:API_KEY|TOKEN|PASSWORD|PWD|PASS|SECRET|CREDENTIAL))\s*=.*$",
+            re.MULTILINE | re.IGNORECASE,
         )
     return _API_KEY_LINE_RE.sub(
         r"\1=__REDACTED_BY_BACKUP__regenerate_via_settings__",

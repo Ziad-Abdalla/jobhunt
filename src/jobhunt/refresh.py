@@ -378,8 +378,14 @@ async def scrape_all(only_sources: set[str] | None = None) -> dict:
     if only_sources:
         sources = [s for s in sources if s.get("source") in only_sources]
 
-    # Auto-add Jooble searches for user's configured location.
-    if settings.user_location and settings.jooble_api_key:
+    # Auto-add Jooble searches for user's configured location — but not on a
+    # fast-poll pass that didn't ask for jooble (else the tight interval
+    # hammers the rate-limited Jooble API).
+    if (
+        settings.user_location
+        and settings.jooble_api_key
+        and (not only_sources or "jooble" in only_sources)
+    ):
         loc = settings.user_location
         for kw in ["software developer", "software engineer", "developer"]:
             sources.append({"source": "jooble", "board": f"{kw}|{loc}"})

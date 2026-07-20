@@ -6,6 +6,7 @@ so the user doesn't get pinged twice for the same posting.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import UTC, datetime
 
@@ -75,7 +76,12 @@ async def check_alerts() -> dict:
                 continue
             to_notify = new_matches[: settings.notify_batch_max]
             for job in to_notify:
-                send_all(
+                # send_all does blocking I/O (desktop subprocess, httpx.post,
+                # smtplib). check_alerts is awaited on the same event loop that
+                # serves the web UI + scheduler, so offload to a thread — a
+                # slow SMTP host must never freeze the loop.
+                await asyncio.to_thread(
+                    send_all,
                     f"jobhunt: {ss.name}",
                     f"{job.title} @ {job.company} ({job.location or 'unknown'})",
                     url=job.url,

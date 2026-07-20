@@ -120,3 +120,14 @@ class TestBackupRedaction:
         assert "abc" not in out
         # Non-secret config is preserved.
         assert "Cairo, Egypt" in out
+
+    def test_redacts_lowercase_and_exported_keys(self):
+        # pydantic-settings loads env keys case-insensitively, so a lowercase
+        # or `export `-prefixed secret line is live and MUST be redacted.
+        env = (
+            "jobhunt_smtp_password=hunter2\n"
+            "export JOBHUNT_TELEGRAM_BOT_TOKEN=123:sekret\n"
+        )
+        out = _redact_env(env)
+        assert "hunter2" not in out
+        assert "sekret" not in out
