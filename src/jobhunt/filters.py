@@ -29,6 +29,9 @@ class JobQuery:
     visa_sponsorship: str = ""        # yes | no | ""
     # us-only | uk-only | eu-only | restricted-other | unrestricted | unknown
     geo: str = ""
+    # ats | aggregator_relay | company_site | unknown (P5). 'unknown' also
+    # matches NULL (pre-backfill rows), so the bucket never lies mid-migration.
+    apply_kind: str = ""
     min_cv_match: float | None = None  # 0..1
     limit: int = 50
     offset: int = 0
@@ -114,6 +117,13 @@ def _apply(
         stmt = stmt.where(Job.visa_sponsorship == q.visa_sponsorship)
     if q.geo:
         stmt = stmt.where(Job.geo_restrict == q.geo)
+    if q.apply_kind:
+        if q.apply_kind == "unknown":
+            stmt = stmt.where(
+                or_(Job.apply_kind.is_(None), Job.apply_kind == "unknown")
+            )
+        else:
+            stmt = stmt.where(Job.apply_kind == q.apply_kind)
     if q.posted_within_days is not None:
         cutoff = datetime.now(UTC) - timedelta(days=q.posted_within_days)
         stmt = stmt.where(or_(Job.posted_at.is_(None), Job.posted_at >= cutoff))

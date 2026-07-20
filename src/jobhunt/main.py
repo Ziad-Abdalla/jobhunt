@@ -328,6 +328,8 @@ def api_jobs(
                     "visa_sponsorship": j.visa_sponsorship,
                     "score": j.score,
                     "cv_match": j.cv_match,
+                    "apply_kind": j.apply_kind or "unknown",
+                    "apply_domain": j.apply_domain or "",
                 }
                 for j in rows
             ],
@@ -556,6 +558,66 @@ def freelance_page(
             "q": q.strip(),
             "remote": remote,
             "min_salary": min_salary,
+        },
+    )
+
+
+# ---------- apply-target collection page (P5) ----------
+
+
+@app.get("/apply", response_class=HTMLResponse)
+def apply_page(
+    request: Request,
+    kind: str = "",
+    q: str = "",
+    remote: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> HTMLResponse:
+    """Where does applying actually happen? Groups jobs by application-flow
+    bucket (known ATS form / board relay / company own-site) so the user —
+    and later the Cowork handoff (P6) — can pick targets by effort."""
+    from dataclasses import replace
+
+    if kind not in ("ats", "aggregator_relay", "company_site", "unknown"):
+        kind = ""
+    query = JobQuery(
+        q=q.strip(),
+        remote=remote.strip(),
+        apply_kind=kind,
+        sort="score",
+        home_region=home_region_from_location(settings.user_location),
+        limit=max(1, min(_safe_int(limit) or 50, 200)),
+        offset=max(0, _safe_int(offset) or 0),
+    )
+    with db_session() as s:
+        rows = search(s, query)
+        total = count(s, query)
+        # Per-bucket counts under the SAME q/remote filters, so the toggle
+        # numbers always agree with what clicking them would show.
+        kind_counts = {
+            k: count(s, replace(query, apply_kind=k, offset=0))
+            for k in ("ats", "aggregator_relay", "company_site", "unknown")
+        }
+        db_total = s.execute(select(func.count()).select_from(Job)).scalar_one()
+    return templates.TemplateResponse(
+        request,
+        "apply.html",
+        {
+            "nav": "apply",
+            "today": _today(),
+            "last_updated": _last_updated_str(),
+            "jobs": rows,
+            "total": total,
+            "limit": query.limit,
+            "offset": query.offset,
+            "db_empty": db_total == 0,
+            "default_source_count": 130,
+            "show_apply_badge": True,
+            "kind": kind,
+            "q": q.strip(),
+            "remote": remote.strip(),
+            "kind_counts": kind_counts,
         },
     )
 

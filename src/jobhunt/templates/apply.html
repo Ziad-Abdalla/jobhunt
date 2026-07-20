@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — apply targets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js?v={{ version }}" defer></script>
+</head>
+<body data-page="apply">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:900px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Apply</h1>
+    <p>Where does applying actually happen? Every job's apply link is classified by
+    what sits behind it: a structured <span class="badge ok">ATS form</span>
+    (Greenhouse, Lever, …), a <span class="badge warn">board relay</span> (the
+    listing page on a job board — the real form is one hop away), or the company's
+    <span class="badge bad">own site</span> (an arbitrary web form). Pick your
+    targets by effort.</p>
+
+    <div class="form-card" style="margin:0 0 var(--sp-5);">
+      <form method="get" action="/apply" style="display:flex;flex-wrap:wrap;gap:var(--sp-4);align-items:flex-end;">
+        <label style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Keyword
+          <input type="text" name="q" value="{{ q }}" placeholder="title, company, skill…" />
+        </label>
+        <label style="min-width:210px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Application flow
+          <select name="kind">
+            <option value="" {% if not kind %}selected{% endif %}>Any ({{ "{:,}".format(kind_counts['ats'] + kind_counts['aggregator_relay'] + kind_counts['company_site'] + kind_counts['unknown']) }})</option>
+            <option value="ats" {% if kind == 'ats' %}selected{% endif %}>ATS form ({{ "{:,}".format(kind_counts['ats']) }})</option>
+            <option value="aggregator_relay" {% if kind == 'aggregator_relay' %}selected{% endif %}>Board relay ({{ "{:,}".format(kind_counts['aggregator_relay']) }})</option>
+            <option value="company_site" {% if kind == 'company_site' %}selected{% endif %}>Company site ({{ "{:,}".format(kind_counts['company_site']) }})</option>
+            <option value="unknown" {% if kind == 'unknown' %}selected{% endif %}>Unknown ({{ "{:,}".format(kind_counts['unknown']) }})</option>
+          </select>
+        </label>
+        <label style="min-width:130px;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Workplace
+          <select name="remote">
+            <option value="" {% if not remote %}selected{% endif %}>any</option>
+            <option value="remote" {% if remote == 'remote' %}selected{% endif %}>Remote</option>
+            <option value="hybrid" {% if remote == 'hybrid' %}selected{% endif %}>Hybrid</option>
+            <option value="onsite" {% if remote == 'onsite' %}selected{% endif %}>On-site</option>
+          </select>
+        </label>
+        <button type="submit" style="height:38px;">Filter</button>
+      </form>
+    </div>
+
+    {% include "_jobs.html" %}
+  </main>
+</body>
+</html>
