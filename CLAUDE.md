@@ -60,7 +60,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 266 unit tests (was 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 348 unit tests (was 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
