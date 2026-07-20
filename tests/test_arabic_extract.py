@@ -8,7 +8,34 @@ and the don't-guess behaviour.
 
 from __future__ import annotations
 
+import pytest
+
+from jobhunt.db import db_session, init_db
 from jobhunt.extract import _normalize_digits, extract, is_arabic_dominant
+from jobhunt.models import Job
+from jobhunt.refresh import _persist
+from jobhunt.scrapers.base import RawJob
+
+_TEST_SOURCE = "test-arabic"
+
+
+@pytest.fixture()
+def clean_db():
+    init_db()
+    with db_session() as s:
+        s.query(Job).filter(Job.source == _TEST_SOURCE).delete()
+    yield
+    with db_session() as s:
+        s.query(Job).filter(Job.source == _TEST_SOURCE).delete()
+
+
+def _raw(title, description, source_id="w1"):
+    return RawJob(
+        source=_TEST_SOURCE, source_id=source_id,
+        url=f"https://example.com/{source_id}",
+        company="Test Co", title=title, description=description,
+        location="Cairo, Egypt",
+    )
 
 
 class TestArabicDominant:
@@ -98,6 +125,36 @@ class TestArabicRemote:
 
     def test_onsite(self):
         assert extract("العمل حضوري من المقر الرئيسي", title="محاسب").remote == "onsite"
+
+
+class TestNoGuessingOnArabic:
+    def test_arabic_no_signal_stays_unknown(self, clean_db):
+        raw = _raw("محاسب", "مطلوب للعمل في شركة كبرى براتب مجزي ومزايا عديدة " * 3)
+        with db_session() as s:
+            _persist(s, raw, company_override=None)
+        with db_session() as s:
+            job = s.query(Job).filter(Job.source == _TEST_SOURCE).one()
+            assert job.level == "unknown"
+            assert job.employment_type == "unknown"
+
+    def test_arabic_with_signal_still_extracts(self, clean_db):
+        raw = _raw("محاسب حديث التخرج", "وظيفة دوام كامل في القاهرة " * 5, source_id="w2")
+        with db_session() as s:
+            _persist(s, raw, company_override=None)
+        with db_session() as s:
+            job = s.query(Job).filter(Job.source == _TEST_SOURCE).one()
+            assert job.level == "entry"
+            assert job.employment_type == "Full-time"
+
+    def test_english_defaults_unchanged(self, clean_db):
+        raw = _raw("Software Engineer", "We are a great company doing great things. " * 3,
+                   source_id="w3")
+        with db_session() as s:
+            _persist(s, raw, company_override=None)
+        with db_session() as s:
+            job = s.query(Job).filter(Job.source == _TEST_SOURCE).one()
+            assert job.level == "mid"            # industry-convention default kept
+            assert job.employment_type == "Full-time"
 
 
 class TestNormalizeDigits:

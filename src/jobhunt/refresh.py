@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import db_session, init_db
 from .dedup import description_hash, fingerprint
-from .extract import classify_category, extract
+from .extract import classify_category, extract, is_arabic_dominant
 from .models import Job, ScrapeRun
 from .salary_estimator import compute_ranges_from_db, estimate_salary
 from .scoring import score_job
@@ -145,6 +145,7 @@ def _persist(
         ).scalar_one_or_none()
 
     ex = extract(raw.description, title=raw.title)
+    arabic = is_arabic_dominant(f"{raw.title}\n{raw.description}")
     score = score_job(
         posted_at=raw.posted_at,
         description=raw.description,
@@ -166,8 +167,10 @@ def _persist(
 
     # ── Level ──
     level = ex.level
-    # "Software Engineer" with no qualifier is mid-level (industry convention).
-    if level == "unknown" and len(raw.description) > 50:
+    # "Software Engineer" with no qualifier is mid-level (industry convention) —
+    # but only for Latin text. For Arabic-dominant postings with no keyword hit
+    # we keep "unknown": guessing actively mislabels them (P3).
+    if level == "unknown" and len(raw.description) > 50 and not arabic:
         level = "mid"
 
     # ── Employment type ──
@@ -175,9 +178,14 @@ def _persist(
     employment_type = et_from_api if et_from_api != "unknown" else ex.employment_type
     if employment_type == "unknown" and level in ("intern",):
         employment_type = "Internship"
-    if employment_type == "unknown" and level in ("entry", "junior") and len(raw.description) > 50:
+    if (
+        employment_type == "unknown"
+        and level in ("entry", "junior")
+        and len(raw.description) > 50
+        and not arabic
+    ):
         employment_type = "Full-time"
-    if employment_type == "unknown" and len(raw.description) > 50:
+    if employment_type == "unknown" and len(raw.description) > 50 and not arabic:
         employment_type = "Full-time"
 
     salary_min = raw.salary_min if raw.salary_min is not None else ex.salary_min
