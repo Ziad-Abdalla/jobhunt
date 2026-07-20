@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import db_session, init_db
 from .dedup import description_hash, fingerprint
-from .extract import classify_category, extract, is_arabic_dominant
+from .extract import classify_category, extract, extract_geo, is_arabic_dominant
 from .models import Job, ScrapeRun
 from .salary_estimator import compute_ranges_from_db, estimate_salary
 from .scoring import score_job
@@ -206,6 +206,7 @@ def _persist(
         salary_estimated = True
 
     category = classify_category(raw.title, raw.description)
+    geo_restrict = extract_geo(raw.description, title=raw.title)
 
     if existing is None:
         job = Job(
@@ -227,6 +228,7 @@ def _persist(
             visa_sponsorship=raw.visa_sponsorship or "unknown",
             salary_estimated=salary_estimated,
             category=category,
+            geo_restrict=geo_restrict,
             skills=ex.skills,
             languages=ex.languages,
             description=raw.description,
@@ -258,6 +260,7 @@ def _persist(
     existing.skills = ex.skills
     existing.languages = ex.languages
     existing.category = category
+    existing.geo_restrict = geo_restrict
     existing.score = score
     if raw.posted_at and not existing.posted_at:
         existing.posted_at = raw.posted_at

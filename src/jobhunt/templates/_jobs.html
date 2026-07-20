@@ -29,6 +29,7 @@
       <span class="company">{{ j.company }}</span>
       {% if j.location %}<span class="dot">·</span><span>{{ j.location }}</span>{% endif %}
       {% if j.remote and j.remote != 'unknown' %}<span class="badge remote-{{ j.remote }}">{{ j.remote }}</span>{% endif %}
+      {% if j.remote == 'remote' and j.geo_restrict and j.geo_restrict != 'unknown' %}<span class="badge" title="Stated location eligibility">{{ j.geo_restrict }}</span>{% endif %}
       {% if j.level and j.level != 'unknown' %}<span class="badge">{{ j.level }}</span>{% endif %}
       {% if j.min_years is not none %}<span class="badge">{{ j.min_years }}+ yrs</span>{% endif %}
       {% if j.degree and j.degree != 'unknown' %}<span class="badge">{{ j.degree }}</span>{% endif %}

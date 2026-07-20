@@ -27,6 +27,7 @@ class JobQuery:
     employment_type: str = ""        # full-time | part-time | contract | internship
     min_salary: int | None = None     # minimum annual salary
     visa_sponsorship: str = ""        # yes | no | ""
+    geo: str = ""                     # us-only | uk-only | eu-only | restricted-other | unrestricted | unknown | ""
     min_cv_match: float | None = None  # 0..1
     limit: int = 50
     offset: int = 0
@@ -101,6 +102,8 @@ def _apply(stmt: Select[tuple[Job]], q: JobQuery) -> Select[tuple[Job]]:
         stmt = stmt.where(Job.salary_max.is_not(None), Job.salary_max >= q.min_salary)
     if q.visa_sponsorship:
         stmt = stmt.where(Job.visa_sponsorship == q.visa_sponsorship)
+    if q.geo:
+        stmt = stmt.where(Job.geo_restrict == q.geo)
     if q.posted_within_days is not None:
         cutoff = datetime.now(UTC) - timedelta(days=q.posted_within_days)
         stmt = stmt.where(or_(Job.posted_at.is_(None), Job.posted_at >= cutoff))

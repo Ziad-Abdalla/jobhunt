@@ -52,6 +52,7 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("salary_estimated", "ALTER TABLE jobs ADD COLUMN salary_estimated BOOLEAN DEFAULT 0"),
         ("visa_sponsorship", "ALTER TABLE jobs ADD COLUMN visa_sponsorship VARCHAR(32) DEFAULT 'unknown'"),
         ("category", "ALTER TABLE jobs ADD COLUMN category VARCHAR(16) DEFAULT 'other'"),
+        ("geo_restrict", "ALTER TABLE jobs ADD COLUMN geo_restrict VARCHAR(24) DEFAULT 'unknown'"),
     ],
     "scrape_runs": [
         ("board", "ALTER TABLE scrape_runs ADD COLUMN board VARCHAR(128) DEFAULT ''"),

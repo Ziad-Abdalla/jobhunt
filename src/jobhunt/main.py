@@ -169,6 +169,7 @@ def _query_from_request(
     employment_type: str = "",
     min_salary: str | int | None = None,
     visa_sponsorship: str = "",
+    geo: str = "",
 ) -> JobQuery:
     return JobQuery(
         q=q.strip(),
@@ -184,6 +185,7 @@ def _query_from_request(
         employment_type=employment_type.strip(),
         min_salary=_safe_int(min_salary),
         visa_sponsorship=visa_sponsorship.strip(),
+        geo=geo.strip(),
         min_cv_match=_safe_float(min_cv_match),
         sort=sort or "score",
         limit=max(1, min(_safe_int(limit) or 50, 200)),
@@ -231,6 +233,7 @@ def jobs(
     employment_type: str = "",
     min_salary: str = "",
     visa_sponsorship: str = "",
+    geo: str = "",
     sort: str = "score",
     limit: int = 50,
     offset: int = 0,
@@ -242,6 +245,7 @@ def jobs(
         employment_type=employment_type,
         min_salary=min_salary,
         visa_sponsorship=visa_sponsorship,
+        geo=geo,
     )
     with db_session() as s:
         rows = search(s, query)
@@ -277,6 +281,7 @@ def api_jobs(
     employment_type: str = "",
     min_salary: str = "",
     visa_sponsorship: str = "",
+    geo: str = "",
     sort: str = "score",
     limit: int = 50,
     offset: int = 0,
@@ -288,6 +293,7 @@ def api_jobs(
         employment_type=employment_type,
         min_salary=min_salary,
         visa_sponsorship=visa_sponsorship,
+        geo=geo,
     )
     with db_session() as s:
         rows = search(s, query)
@@ -303,6 +309,7 @@ def api_jobs(
                     "location": j.location,
                     "url": j.url,
                     "remote": j.remote,
+                    "geo_restrict": j.geo_restrict,
                     "level": j.level,
                     "degree": j.degree,
                     "min_years": j.min_years,

@@ -46,6 +46,10 @@ class Job(Base):
     # Computed by extract.classify_category during persistence.
     category: Mapped[str] = mapped_column(String(16), default="other", index=True)
 
+    # Geo-eligibility for remote roles (P3): us-only | uk-only | eu-only |
+    # restricted-other | unrestricted | unknown. Computed by extract.extract_geo.
+    geo_restrict: Mapped[str] = mapped_column(String(24), default="unknown", index=True)
+
     skills: Mapped[list[str]] = mapped_column(JSON, default=list)
     languages: Mapped[list[str]] = mapped_column(JSON, default=list)
 

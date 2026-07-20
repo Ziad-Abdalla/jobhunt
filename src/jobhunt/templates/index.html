@@ -92,6 +92,18 @@
           </select>
         </label>
 
+        <label data-hint="For remote roles — where the employer says you must be located. Worldwide-friendly = explicitly no restriction.">Remote eligibility
+          <select name="geo">
+            <option value="" selected>any</option>
+            <option value="unrestricted">Worldwide-friendly</option>
+            <option value="us-only">US only</option>
+            <option value="eu-only">EU only</option>
+            <option value="uk-only">UK only</option>
+            <option value="restricted-other">Other restriction</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </label>
+
         <label data-hint="Filter out jobs that demand more experience than this. Roles without a stated minimum always pass through.">Max years of experience
           <input type="number" name="max_years" min="0" max="20" placeholder="e.g. 3" />
         </label>
