@@ -268,6 +268,138 @@ def wal_checkpoint() -> None:
         log.debug("wal_checkpoint skipped: %s", exc)
 
 
+# ---------------------------------------------------------------------------
+# One-time fingerprint migration (P3). dedup normalization became
+# Unicode-aware + NFC; stored fingerprints for rows containing non-ASCII
+# text no longer match what _persist computes, which would duplicate those
+# jobs until the stale sweep caught the old rows. This pass rewrites them
+# once, gated on PRAGMA user_version (0 = pending, >=1 = done).
+#
+# The legacy normalization below is a FROZEN copy of the pre-P3 dedup code —
+# deliberately not imported from dedup.py, which has moved on. It's needed to
+# recognize old-scheme fingerprints, both plain and P1-salted (source_id).
+# ---------------------------------------------------------------------------
+
+import hashlib as _hashlib
+import re as _re
+
+_LEGACY_WS = _re.compile(r"\s+")
+_LEGACY_NON_ALNUM = _re.compile(r"[^a-z0-9 ]+")
+
+
+def _legacy_norm_title(title: str) -> str:
+    t = title.lower()
+    t = _re.sub(r"\(.*?\)", " ", t)
+    t = _re.sub(r"\[.*?\]", " ", t)
+    t = _re.sub(
+        r"\b(sr\.?|senior|jr\.?|junior|staff|principal|lead|"
+        r"intern|internship|new grad|entry[- ]level)\b",
+        " ", t,
+    )
+    t = _re.sub(r"\b(remote|hybrid|onsite|on[- ]site)\b", " ", t)
+    t = _LEGACY_NON_ALNUM.sub(" ", t)
+    return _LEGACY_WS.sub(" ", t).strip()
+
+
+def _legacy_norm_company(company: str) -> str:
+    c = company.lower()
+    c = _re.sub(r"\b(inc|llc|ltd|gmbh|sa|sas|plc|corp|corporation)\b\.?", "", c)
+    c = _LEGACY_NON_ALNUM.sub(" ", c)
+    return _LEGACY_WS.sub(" ", c).strip()
+
+
+_LEGACY_REMOTE_SYNONYMS = frozenset({
+    "remote", "anywhere", "worldwide", "global", "distributed",
+    "fully remote", "remote worldwide", "remote global", "remote anywhere",
+    "anywhere in the world", "fully distributed", "remote first",
+    "remote friendly", "work from home", "wfh", "100 remote", "100 remote worldwide",
+})
+
+
+def _legacy_norm_location(location: str) -> str:
+    loc = location.lower()
+    loc = _LEGACY_NON_ALNUM.sub(" ", loc)
+    loc = _LEGACY_WS.sub(" ", loc).strip()
+    if loc in _LEGACY_REMOTE_SYNONYMS:
+        return "remote"
+    return loc
+
+
+def _legacy_fingerprint(company: str, title: str, location: str, salt: str = "") -> str:
+    key = (
+        f"{_legacy_norm_company(company)}|{_legacy_norm_title(title)}"
+        f"|{_legacy_norm_location(location)}"
+    )
+    if salt:
+        key = f"{key}|{salt}"
+    return _hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
+
+
+def _refingerprint_once() -> int:
+    """Rewrite old-scheme fingerprints to the new normalization. Returns the
+    number of rows changed. Collisions keep the row that already owns the new
+    fingerprint (its last_seen_at is bumped) and delete the migrating row."""
+    from .dedup import fingerprint as _new_fp
+
+    changed = 0
+    with _engine.begin() as conn:
+        rows = conn.execute(text(
+            "SELECT id, fingerprint, company, title, location, source_id FROM jobs"
+        )).fetchall()
+        for row_id, stored, company, title, location, source_id in rows:
+            company, title, location = company or "", title or "", location or ""
+            legacy_plain = _legacy_fingerprint(company, title, location)
+            legacy_salted = (
+                _legacy_fingerprint(company, title, location, salt=source_id)
+                if source_id else None
+            )
+            if stored == legacy_plain:
+                new = _new_fp(company, title, location)
+            elif legacy_salted is not None and stored == legacy_salted:
+                new = _new_fp(company, title, location, salt=source_id)
+            else:
+                continue  # unknown provenance or already-new — leave alone
+            if new == stored:
+                continue
+            owner = conn.execute(
+                text("SELECT id FROM jobs WHERE fingerprint = :fp AND id != :id"),
+                {"fp": new, "id": row_id},
+            ).fetchone()
+            if owner:
+                conn.execute(
+                    text("UPDATE jobs SET last_seen_at = MAX(last_seen_at, "
+                         "(SELECT last_seen_at FROM jobs WHERE id = :dead)) WHERE id = :keep"),
+                    {"dead": row_id, "keep": owner[0]},
+                )
+                conn.execute(text("DELETE FROM jobs WHERE id = :id"), {"id": row_id})
+            else:
+                conn.execute(
+                    text("UPDATE jobs SET fingerprint = :fp WHERE id = :id"),
+                    {"fp": new, "id": row_id},
+                )
+            changed += 1
+    return changed
+
+
+def _maybe_refingerprint() -> None:
+    """Run the fingerprint migration exactly once per database."""
+    insp = inspect(_engine)
+    if not insp.has_table("jobs"):
+        return
+    with _engine.begin() as conn:
+        version = conn.execute(text("PRAGMA user_version")).scalar_one()
+    if version >= 1:
+        return
+    try:
+        n = _refingerprint_once()
+        log.info("fingerprint migration: %d rows rewritten", n)
+    except Exception as exc:  # noqa: BLE001 — degrade to temporary dupes, never block boot
+        log.warning("fingerprint migration failed (will retry next boot): %s", exc)
+        return
+    with _engine.begin() as conn:
+        conn.execute(text("PRAGMA user_version = 1"))
+
+
 def check_integrity() -> tuple[bool, str]:
     """Run SQLite's built-in `PRAGMA integrity_check`. Cheap on small
     databases, slower on multi-GB ones. Returns (ok, message). Used by
@@ -285,6 +417,7 @@ def init_db() -> None:
     _apply_forward_migrations()
     Base.metadata.create_all(_engine)
     _normalize_employment_types()
+    _maybe_refingerprint()
     _setup_fts()
     _maybe_start_backfill()
 
