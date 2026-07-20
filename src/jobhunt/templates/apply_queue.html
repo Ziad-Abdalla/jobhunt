@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — application queue</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
+  <script src="/static/app.js?v={{ version }}" defer></script>
+</head>
+<body data-page="apply-queue">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:900px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Application queue</h1>
+    <p><a href="/apply">← back to apply targets</a></p>
+    <p>Jobs you queued for application. When an assistant drafts one, the exact
+    fields it would fill appear below — <strong>nothing is submitted until you
+    approve the draft here.</strong>
+    {% if not cowork_export_on %}The export API is currently
+    <span class="badge muted">disabled</span> (set <code>JOBHUNT_COWORK_EXPORT=1</code>
+    so an assistant can pick these up).{% endif %}</p>
+
+    {% if not rows %}
+      <p class="empty">Nothing queued yet. Use the <em>Queue</em> button on the
+      <a href="/apply">Apply</a> page.</p>
+    {% endif %}
+
+    <ol class="cards">
+      {% for r in rows %}
+      <li class="card">
+        <div class="card-head">
+          <a class="title" dir="auto" href="{{ r.job.url }}" target="_blank" rel="noopener noreferrer">{{ r.job.title }}</a>
+          <div class="head-meta">
+            <span class="badge {% if r.app.status == 'submitted' %}ok{% elif r.app.status in ('rejected', 'failed') %}bad{% elif r.app.status == 'approved' %}ok{% elif r.app.status == 'drafted' %}warn{% else %}muted{% endif %}">{{ r.app.status }}</span>
+          </div>
+        </div>
+        <div class="card-meta">
+          <span class="company" dir="auto">{{ r.job.company }}</span>
+          {% if r.job.location %}<span class="dot">·</span><span>{{ r.job.location }}</span>{% endif %}
+          {% if r.job.apply_domain %}<span class="badge" title="Apply link host">{{ r.job.apply_domain }}</span>{% endif %}
+        </div>
+
+        {% if r.app.status == 'drafted' and r.app.fields_filled %}
+          <div class="form-card" style="margin-top:var(--sp-3);">
+            <strong>Draft review — these fields would be submitted:</strong>
+            <table style="width:100%;margin-top:var(--sp-2);font:var(--fs-sm)/1.5 var(--font-body);">
+              {% for k, v in r.app.fields_filled.items() %}
+              <tr><td style="color:var(--text-3);padding-right:var(--sp-3);white-space:nowrap;vertical-align:top;">{{ k }}</td><td dir="auto">{{ v }}</td></tr>
+              {% endfor %}
+            </table>
+            {% if r.app.agent_notes %}
+              <p style="color:var(--text-3);font:var(--fs-sm)/1.5 var(--font-body);margin-top:var(--sp-2);">Assistant notes: {{ r.app.agent_notes }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <div class="card-foot" style="gap:var(--sp-3);">
+          {% if r.app.status == 'drafted' %}
+            <form method="post" action="/apply/queue/{{ r.app.id }}/approve" style="display:inline;">
+              <button type="submit">Approve draft</button>
+            </form>
+          {% endif %}
+          {% if r.app.status in ('queued', 'drafted') %}
+            <form method="post" action="/apply/queue/{{ r.app.id }}/reject" style="display:inline;">
+              <button type="submit">Reject</button>
+            </form>
+          {% endif %}
+          {% if r.app.receipt %}<span class="badge ok" title="submission receipt (message id)">receipt: {{ r.app.receipt }}</span>{% endif %}
+          {% if r.app.error %}<span class="badge bad" title="actuator error">{{ r.app.error }}</span>{% endif %}
+          <span style="color:var(--text-3);font:var(--fs-xs)/1 var(--font-body);">updated {{ r.app.updated_at | localdate }}</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+  </main>
+</body>
+</html>

@@ -57,6 +57,11 @@
     <div class="card-foot">
       <span class="source">{{ j.source }}</span>
       {% if j.posted_at %}<span class="dot">·</span><span>{{ j.posted_at | localdate }}</span>{% endif %}
+      {% if show_apply_badge %}
+        <form method="post" action="/apply/queue/{{ j.id }}" style="display:inline;margin-left:auto;">
+          <button type="submit" title="Queue for application (reviewed drafts only — nothing submits without your approval)">Queue</button>
+        </form>
+      {% endif %}
       <a class="apply-link" href="{{ j.url }}" target="_blank" rel="noopener noreferrer">Apply</a>
     </div>
   </li>

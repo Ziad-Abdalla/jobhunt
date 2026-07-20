@@ -686,6 +686,7 @@ def apply_page(
     kind: str = "",
     q: str = "",
     remote: str = "",
+    view: str = "",
     limit: int = 50,
     offset: int = 0,
 ) -> HTMLResponse:
@@ -693,6 +694,35 @@ def apply_page(
     bucket (known ATS form / board relay / company own-site) so the user —
     and later the Cowork handoff (P6) — can pick targets by effort."""
     from dataclasses import replace
+
+    if view == "queue":
+        # The queue view renders drafted PII (fields_filled) — loopback only,
+        # like /profile, independent of the bind host.
+        _require_loopback(request)
+        from .cowork_models import Application
+
+        with db_session() as s:
+            apps = list(
+                s.execute(
+                    select(Application, Job)
+                    .join(Job, Job.id == Application.job_id)
+                    .order_by(Application.updated_at.desc())
+                ).all()
+            )
+            queue_rows = [
+                {"app": a, "job": j} for a, j in apps
+            ]
+        return templates.TemplateResponse(
+            request,
+            "apply_queue.html",
+            {
+                "nav": "apply",
+                "today": _today(),
+                "last_updated": _last_updated_str(),
+                "rows": queue_rows,
+                "cowork_export_on": settings.cowork_export,
+            },
+        )
 
     if kind not in ("ats", "aggregator_relay", "company_site", "unknown"):
         kind = ""
@@ -746,6 +776,62 @@ def apply_page(
             "kind_counts": kind_counts,
         },
     )
+
+
+# ---------- P6: application queue actions (human gates 1 + 2) ----------
+
+
+@app.post("/apply/queue/{job_id}", response_model=None)
+def apply_queue_add(
+    job_id: int, request: Request, _: None = Depends(_require_loopback)
+):
+    """Gate 1: the human queues a job for application. Idempotent."""
+    from .cowork_models import Application
+
+    with db_session() as s:
+        job = s.get(Job, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="no such job")
+        existing = s.execute(
+            select(Application).where(Application.job_id == job_id)
+        ).scalar_one_or_none()
+        if existing is None:
+            s.add(Application(job_id=job_id))
+    return RedirectResponse("/apply?view=queue", status_code=303)
+
+
+def _transition_application(app_id: int, new_status: str) -> None:
+    from .cowork_models import Application, can_transition
+
+    with db_session() as s:
+        a = s.get(Application, app_id)
+        if a is None:
+            raise HTTPException(status_code=404, detail="no such application")
+        if not can_transition(a.status, new_status):
+            raise HTTPException(
+                status_code=409,
+                detail=f"cannot move {a.status} -> {new_status}",
+            )
+        a.status = new_status
+        a.updated_at = datetime.now(UTC)
+
+
+@app.post("/apply/queue/{app_id}/approve", response_model=None)
+def apply_queue_approve(
+    app_id: int, request: Request, _: None = Depends(_require_loopback)
+):
+    """Gate 2: the human approves the reviewed draft. Only drafted→approved
+    is legal — approving straight from queued (no draft to review) is a 409."""
+    _transition_application(app_id, "approved")
+    return RedirectResponse("/apply?view=queue", status_code=303)
+
+
+@app.post("/apply/queue/{app_id}/reject", response_model=None)
+def apply_queue_reject(
+    app_id: int, request: Request, _: None = Depends(_require_loopback)
+):
+    _transition_application(app_id, "rejected")
+    return RedirectResponse("/apply?view=queue", status_code=303)
 
 
 _last_refresh: dict[str, float] = {}
