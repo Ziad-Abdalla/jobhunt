@@ -8,6 +8,42 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+# ---------------------------------------------------------------------------
+# Arabic awareness (P3). Wuzzuf brings Arabic-language postings; the English
+# keyword tables never match them, and downstream defaults then GUESS
+# mid/Full-time. These helpers let extraction (a) read Arabic-Indic digits and
+# (b) tell refresh._persist "this text is Arabic — don't guess".
+# ---------------------------------------------------------------------------
+
+_ARABIC_DIGIT_MAP = str.maketrans(
+    "٠١٢٣٤٥٦٧٨٩" "۰۱۲۳۴۵۶۷۸۹",
+    "0123456789" "0123456789",
+)
+
+
+def _normalize_digits(text: str) -> str:
+    """Map Arabic-Indic (٠-٩) and extended (۰-۹) digits to ASCII."""
+    return text.translate(_ARABIC_DIGIT_MAP)
+
+
+def _is_arabic_char(c: str) -> bool:
+    return "؀" <= c <= "ۿ" or "ݐ" <= c <= "ݿ"
+
+
+def is_arabic_dominant(text: str) -> bool:
+    """True when >25% of the alphabetic characters in the sample are Arabic.
+
+    Sample = first 400 chars. Used to suppress the "no signal → assume
+    mid/Full-time" defaults, which actively mislabel Arabic postings.
+    """
+    sample = text[:400]
+    alpha = [c for c in sample if c.isalpha()]
+    if not alpha:
+        return False
+    arabic = sum(1 for c in alpha if _is_arabic_char(c))
+    return arabic / len(alpha) > 0.25
+
+
 # Keep this list focused — false positives are worse than false negatives for filtering.
 # Multi-word phrases must come before single tokens that overlap them.
 SKILLS: tuple[tuple[str, str], ...] = (
