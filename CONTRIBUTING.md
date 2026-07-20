@@ -34,7 +34,7 @@ src/jobhunt/
 ```
 
 **4 sections in the app:**
-- **Jobs** — main search with all 15 filters. Career stage and Job type are
+- **Jobs** — main search with all 16 filters. Career stage and Job type are
   intentionally separate: career stage = permanent-role seniority (entry → senior),
   job type = contract type. Internship lives in *Job type*, not *Career stage*.
 - **Local Jobs** — **zero-experience local roles** (cleaning, retail, warehouse,
