@@ -56,3 +56,35 @@ def test_fingerprint_salt_distinguishes_distinct_openings():
     # salt is stable and empty-salt is backwards compatible with the un-salted key
     assert fingerprint("Acme", "Backend Engineer", "Cairo", salt="req-2") == salted
     assert fingerprint("Acme", "Backend Engineer", "Cairo", salt="") == base
+
+
+# ---------------------------------------------------------------------------
+# Unicode safety (P3): Arabic titles must not normalize to "", NFC-equivalent
+# strings must fingerprint identically.
+# ---------------------------------------------------------------------------
+
+import unicodedata
+
+
+class TestUnicodeNormalization:
+    def test_arabic_title_not_stripped_to_empty(self):
+        assert normalize_title("محاسب أول") != ""
+
+    def test_distinct_arabic_titles_get_distinct_fingerprints(self):
+        fp1 = fingerprint("Acme Egypt", "محاسب", "Cairo, Egypt")
+        fp2 = fingerprint("Acme Egypt", "مندوب مبيعات", "Cairo, Egypt")
+        assert fp1 != fp2
+
+    def test_nfc_equivalence(self):
+        composed = "münchen"                                    # ü as one codepoint
+        decomposed = unicodedata.normalize("NFD", "münchen")    # u + combining diaeresis
+        assert fingerprint("Co", "Engineer", composed) == fingerprint("Co", "Engineer", decomposed)
+
+    def test_umlaut_kept_distinct_from_bare_consonants(self):
+        # Previously "münchen" was stripped to "mnchen" — indistinguishable from
+        # a company literally named "mnchen".
+        assert normalize_location("münchen") != normalize_location("mnchen")
+
+    def test_ascii_normalization_unchanged(self):
+        # Pure-ASCII normalization must be identical to the old behaviour.
+        assert normalize_title("Sr. Backend Engineer (Remote)") == "backend engineer"

@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 
 _WHITESPACE = re.compile(r"\s+")
-_NON_ALNUM = re.compile(r"[^a-z0-9 ]+")
+# Keep letters/digits in ANY script — with the old ASCII-only class, an
+# all-Arabic title normalized to "" and every same-company Arabic job collided.
+# \w is Unicode-aware; underscores (part of \w) are folded to spaces after.
+_NON_ALNUM = re.compile(r"[^\w ]+")
+_UNDERSCORE = re.compile(r"_+")
 
 
 def normalize_title(title: str) -> str:
@@ -13,7 +18,7 @@ def normalize_title(title: str) -> str:
     Conservative: only strips noise we are confident about. Real differences in the
     job's role are preserved.
     """
-    t = title.lower()
+    t = unicodedata.normalize("NFC", title).lower()
     t = re.sub(r"\(.*?\)", " ", t)              # drop parenthetical noise
     t = re.sub(r"\[.*?\]", " ", t)
     t = re.sub(
@@ -24,14 +29,16 @@ def normalize_title(title: str) -> str:
     )
     t = re.sub(r"\b(remote|hybrid|onsite|on[- ]site)\b", " ", t)
     t = _NON_ALNUM.sub(" ", t)
+    t = _UNDERSCORE.sub(" ", t)
     t = _WHITESPACE.sub(" ", t).strip()
     return t
 
 
 def normalize_company(company: str) -> str:
-    c = company.lower()
+    c = unicodedata.normalize("NFC", company).lower()
     c = re.sub(r"\b(inc|llc|ltd|gmbh|sa|sas|plc|corp|corporation)\b\.?", "", c)
     c = _NON_ALNUM.sub(" ", c)
+    c = _UNDERSCORE.sub(" ", c)
     return _WHITESPACE.sub(" ", c).strip()
 
 
@@ -49,8 +56,9 @@ _REMOTE_SYNONYMS = frozenset({
 
 
 def normalize_location(location: str) -> str:
-    loc = location.lower()
+    loc = unicodedata.normalize("NFC", location).lower()
     loc = _NON_ALNUM.sub(" ", loc)
+    loc = _UNDERSCORE.sub(" ", loc)
     loc = _WHITESPACE.sub(" ", loc).strip()
     if loc in _REMOTE_SYNONYMS:
         return "remote"
