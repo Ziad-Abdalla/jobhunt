@@ -7,8 +7,8 @@ from sqlalchemy import inspect
 
 from jobhunt.cowork_models import (
     APPLICATION_STATUSES,
-    Application,
     ApplicantProfile,
+    Application,
     can_transition,
 )
 from jobhunt.db import _engine, db_session, init_db
