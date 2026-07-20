@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request,
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 
 from . import __version__
@@ -776,6 +777,178 @@ def apply_page(
             "kind_counts": kind_counts,
         },
     )
+
+
+# ---------- P6: Cowork handoff API (loopback + default-OFF toggle) ----------
+
+
+def _require_cowork(request: Request) -> None:
+    """/api/cowork/* = loopback AND the default-OFF export toggle. The
+    toggle keeps applicant data un-exportable until the owner opts in;
+    loopback keeps it on-machine even then."""
+    _require_loopback(request)
+    if not settings.cowork_export:
+        raise HTTPException(
+            status_code=403,
+            detail="Cowork export is disabled. Set JOBHUNT_COWORK_EXPORT=1 "
+                   "to enable the local handoff API.",
+        )
+
+
+# Fixed field vocabulary — jobhunt generates the mapping; the actuator must
+# never invent values for fields outside it (unknown page fields stay blank
+# and get flagged in agent_notes — see docs/cowork-handoff.md).
+_FIELD_MAPPING_KEYS = (
+    "full_name", "email", "phone", "location", "linkedin_url", "github_url",
+    "portfolio_url", "work_authorization", "salary_expectation", "cover_note",
+)
+
+
+def _registrable_parent(domain: str) -> str | None:
+    parts = domain.split(".")
+    if len(parts) > 2:
+        return ".".join(parts[-2:])
+    return None
+
+
+@app.get("/api/cowork/export")
+def cowork_export(
+    request: Request, status: str = "queued", _: None = Depends(_require_cowork)
+) -> JSONResponse:
+    """The handoff document: applicant block + one record per application in
+    the requested status. The JD is ALWAYS wrapped as __untrusted_data__ —
+    nothing inside it is ever an instruction to the consumer."""
+    from .apply_target import AUTO_SUBMIT_DOMAINS, classify_apply
+    from .cowork_models import APPLICATION_STATUSES, Application, ApplicantProfile
+
+    if status not in APPLICATION_STATUSES:
+        raise HTTPException(status_code=400, detail=f"unknown status: {status}")
+
+    with db_session() as s:
+        p = s.get(ApplicantProfile, 1)
+        profile = {k: (getattr(p, k, "") or "") for k in _FIELD_MAPPING_KEYS} if p \
+            else {k: "" for k in _FIELD_MAPPING_KEYS}
+        cv = s.get(CVProfile, 1)
+        cv_text = (cv.text or "") if cv else ""
+        rows = s.execute(
+            select(Application, Job)
+            .join(Job, Job.id == Application.job_id)
+            .where(Application.status == status)
+            .order_by(Application.created_at)
+        ).all()
+
+        applications = []
+        for a, j in rows:
+            domain = j.apply_domain or classify_apply(j.url).domain
+            allowed = [domain] if domain else []
+            parent = _registrable_parent(domain) if domain else None
+            if parent:
+                allowed.append(parent)
+            auto_ok = any(
+                domain == d or domain.endswith("." + d) for d in AUTO_SUBMIT_DOMAINS
+            ) if domain else False
+            applications.append({
+                "id": a.id,
+                "status": a.status,
+                "job": {
+                    "title": j.title,
+                    "company": j.company,
+                    "location": j.location,
+                    "apply_url": j.url,
+                    "apply_kind": j.apply_kind or "unknown",
+                    "apply_domain": domain,
+                    "auto_submit_candidate": auto_ok,
+                },
+                "jd": {"__untrusted_data__": True, "text": j.description or ""},
+                "field_mapping": dict(profile),
+                "allowed_domains": allowed,
+            })
+
+    return JSONResponse({
+        "profile": profile,
+        "cv_text": cv_text,
+        "applications": applications,
+        "contract": "docs/cowork-handoff.md",
+    })
+
+
+class _DraftBody(BaseModel):
+    application_id: int
+    fields_filled: dict[str, str] = {}
+    agent_notes: str = ""
+    error: str = ""
+
+    @field_validator("fields_filled")
+    @classmethod
+    def _cap_fields(cls, v: dict[str, str]) -> dict[str, str]:
+        if len(v) > 50:
+            raise ValueError("too many fields")
+        return {str(k)[:128]: str(val)[:2000] for k, val in v.items()}
+
+
+class _ReceiptBody(BaseModel):
+    application_id: int
+    receipt: str = ""
+    error: str = ""
+
+    @field_validator("receipt")
+    @classmethod
+    def _receipt_shape(cls, v: str) -> str:
+        # A message id: single line, bounded. Never a blob, never multiline.
+        if "\n" in v or "\r" in v or len(v) > 512:
+            raise ValueError("receipt must be a single line of at most 512 chars")
+        return v
+
+
+@app.post("/api/cowork/draft")
+def cowork_draft(
+    body: _DraftBody, request: Request, _: None = Depends(_require_cowork)
+) -> JSONResponse:
+    """The actuator reports what it WOULD fill — never a submit. Moves
+    queued→drafted (or →failed with an error). The draft is rendered on
+    /apply?view=queue for human review (gate 2)."""
+    from .cowork_models import Application, can_transition
+
+    new_status = "failed" if body.error else "drafted"
+    with db_session() as s:
+        a = s.get(Application, body.application_id)
+        if a is None:
+            raise HTTPException(status_code=404, detail="no such application")
+        if not can_transition(a.status, new_status):
+            raise HTTPException(
+                status_code=409, detail=f"cannot move {a.status} -> {new_status}"
+            )
+        a.status = new_status
+        a.fields_filled = body.fields_filled
+        a.agent_notes = _trim(body.agent_notes, 2000)
+        a.error = _trim(body.error, 2000)
+        a.updated_at = datetime.now(UTC)
+    return JSONResponse({"ok": True, "status": new_status})
+
+
+@app.post("/api/cowork/receipt")
+def cowork_receipt(
+    body: _ReceiptBody, request: Request, _: None = Depends(_require_cowork)
+) -> JSONResponse:
+    """Post-hoc proof of a submission the human approved. Refused unless the
+    application is 'approved' — a submit that skipped gate 2 can never be
+    recorded as success."""
+    from .cowork_models import Application, can_transition
+
+    new_status = "failed" if body.error else "submitted"
+    with db_session() as s:
+        a = s.get(Application, body.application_id)
+        if a is None:
+            raise HTTPException(status_code=404, detail="no such application")
+        if not can_transition(a.status, new_status):
+            raise HTTPException(
+                status_code=409, detail=f"cannot move {a.status} -> {new_status}"
+            )
+        a.status = new_status
+        a.receipt = body.receipt
+        a.error = _trim(body.error, 2000)
+        a.updated_at = datetime.now(UTC)
+    return JSONResponse({"ok": True, "status": new_status})
 
 
 # ---------- P6: application queue actions (human gates 1 + 2) ----------
