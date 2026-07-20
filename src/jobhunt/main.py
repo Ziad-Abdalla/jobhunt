@@ -3,11 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -560,6 +561,120 @@ def freelance_page(
             "min_salary": min_salary,
         },
     )
+
+
+# ---------- P6: loopback gate + applicant profile ----------
+
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1"})
+
+
+def _require_loopback(request: Request) -> None:
+    """PII endpoints answer the local machine only, INDEPENDENT of the bind
+    host: with HOST=0.0.0.0 (phone-on-LAN browsing) /profile and
+    /api/cowork/* still refuse remote peers. Reads the socket peer — never
+    a spoofable header."""
+    client = request.client
+    if client is None or client.host not in _LOOPBACK_HOSTS:
+        raise HTTPException(
+            status_code=403,
+            detail="This page holds applicant data and only answers loopback "
+                   "(local machine) requests.",
+        )
+
+
+# Accidental credential paste must never land in the PII store. Concrete,
+# low-false-positive patterns only (an over-eager filter would block real
+# cover letters).
+_SECRET_PATTERNS = (
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),                 # AWS access key id
+    re.compile(r"\bsk-[A-Za-z0-9_-]{16,}"),              # generic sk- API key
+    re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),              # GitHub PAT
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),    # PEM
+    re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+"),  # JWT (header.payload)
+)
+
+
+def _find_secret(value: str) -> bool:
+    return any(p.search(value) for p in _SECRET_PATTERNS)
+
+
+_PROFILE_FIELD_CAPS = {
+    "full_name": 256, "email": 256, "phone": 64, "location": 256,
+    "linkedin_url": 512, "github_url": 512, "portfolio_url": 512,
+    "work_authorization": 512, "salary_expectation": 128, "cover_note": 4000,
+}
+
+
+def _get_or_create_profile(s) -> "ApplicantProfile":  # type: ignore[name-defined]  # noqa: F821
+    from .cowork_models import ApplicantProfile
+
+    p = s.get(ApplicantProfile, 1)
+    if p is None:
+        p = ApplicantProfile(id=1)
+        s.add(p)
+    return p
+
+
+@app.get("/profile", response_class=HTMLResponse)
+def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTMLResponse:
+    from .cowork_models import ApplicantProfile
+
+    with db_session() as s:
+        p = s.get(ApplicantProfile, 1)
+        fields = {k: getattr(p, k, "") or "" for k in _PROFILE_FIELD_CAPS} if p else \
+                 {k: "" for k in _PROFILE_FIELD_CAPS}
+    return templates.TemplateResponse(
+        request,
+        "profile.html",
+        {
+            "nav": "profile",
+            "today": _today(),
+            "fields": fields,
+            "saved": request.query_params.get("saved") == "1",
+            "cowork_export_on": settings.cowork_export,
+        },
+    )
+
+
+@app.post("/profile", response_model=None)
+def profile_save(
+    request: Request,
+    _: None = Depends(_require_loopback),
+    full_name: str = Form(""),
+    email: str = Form(""),
+    phone: str = Form(""),
+    location: str = Form(""),
+    linkedin_url: str = Form(""),
+    github_url: str = Form(""),
+    portfolio_url: str = Form(""),
+    work_authorization: str = Form(""),
+    salary_expectation: str = Form(""),
+    cover_note: str = Form(""),
+):
+    values = {
+        "full_name": full_name, "email": email, "phone": phone,
+        "location": location, "linkedin_url": linkedin_url,
+        "github_url": github_url, "portfolio_url": portfolio_url,
+        "work_authorization": work_authorization,
+        "salary_expectation": salary_expectation, "cover_note": cover_note,
+    }
+    for key, raw in values.items():
+        if _find_secret(raw):
+            return HTMLResponse(
+                "<h1>That looks like a secret/API key.</h1>"
+                "<p>The applicant profile is for contact details only — it must "
+                "never hold credentials. Remove the key-like text from "
+                f"<strong>{key}</strong> and save again.</p>"
+                '<p><a href="/profile">Back to profile</a></p>',
+                status_code=400,
+            )
+        values[key] = _trim(raw, _PROFILE_FIELD_CAPS[key])
+    with db_session() as s:
+        p = _get_or_create_profile(s)
+        for key, val in values.items():
+            setattr(p, key, val)
+        p.updated_at = datetime.now(UTC)
+    return RedirectResponse("/profile?saved=1", status_code=303)
 
 
 # ---------- apply-target collection page (P5) ----------

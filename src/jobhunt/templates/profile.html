@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jobhunt — applicant profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}" />
+  <script src="/static/app.js?v={{ version }}" defer></script>
+</head>
+<body data-page="profile">
+  {% include "_nav.html" %}
+
+  <main class="page" style="max-width:760px; margin:0 auto; padding:var(--sp-5) var(--sp-6);">
+    <h1>Applicant profile</h1>
+    <p>The details an application form asks for, entered once. <strong>Everything
+    stays on this machine:</strong> this page and the export API only answer the
+    local computer, the export API is additionally off by default
+    ({% if cowork_export_on %}currently <span class="badge ok">enabled</span>{% else %}currently <span class="badge muted">disabled</span> — set <code>JOBHUNT_COWORK_EXPORT=1</code> to enable{% endif %}),
+    and there is deliberately no field for passport or national-ID data.
+    Never paste passwords or API keys here — saving refuses key-like text.</p>
+
+    {% if saved %}<p class="badge ok" role="status">Saved.</p>{% endif %}
+
+    <div class="form-card">
+      <form method="post" action="/profile" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);">
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Full name
+          <input type="text" name="full_name" value="{{ fields.full_name }}" maxlength="256" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Email
+          <input type="email" name="email" value="{{ fields.email }}" maxlength="256" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Phone
+          <input type="text" name="phone" value="{{ fields.phone }}" maxlength="64" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Location
+          <input type="text" name="location" value="{{ fields.location }}" maxlength="256" placeholder="e.g. Cairo, Egypt" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          LinkedIn URL
+          <input type="url" name="linkedin_url" value="{{ fields.linkedin_url }}" maxlength="512" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          GitHub URL
+          <input type="url" name="github_url" value="{{ fields.github_url }}" maxlength="512" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Portfolio URL
+          <input type="url" name="portfolio_url" value="{{ fields.portfolio_url }}" maxlength="512" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Work authorization
+          <input type="text" name="work_authorization" value="{{ fields.work_authorization }}" maxlength="512" placeholder="e.g. EG citizen; no EU permit" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Salary expectation
+          <input type="text" name="salary_expectation" value="{{ fields.salary_expectation }}" maxlength="128" placeholder="e.g. negotiable" />
+        </label>
+        <label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Short cover note (reused as the base for applications)
+          <textarea name="cover_note" rows="6" maxlength="4000">{{ fields.cover_note }}</textarea>
+        </label>
+        <div style="grid-column:1 / -1;">
+          <button type="submit">Save profile</button>
+        </div>
+      </form>
+    </div>
+
+    <p style="color:var(--text-3);font:var(--fs-sm)/1.5 var(--font-body);">
+      Used by the <a href="/apply">Apply</a> queue: when you queue a job and an
+      assistant drafts the application, the draft is shown here for your review
+      — nothing is ever submitted without your explicit approval.
+    </p>
+  </main>
+</body>
+</html>

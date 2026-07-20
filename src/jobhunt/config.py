@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     jooble_api_key: str = ""
     reed_api_key: str = ""
 
+    # P6: default-OFF gate for /api/cowork/* (the applicant-data export /
+    # write-back used by the Cowork handoff). Even when ON, those endpoints
+    # only answer loopback peers. Set JOBHUNT_COWORK_EXPORT=1 to enable.
+    cowork_export: bool = False
+
     # User's location — used two ways: Jooble automatically fetches local jobs
     # for this area, and (P4) ranking demotes jobs geo-restricted to regions
     # you're not in (see scoring.home_region_from_location). Include the
