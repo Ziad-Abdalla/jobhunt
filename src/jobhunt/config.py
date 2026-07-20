@@ -61,6 +61,22 @@ class Settings(BaseSettings):
     notify_method: str = "auto"
     notify_batch_max: int = 5
 
+    # P7: off-machine alert channels. Each self-gates — empty = channel off,
+    # so the default is desktop-only (byte-identical to pre-P7).
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_to: str = ""
+
+    # P7 fast-poll tier: when > 0, priority saved searches get a tighter
+    # scrape+alert loop over just their sources (0 = off; main interval
+    # unchanged).
+    fast_poll_minutes: int = 0
+
     jooble_api_key: str = ""
     reed_api_key: str = ""
 

@@ -305,8 +305,11 @@ def _redact_env(env_text: str) -> str:
 
     global _API_KEY_LINE_RE
     if _API_KEY_LINE_RE is None:
+        # Any JOBHUNT_* line whose key ends in a secret-bearing suffix:
+        # API_KEY, TOKEN, PASSWORD, or SECRET (covers Jooble/Reed keys plus
+        # the P7 TELEGRAM_BOT_TOKEN and SMTP_PASSWORD).
         _API_KEY_LINE_RE = re.compile(
-            r"^(JOBHUNT_(?:JOOBLE|REED|[A-Z_]*?_)?API_KEY)\s*=.*$",
+            r"^(JOBHUNT_[A-Z0-9_]*?(?:API_KEY|TOKEN|PASSWORD|SECRET))\s*=.*$",
             re.MULTILINE,
         )
     return _API_KEY_LINE_RE.sub(

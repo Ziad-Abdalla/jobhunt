@@ -11,11 +11,11 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
+from .channels import send_all
 from .config import settings
 from .db import db_session
 from .filters import JobQuery, search
 from .models import SavedSearch
-from .notifications import notify
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ async def check_alerts() -> dict:
                 continue
             to_notify = new_matches[: settings.notify_batch_max]
             for job in to_notify:
-                notify(
+                send_all(
                     f"jobhunt: {ss.name}",
                     f"{job.title} @ {job.company} ({job.location or 'unknown'})",
                     url=job.url,
