@@ -43,12 +43,18 @@ _REGION_MULTIPLIER: dict[str, float] = {
     "remote": 0.90,
     "apac":   0.55,
     "latam":  0.40,
+    # MENA (P3). These multipliers express LOCAL-CURRENCY annual amounts —
+    # they fold in both market level and exchange rate, so the number the
+    # baseline produces is directly labeled with the local currency.
+    "egypt":  4.0,   # EGP annual ≈ baseline USD × 4 (Cairo tech market, 2026)
+    "gcc":    2.4,   # AED annual (Dubai/Riyadh expressed AED-equivalent)
     "other":  0.60,
 }
 
 _REGION_CURRENCY: dict[str, str] = {
     "us": "USD", "uk": "GBP", "eu": "EUR", "canada": "CAD",
     "remote": "USD", "apac": "USD", "latam": "USD", "other": "USD",
+    "egypt": "EGP", "gcc": "AED",
 }
 
 
@@ -91,6 +97,22 @@ def infer_region(location: str) -> str:
     )
     if any(s in loc for s in ca_signals):
         return "canada"
+
+    # Egypt/GCC before the generic buckets — Wuzzuf locations are "City, Egypt".
+    egypt_signals = (
+        "egypt", "cairo", "giza", "alexandria", "مصر", "القاهرة",
+        "الجيزة", "الإسكندرية",
+    )
+    if any(s in loc for s in egypt_signals):
+        return "egypt"
+
+    gcc_signals = (
+        "united arab emirates", "uae", "dubai", "abu dhabi",
+        "saudi", "riyadh", "jeddah", "qatar", "doha",
+        "kuwait", "bahrain", "oman", "muscat",
+    )
+    if any(s in loc for s in gcc_signals):
+        return "gcc"
 
     eu_signals = (
         "germany", "france", "netherlands", "spain", "italy",
