@@ -254,3 +254,9 @@
 - { source: arbeitsagentur, board: "Kundenservice",            company: "(Germany — Kundenservice)" }
 - { source: arbeitsagentur, board: "Pflegehelfer",             company: "(Germany — Pflege)" }
 - { source: arbeitsagentur, board: "Sicherheitsmitarbeiter",   company: "(Germany — Sicherheit)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  MENA-founded employers (Egypt/GCC roles) — public ATS, live-verified
+# ═══════════════════════════════════════════════════════════════════
+- { source: greenhouse, board: tamara, company: "Tamara (MENA fintech)" }
+- { source: greenhouse, board: careem, company: "Careem (MENA super-app)" }
