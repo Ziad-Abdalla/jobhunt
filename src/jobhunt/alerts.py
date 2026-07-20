@@ -46,10 +46,16 @@ async def check_alerts() -> dict:
         for ss in searches:
             if not ss.notify:
                 continue
-            q = _query_from_dict(ss.query_json or {})
+            data = ss.query_json or {}
+            q = _query_from_dict(data)
             matches = search(s, q)
             seen_ids = set(ss.notified_job_ids or [])
             new_matches = [m for m in matches if m.id not in seen_ids]
+            # P7: optional per-search source filter — only alert for the
+            # chosen sources when the list is non-empty.
+            wanted = set(data.get("sources") or [])
+            if wanted:
+                new_matches = [m for m in new_matches if m.source in wanted]
             if not new_matches:
                 continue
             to_notify = new_matches[: settings.notify_batch_max]

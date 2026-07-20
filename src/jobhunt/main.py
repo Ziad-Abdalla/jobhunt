@@ -1113,10 +1113,16 @@ def health_page(request: Request) -> HTMLResponse:
 def alerts_page(request: Request) -> HTMLResponse:
     with db_session() as s:
         searches = list(s.execute(select(SavedSearch).order_by(SavedSearch.created_at.desc())).scalars().all())
+        available_sources = [
+            r[0] for r in s.execute(
+                select(Job.source).distinct().order_by(Job.source)
+            ).all() if r[0]
+        ]
     return templates.TemplateResponse(
         request,
         "alerts.html",
-        {"searches": searches, "nav": "alerts", "today": _today()},
+        {"searches": searches, "nav": "alerts", "today": _today(),
+         "available_sources": available_sources},
     )
 
 
@@ -1144,6 +1150,8 @@ def alerts_create(
     skills: str = Form(""),
     posted_within_days: int | None = Form(None),
     notify: bool = Form(True),
+    sources: list[str] = Form(default=[]),
+    priority: bool = Form(False),
 ) -> RedirectResponse:
     name = _trim(name, _MAX_ALERT_NAME)
     if not name:
@@ -1160,6 +1168,9 @@ def alerts_create(
         "languages": [s.strip().lower() for s in languages.split(",") if s.strip()][:_MAX_ALERT_TAGS],
         "skills": [s.strip().lower() for s in skills.split(",") if s.strip()][:_MAX_ALERT_TAGS],
         "posted_within_days": posted_within_days,
+        # P7: only-these-sources filter + fast-poll priority tier.
+        "sources": [_trim(x, 32) for x in sources if x.strip()][:_MAX_ALERT_TAGS],
+        "priority": bool(priority),
     }
     with db_session() as s:
         existing = s.execute(select(SavedSearch).where(SavedSearch.name == name)).scalar_one_or_none()

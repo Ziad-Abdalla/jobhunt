@@ -56,7 +56,15 @@
         <label>Languages (comma sep) <input type="text" name="languages" placeholder="python, go" autocomplete="off" /></label>
         <label>Skills (comma sep) <input type="text" name="skills" placeholder="react, aws" autocomplete="off" /></label>
         <label>Posted within (days) <input type="number" name="posted_within_days" min="1" max="60" /></label>
-        <label class="checkbox"><input type="checkbox" name="notify" checked /> Send desktop notification</label>
+        {% if available_sources %}
+        <label>Only these sources (optional — leave none for all)
+          <select name="sources" multiple size="4">
+            {% for src in available_sources %}<option value="{{ src }}">{{ src }}</option>{% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        <label class="checkbox"><input type="checkbox" name="notify" checked /> Send notification (desktop + any configured Telegram/email)</label>
+        <label class="checkbox"><input type="checkbox" name="priority" /> Priority (fast-poll tier — checks its sources more often)</label>
         <button type="submit">Save</button>
       </form>
     </section>
