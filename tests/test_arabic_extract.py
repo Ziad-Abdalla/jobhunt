@@ -11,7 +11,12 @@ from __future__ import annotations
 import pytest
 
 from jobhunt.db import db_session, init_db
-from jobhunt.extract import _normalize_digits, extract, is_arabic_dominant
+from jobhunt.extract import (
+    _normalize_digits,
+    classify_category,
+    extract,
+    is_arabic_dominant,
+)
 from jobhunt.models import Job
 from jobhunt.refresh import _persist
 from jobhunt.scrapers.base import RawJob
@@ -155,6 +160,25 @@ class TestNoGuessingOnArabic:
             job = s.query(Job).filter(Job.source == _TEST_SOURCE).one()
             assert job.level == "mid"            # industry-convention default kept
             assert job.employment_type == "Full-time"
+
+
+class TestArabicCategory:
+    @pytest.mark.parametrize("title,expected", [
+        ("مطور برمجيات", "tech"),
+        ("مهندس برمجيات", "tech"),
+        ("مبرمج تطبيقات", "tech"),
+        ("أخصائي دعم فني", "tech"),
+        ("أمن سيبراني", "tech"),          # must beat the nontech أمن (security guard)
+        ("محاسب", "nontech"),
+        ("مندوب مبيعات", "nontech"),
+        ("سائق خاص", "nontech"),
+        ("موظف خدمة عملاء", "nontech"),
+        ("فرد أمن", "nontech"),
+        ("عامل نظافة", "nontech"),
+        ("مدير تسويق رقمي", "other"),      # not in either focused table → other
+    ])
+    def test_titles(self, title, expected):
+        assert classify_category(title) == expected
 
 
 class TestNormalizeDigits:

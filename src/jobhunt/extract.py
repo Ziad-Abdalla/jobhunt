@@ -253,6 +253,17 @@ _NONTECH_TITLE_RE = re.compile(
     re.I,
 )
 
+# Arabic title vocabulary (P3). Checked alongside the English tables; tech is
+# checked first everywhere so "أمن سيبراني" (cybersecurity) beats "أمن" (security guard).
+_TECH_TITLE_AR = re.compile(
+    r"مطور|مبرمج|مهندس\s*برمجيات|تكنولوجيا\s*المعلومات|دعم\s*فني"
+    r"|[أا]من\s*سيبراني|شبكات|قواعد\s*بيانات|علم\s*البيانات|ذكاء\s*اصطناعي"
+)
+_NONTECH_TITLE_AR = re.compile(
+    r"محاسب|مبيعات|سائق|طباخ|شيف|خدمة\s*عملاء|موارد\s*بشرية|استقبال"
+    r"|\b[أا]من\b|نظافة|مندوب|كاشير|صيدلي|ممرض|معلم|مدرس|\bعامل\b"
+)
+
 
 def classify_category(title: str, description: str = "") -> str:
     """Return 'tech', 'nontech', or 'other' for a job posting.
@@ -261,14 +272,14 @@ def classify_category(title: str, description: str = "") -> str:
     Description is a tiebreaker when the title is ambiguous (e.g. "Assistant").
     """
     title = title or ""
-    if _TECH_TITLE_RE.search(title):
+    if _TECH_TITLE_RE.search(title) or _TECH_TITLE_AR.search(title):
         return "tech"
-    if _NONTECH_TITLE_RE.search(title):
+    if _NONTECH_TITLE_RE.search(title) or _NONTECH_TITLE_AR.search(title):
         return "nontech"
-    blob = description or ""
-    if _TECH_TITLE_RE.search(blob[:600]):
+    blob = (description or "")[:600]
+    if _TECH_TITLE_RE.search(blob) or _TECH_TITLE_AR.search(blob):
         return "tech"
-    if _NONTECH_TITLE_RE.search(blob[:600]):
+    if _NONTECH_TITLE_RE.search(blob) or _NONTECH_TITLE_AR.search(blob):
         return "nontech"
     return "other"
 
