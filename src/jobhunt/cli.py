@@ -125,6 +125,41 @@ def apply_export(
     typer.echo(_json.dumps(doc, ensure_ascii=False, indent=2))
 
 
+@app.command(name="discover-boards")
+def discover_boards(
+    output: Path = typer.Option(
+        None, "--output", "-o",
+        help="Review file to write. Defaults to discovered_boards.yaml in the data folder.",
+    ),
+) -> None:
+    """Harvest new ATS board slugs from public GitHub company directories.
+
+    Writes CANDIDATES to a review file — never into sources.yaml directly.
+    Run `jobhunt doctor` against the merged file before shipping (the
+    verify-before-ship rule); each candidate is unverified until then."""
+    import yaml
+
+    from .board_discovery import discover
+    from .refresh import load_sources
+
+    existing = load_sources()
+    candidates = discover(existing)
+    if output is None:
+        output = settings.data_dir / "discovered_boards.yaml"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    header = (
+        "# jobhunt discover-boards — UNVERIFIED candidates.\n"
+        "# Run `jobhunt doctor` after merging into sources.yaml; drop any 404s.\n"
+    )
+    with open(output, "w", encoding="utf-8") as f:
+        f.write(header)
+        yaml.safe_dump(candidates, f, sort_keys=False, allow_unicode=True)
+    typer.echo(
+        f"discovered {len(candidates)} new board candidates "
+        f"(deduped against {len(existing)} configured) → {output}"
+    )
+
+
 @app.command()
 def scrape() -> None:
     """Run all configured scrapers, dedup, and sweep stale listings."""
