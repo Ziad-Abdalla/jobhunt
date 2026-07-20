@@ -103,6 +103,15 @@ _TITLE_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bsenior\b|\bsr\.?\b", re.I), "senior"),
     (re.compile(r"\blead\b", re.I), "lead"),
     (re.compile(r"\bmid[- ]?level\b", re.I), "mid"),
+    # Arabic (P3). Word boundaries (\b) are Unicode-aware in Python's re.
+    # Appended after the English entries: Arabic text never matches the English
+    # patterns, so English priority is untouched; among the Arabic entries the
+    # more specific match (intern → entry → junior → lead → senior) wins first.
+    (re.compile(r"متدرب|تدريب\s*(?:صيفي|عملي)|برنامج\s*تدريب"), "intern"),
+    (re.compile(r"حديث[يو]?\s*التخرج|خريج\s*جديد|بدون\s*خبرة|لا\s*تشترط\s*خبرة"), "entry"),
+    (re.compile(r"مبتدئ"), "junior"),
+    (re.compile(r"قائد\s*فريق|رئيس\s*قسم"), "lead"),
+    (re.compile(r"\bكبير\b|\bخبير\b"), "senior"),
 )
 
 _DESC_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
@@ -123,6 +132,12 @@ _DESC_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bsenior\b|\bsr\.?\b", re.I), "senior"),
     (re.compile(r"\bstaff\b", re.I), "staff"),
     (re.compile(r"\blead\b", re.I), "lead"),
+    # Arabic (P3) — same entries as the title table, same ordering rationale.
+    (re.compile(r"متدرب|تدريب\s*(?:صيفي|عملي)|برنامج\s*تدريب"), "intern"),
+    (re.compile(r"حديث[يو]?\s*التخرج|خريج\s*جديد|بدون\s*خبرة|لا\s*تشترط\s*خبرة"), "entry"),
+    (re.compile(r"مبتدئ"), "junior"),
+    (re.compile(r"قائد\s*فريق|رئيس\s*قسم"), "lead"),
+    (re.compile(r"\bكبير\b|\bخبير\b"), "senior"),
 )
 
 _REMOTE_STRONG = re.compile(
@@ -147,6 +162,9 @@ _YOE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(\d+)\s*\+?\s*years?\s+(?:of\s+)?(?:experience|exp)", re.I),
     re.compile(r"minimum\s+of\s+(\d+)\s*years?", re.I),
     re.compile(r"at least\s+(\d+)\s*years?", re.I),
+    # Arabic (P3) — run after _normalize_digits, so \d sees ASCII digits.
+    re.compile(r"خبرة\s*(?:من\s*)?(\d+)"),                            # "خبرة 3 سنوات"
+    re.compile(r"(\d+)\s*سن(?:وات|ة|تين)?\s*(?:من\s*)?(?:ال)?خبرة"),  # "3 سنوات خبرة"
 )
 
 # Employment type patterns — searched in description text.
@@ -293,6 +311,9 @@ def _find_matches(text: str, tokens: tuple[str, ...]) -> list[str]:
 
 
 def extract(text: str, *, title: str = "") -> Extracted:
+    # Normalize Arabic-Indic digits up front so the YoE/salary regexes can see them.
+    title = _normalize_digits(title)
+    text = _normalize_digits(text)
     haystack = f"{title}\n{text}"
 
     languages = _find_matches(haystack, LANGUAGE_TOKENS)

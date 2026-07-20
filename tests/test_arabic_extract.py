@@ -8,7 +8,7 @@ and the don't-guess behaviour.
 
 from __future__ import annotations
 
-from jobhunt.extract import _normalize_digits, is_arabic_dominant
+from jobhunt.extract import _normalize_digits, extract, is_arabic_dominant
 
 
 class TestArabicDominant:
@@ -32,6 +32,41 @@ class TestArabicDominant:
 
     def test_digits_and_punctuation_only_is_not(self):
         assert is_arabic_dominant("123 - 456!") is False
+
+
+class TestArabicLevel:
+    def test_fresh_grad_title_is_entry(self):
+        assert extract("", title="مطلوب محاسب حديث التخرج").level == "entry"
+
+    def test_no_experience_required_is_entry(self):
+        assert extract("لا تشترط خبرة سابقة للتقديم", title="محاسب").level == "entry"
+
+    def test_intern_title(self):
+        assert extract("", title="متدرب موارد بشرية").level == "intern"
+
+    def test_junior_title(self):
+        assert extract("", title="مصمم جرافيك مبتدئ").level == "junior"
+
+    def test_senior_title(self):
+        assert extract("", title="محاسب خبير").level == "senior"
+
+    def test_team_lead_title(self):
+        assert extract("", title="قائد فريق المبيعات").level == "lead"
+
+    def test_plain_arabic_title_stays_unknown(self):
+        # No level keyword → unknown (the whole point: don't guess).
+        assert extract("مطلوب للعمل في شركة كبرى براتب مجزي", title="محاسب").level == "unknown"
+
+
+class TestArabicYoE:
+    def test_khibra_n_sanawat(self):
+        assert extract("مطلوب خبرة 3 سنوات في المبيعات", title="مندوب").min_years == 3
+
+    def test_arabic_indic_digits(self):
+        assert extract("خبرة ٥ سنوات على الأقل", title="محاسب").min_years == 5
+
+    def test_n_sanawat_khibra(self):
+        assert extract("يشترط 2 سنة خبرة في المجال", title="محاسب").min_years == 2
 
 
 class TestNormalizeDigits:
