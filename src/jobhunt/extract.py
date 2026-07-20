@@ -273,6 +273,73 @@ def classify_category(title: str, description: str = "") -> str:
     return "other"
 
 
+# ---------------------------------------------------------------------------
+# Geo-eligibility (P3). For a job-seeker in Egypt, "remote" is only half the
+# story — "Remote (US only)" is not reachable. Focused patterns; false
+# positives are worse than false negatives, so unmatched text stays "unknown".
+# ---------------------------------------------------------------------------
+
+# Bare abbreviations stay case-SENSITIVE: with re.I, "US only" would match the
+# pronoun in "…that matters to us only".
+_GEO_US_ABBR = re.compile(
+    r"\b(?:USA?|U\.S\.A?\.?)[- ](?:only|based)\b"
+    r"|\bUS work authorization\b"
+)
+_GEO_US_PHRASE = re.compile(
+    r"\bmust (?:be|reside|live) (?:located |based |residing )?in the (?:USA?|United States)\b"
+    r"|\b(?:located|based) in the (?:USA?|United States) only\b"
+    r"|\bauthorized to work in the (?:USA?|United States)\b",
+    re.I,
+)
+_GEO_UK = re.compile(
+    r"\bUK[- ]only\b|\bright to work in the (?:UK|United Kingdom)\b"
+    r"|\bmust (?:be|reside|live) (?:located |based )?in the (?:UK|United Kingdom)\b"
+    r"|\bUK[- ]based candidates\b",
+    re.I,
+)
+_GEO_EU = re.compile(
+    r"\bEU[- ]only\b|\bEU/EEA\b|\bEurope[- ]only\b"
+    r"|\bmust (?:be|reside|live) (?:located |based )?in (?:the )?(?:EU|Europe|EEA)\b"
+    r"|\b(?:based|located) in the EU\b|\bEU work permit\b",
+    re.I,
+)
+_GEO_RESTRICTED_OTHER = re.compile(
+    r"\bmust (?:be|reside|live) (?:located |based )?in\b"
+    r"|\btime ?zone overlap\b"
+    r"|\bwithin\s+(?:[A-Z]{2,4}\s*)?[+±-]/?-?\s*\d+\s*hours?\b"
+    r"|\b(?:CET|EST|PST|GMT|UTC)\s*(?:[+±-]|\+/-)\s*\d"
+    r"|\bhours? overlap with\b",
+    re.I,
+)
+_GEO_UNRESTRICTED = re.compile(
+    r"\banywhere in the world\b|\bwork from anywhere\b"
+    r"|\bno location restrictions?\b|\bglobally distributed\b"
+    r"|\bcandidates worldwide\b|\bopen to (?:all|candidates in any) (?:countries|locations?)\b",
+    re.I,
+)
+
+
+def extract_geo(text: str, title: str = "") -> str:
+    """Classify a posting's stated location eligibility for remote work.
+
+    Returns one of: us-only | uk-only | eu-only | restricted-other |
+    unrestricted | unknown. A specific region beats "unrestricted" when both
+    appear.
+    """
+    blob = f"{title}\n{text}"
+    if _GEO_US_ABBR.search(blob) or _GEO_US_PHRASE.search(blob):
+        return "us-only"
+    if _GEO_UK.search(blob):
+        return "uk-only"
+    if _GEO_EU.search(blob):
+        return "eu-only"
+    if _GEO_RESTRICTED_OTHER.search(blob):
+        return "restricted-other"
+    if _GEO_UNRESTRICTED.search(blob):
+        return "unrestricted"
+    return "unknown"
+
+
 def _parse_salary_number(raw: str) -> int | None:
     """Parse '120,000', '120k', '1.5k', '120.000' (EU) into an integer."""
     s = raw.strip().replace(",", "").replace("_", "")
