@@ -15,8 +15,9 @@ locations, salary, date, description, url, site}]}; failures use
 The `board` token is `"<keywords>|<location>"` (like jooble/jsearch).
 A recognized country resolves the locale_code (Egypt → en_EG); anything
 else is passed through as the `location` param under the default en_GB.
-Offline-built against the documented shape (jsearch precedent) — the
-live doctor probe is gated on the owner's affid.
+Offline-built against the documented shape (jsearch precedent);
+live-verified 2026-07-22 (100 jobs across 2 Egypt boards) — the probe
+surfaced the undocumented Referer requirement (see _REFERER).
 """
 
 from __future__ import annotations
@@ -31,6 +32,11 @@ from .base import BaseScraper, RawJob
 
 _API_URL = "http://public.api.careerjet.net/search"
 _MAX_JOBS = 50  # one page
+# The API rejects referer-less calls with 403 "Undeclared referrer. Please
+# add a Referer header so we know who is calling this API and from which
+# page." (live-observed 2026-07-22). Any identifying page is accepted; the
+# project homepage is the honest one for a locally-run app.
+_REFERER = "https://github.com/Abdalla2004-collab/Jobhunt"
 
 # Country (lowercased) → Careerjet locale. Unlisted locations fall back to
 # the API default en_GB with the raw text as the `location` param — so the
@@ -101,7 +107,7 @@ class CareerjetScraper(BaseScraper):
         if location and not locale:
             params["location"] = location
 
-        resp = await self.client.get(_API_URL, params=params)
+        resp = await self.client.get(_API_URL, params=params, headers={"Referer": _REFERER})
         resp.raise_for_status()
         payload = resp.json()
         if not isinstance(payload, dict) or payload.get("type") != "JOBS":

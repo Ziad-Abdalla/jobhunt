@@ -1,9 +1,9 @@
 """Careerjet public affiliate API adapter — parses the documented shape.
 
 Offline tests only (jsearch precedent: build-the-offline-code,
-defer-the-live-run). The endpoint 403s without a valid affid, so the live
-`jobhunt doctor` probe is gated on the owner opening a free Careerjet
-partner account and pasting the affid on the Settings page.
+defer-the-live-run). Live-verified 2026-07-22 with the owner's affid —
+the probe surfaced that the API 403s referer-less calls, pinned by
+test_careerjet_sends_referer_header.
 """
 
 import httpx
@@ -110,6 +110,23 @@ async def test_careerjet_known_city_keeps_location_and_locale(monkeypatch):
     params = dict(route.calls[0].request.url.params)
     assert params["locale_code"] == "en_EG"
     assert params["location"] == "Cairo"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_careerjet_sends_referer_header(monkeypatch):
+    """The live API 403s referer-less calls ("Undeclared referrer. Please add
+    a Referer header so we know who is calling this API and from which page.",
+    observed 2026-07-22) — every request must identify the caller."""
+    monkeypatch.setattr(settings, "careerjet_affid", "testaffid123")
+    route = respx.get("http://public.api.careerjet.net/search").mock(
+        return_value=httpx.Response(200, json={"type": "JOBS", "hits": 0, "pages": 0, "jobs": []})
+    )
+    async with httpx.AsyncClient() as client:
+        scraper = CareerjetScraper(client=client, board="developer|Egypt")
+        _ = [j async for j in scraper.fetch()]
+    referer = route.calls[0].request.headers.get("referer", "")
+    assert referer == "https://github.com/Abdalla2004-collab/Jobhunt"
 
 
 @pytest.mark.asyncio
