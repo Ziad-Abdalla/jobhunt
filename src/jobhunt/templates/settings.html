@@ -65,6 +65,19 @@
             </a>
           </span>
         </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Careerjet affiliate ID
+          {% if careerjet_affid_set %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ ID set</span>{% endif %}
+          <input type="password" name="careerjet_affid" value="" autocomplete="off" placeholder="{% if careerjet_affid_set %}Leave blank to keep current ID{% else %}Paste your Careerjet affiliate ID here{% endif %}" />
+          <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
+            Public search API with a real <strong>Egypt</strong> index (plus 90 locales).
+            Add <code>careerjet</code> searches on the Sources page
+            (e.g. <code>python developer|Egypt</code>).
+            <a href="https://www.careerjet.com/partners/" target="_blank" rel="noopener">
+              <button type="button" class="ghost" style="font-size:var(--fs-xs);padding:2px 8px;">Get a free ID →</button>
+            </a>
+          </span>
+        </label>
         <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
           <button type="submit">Save</button>
           <button type="button" id="test-keys-btn" class="ghost">Test keys</button>

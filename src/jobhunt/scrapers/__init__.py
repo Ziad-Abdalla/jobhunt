@@ -2,6 +2,7 @@ from .arbeitnow import ArbeitnowScraper
 from .arbeitsagentur import ArbeitsagenturScraper
 from .ashby import AshbyScraper
 from .base import BaseScraper, RawJob
+from .careerjet import CareerjetScraper
 from .greenhouse import GreenhouseScraper
 from .hackernews import HackerNewsScraper
 from .himalayas import HimalayasScraper
@@ -11,6 +12,7 @@ from .jsearch import JSearchScraper
 from .lever import LeverScraper
 from .pythonjobs import PythonJobsScraper
 from .recruitee import RecruiteeScraper
+from .reddit import RedditScraper
 from .reed import ReedScraper
 from .remoteok import RemoteOKScraper
 from .remotive import RemotiveScraper
@@ -49,6 +51,10 @@ SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
     "pythonjobs": PythonJobsScraper,
     # P8 — BYO-key indirect Egypt/MENA + remote (off by default, no key).
     "jsearch": JSearchScraper,
+    # 2026-07-21 — freelance/contract lane via subreddit hiring threads.
+    "reddit": RedditScraper,
+    # 2026-07-21 — BYO-affid Egypt/MENA aggregator (off by default, no key).
+    "careerjet": CareerjetScraper,
 }
 
 __all__ = [
@@ -56,6 +62,7 @@ __all__ = [
     "ArbeitsagenturScraper",
     "AshbyScraper",
     "BaseScraper",
+    "CareerjetScraper",
     "GreenhouseScraper",
     "HackerNewsScraper",
     "HimalayasScraper",
@@ -66,6 +73,7 @@ __all__ = [
     "PythonJobsScraper",
     "RawJob",
     "RecruiteeScraper",
+    "RedditScraper",
     "ReedScraper",
     "RemoteOKScraper",
     "RemotiveScraper",

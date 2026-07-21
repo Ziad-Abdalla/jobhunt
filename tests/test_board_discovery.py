@@ -46,6 +46,15 @@ class TestExtract:
         assert len(pairs) == len(set(pairs))
 
 
+class TestDirectories:
+    def test_hiring_without_whiteboards_is_harvested(self):
+        """TODO item 5 (2026-07-21): the hiring-without-whiteboards README
+        is a curated company directory with many ATS links."""
+        from jobhunt.board_discovery import DIRECTORY_URLS
+
+        assert any("hiring-without-whiteboards" in u for u in DIRECTORY_URLS)
+
+
 class TestDedupe:
     def test_drops_already_configured(self):
         found = extract_board_slugs(_FIXTURE)

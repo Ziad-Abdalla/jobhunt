@@ -20,9 +20,14 @@ from .scrapers import SCRAPER_REGISTRY
 # Allow letters, digits, underscore, slash, dot, dash. Workday boards look like
 # "tenant/wd5/site" so the slash is intentional.
 _BOARD_RE = re.compile(r"^[A-Za-z0-9_/.\-]{1,128}$")
-# jsearch "boards" are search queries ("<query>|<location>"), so spaces, '|',
-# and stack tokens like "c#"/"c++" are legal there — but nowhere else.
-_QUERY_BOARD_SOURCES = {"jsearch"}
+# jsearch/careerjet "boards" are search queries ("<query>|<location>"), so
+# spaces, '|', and stack tokens like "c#"/"c++" are legal there — but
+# nowhere else.
+_QUERY_BOARD_SOURCES = {"jsearch", "careerjet"}
+# Aggregator sources return jobs from MANY employers — a non-parenthesized
+# label would stamp itself over every real employer name (refresh._persist
+# treats it as an override), so their labels auto-parenthesize on add.
+_AGGREGATOR_LABEL_SOURCES = _QUERY_BOARD_SOURCES | {"reddit"}
 _QUERY_BOARD_RE = re.compile(r"^[A-Za-z0-9_/.\-|+# ]{1,128}$")
 _MAX_COMPANY = 128
 
@@ -100,10 +105,7 @@ def _validate(source: str, board: str, company: str) -> tuple[str, str, str]:
         )
     if not company:
         raise ValueError("Company name is required.")
-    if source in _QUERY_BOARD_SOURCES and not company.startswith("("):
-        # Aggregator convention: refresh._persist treats a non-parenthesized
-        # company as an override for every job the board returns — a plain
-        # label would stamp itself over the real employer names.
+    if source in _AGGREGATOR_LABEL_SOURCES and not company.startswith("("):
         company = f"({company})"
     if len(company) > _MAX_COMPANY:
         raise ValueError(f"Company name must be {_MAX_COMPANY} characters or fewer.")

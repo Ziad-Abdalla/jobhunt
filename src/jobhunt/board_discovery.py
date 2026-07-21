@@ -68,6 +68,9 @@ def dedupe_against_existing(found: list[dict], existing: list[dict]) -> list[dic
 DIRECTORY_URLS = (
     "https://raw.githubusercontent.com/remoteintech/remote-jobs/main/README.md",
     "https://raw.githubusercontent.com/lukasz-madon/awesome-remote-job/master/README.md",
+    # Curated interview-process directory; careers links include many ATS
+    # boards (added 2026-07-21, TODO item 5).
+    "https://raw.githubusercontent.com/poteto/hiring-without-whiteboards/main/README.md",
 )
 
 
