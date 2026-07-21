@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 460 unit tests (453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 471 unit tests (460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -75,7 +75,10 @@ ruff check src/              # style + bug lint
   + ~20 API endpoints incl. /api/uninstall-now, /api/cowork/*)
 - `scrapers/` — 23 adapters (findajob removed in v0.9.1; 2026-07 added wuzzuf [Egypt],
   remotive, workingnomads, weworkremotely, pythonjobs — free/no-auth; jsearch [P8,
-  BYO-key RapidAPI, indirect Egypt/MENA+remote, off by default])
+  BYO-key RapidAPI, indirect Egypt/MENA+remote, off by default; uses `/search-v2`
+  — upstream retired `/search`; serialized ~1.5s apart + one 429 retry because the
+  free tier rate-limits per second; employment from the `job_employment_types`
+  enum, the singular field is localized text; live-verified 2026-07-21])
 - `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
 - `refresh.py` — scrape pipeline + employment type normalization + category derivation
 - `extract.py` — regex extractors (level, remote, salary, skills, languages,
@@ -110,7 +113,10 @@ ruff check src/              # style + bug lint
   `render_markdown`. Deterministic, NO LLM, never fabricates. Powers
   `/apply/tailor/<job>` (+ `.md`), `jobhunt tailor`, and the Cowork export
   `tailoring` block.
-- `config.py` — pydantic-settings, reads from env vars + `.env` file
+- `config.py` — pydantic-settings; two-phase load: CWD `.env` + the
+  **data-dir `.env`** the Settings page writes (before 2026-07-21 that file was
+  write-only and every UI-saved key silently vanished on restart). Real env
+  vars always win. `main._save_user_env` writes it atomically (temp+rename).
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
   normalization + **`_backfill_categories`** (one-time pass on startup)
 - `models.py` — `Job.category` ('tech' / 'nontech' / 'other') +
