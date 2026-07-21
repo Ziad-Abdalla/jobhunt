@@ -36,6 +36,9 @@
       <p class="muted" style="margin-top: var(--sp-4); font-size: var(--fs-sm);">
         The "board slug" is the company name in the careers page URL — for example,
         <code>stripe</code> from <code>boards.greenhouse.io/stripe</code>.
+        For <code>jsearch</code> it is a search instead:
+        <code>&lt;query&gt;|&lt;location&gt;</code> — e.g. <code>developer|Egypt</code>,
+        or <code>developer|remote</code> for remote-only.
       </p>
     </section>
 
@@ -70,7 +73,7 @@
             </td>
             <td>
               {% if e.origin == "local" %}
-              <form method="post" action="/sources/{{ e.source }}/{{ e.board }}/remove" class="inline-form" data-confirm="Remove {{ e.source }}/{{ e.board }} ({{ e.company }})?">
+              <form method="post" action="/sources/{{ e.source }}/{{ e.board | urlencode }}/remove" class="inline-form" data-confirm="Remove {{ e.source }}/{{ e.board }} ({{ e.company }})?">
                 <button type="submit" class="danger">remove</button>
               </form>
               {% endif %}

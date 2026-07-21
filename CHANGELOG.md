@@ -2,6 +2,17 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Fixed (JSearch live-probe hardening)
+- The Sources page now accepts `jsearch` search boards (`<query>|<location>`
+  with spaces) — the board-slug validation predated the adapter and rejected
+  them; other sources keep the strict ATS-slug rule.
+- JSearch requests are serialized with ~1.5s spacing and one retry on 429:
+  the free tier rate-limits per second, and concurrently-scraped boards were
+  all failing with 429 (observed on the first live run).
+- Settings saves write the `.env` atomically (temp file + rename). A save
+  landing while another was mid-write could read the file as empty and
+  rewrite it without the stored API keys.
+
 ### Added (P8 — indirect Egypt/MENA + remote via JSearch)
 - **JSearch (RapidAPI) adapter** — a bring-your-own-key, off-by-default
   source that reaches Egypt/MENA + remote jobs jobhunt can't scrape

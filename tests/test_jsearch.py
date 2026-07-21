@@ -4,11 +4,14 @@ Offline test only; the live probe is gated on the owner's throwaway key
 (build-the-offline-code, defer-the-live-run).
 """
 
+import asyncio
+
 import httpx
 import pytest
 import respx
 
 from jobhunt.config import settings
+from jobhunt.scrapers import jsearch as jsearch_mod
 from jobhunt.scrapers.jsearch import JSearchScraper, _parse_board
 
 # Shape per https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch (search).
@@ -51,6 +54,10 @@ _PAYLOAD = {
 @pytest.fixture(autouse=True)
 def _key(monkeypatch):
     monkeypatch.setattr(settings, "jsearch_api_key", "TESTKEY")
+    # Zero the live-API pacing so tests don't sleep.
+    monkeypatch.setattr(jsearch_mod, "_MIN_INTERVAL", 0.0)
+    monkeypatch.setattr(jsearch_mod, "_RETRY_DELAY", 0.0)
+    monkeypatch.setattr(jsearch_mod, "_last_request", 0.0)
 
 
 class TestParseBoard:
@@ -113,6 +120,58 @@ async def test_no_key_yields_nothing(monkeypatch):
     async with httpx.AsyncClient() as client:
         jobs = [j async for j in JSearchScraper(client=client, board="dev|Egypt").fetch()]
     assert jobs == []
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_concurrent_boards_never_overlap_requests():
+    """scrape_all runs boards concurrently; the free tier rate-limits per
+    second, so the adapter must serialize its own requests."""
+    active = 0
+    max_active = 0
+
+    async def side(request):
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.02)
+        active -= 1
+        return httpx.Response(200, json={"status": "OK", "data": []})
+
+    respx.get("https://jsearch.p.rapidapi.com/search").mock(side_effect=side)
+
+    async def consume(board):
+        return [j async for j in JSearchScraper(client=client, board=board).fetch()]
+
+    async with httpx.AsyncClient() as client:
+        await asyncio.gather(*(consume(b) for b in ("a|Egypt", "b|Egypt", "c|remote")))
+    assert max_active == 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_retries_once_on_429():
+    route = respx.get("https://jsearch.p.rapidapi.com/search").mock(
+        side_effect=[
+            httpx.Response(429, json={"message": "Too many requests"}),
+            httpx.Response(200, json=_PAYLOAD),
+        ]
+    )
+    async with httpx.AsyncClient() as client:
+        jobs = [j async for j in JSearchScraper(client=client, board="dev|Egypt").fetch()]
+    assert route.call_count == 2
+    assert len(jobs) == 2
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_second_429_raises():
+    respx.get("https://jsearch.p.rapidapi.com/search").mock(
+        return_value=httpx.Response(429, json={"message": "Too many requests"})
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        async with httpx.AsyncClient() as client:
+            [j async for j in JSearchScraper(client=client, board="dev|Egypt").fetch()]
 
 
 @pytest.mark.asyncio

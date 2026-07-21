@@ -42,6 +42,27 @@ def test_add_source_rejects_bad_board_chars(local_yaml: Path, empty_defaults: Pa
         sources_admin.add_source("greenhouse", "", "Test")
 
 
+def test_add_source_accepts_jsearch_query_board(local_yaml: Path, empty_defaults: Path) -> None:
+    saved = sources_admin.add_source("jsearch", "software engineer|Egypt", "JSearch Egypt")
+    assert saved["board"] == "software engineer|Egypt"
+    saved = sources_admin.add_source("jsearch", "c# developer|remote", "JSearch C#")
+    assert saved["board"] == "c# developer|remote"
+
+
+def test_add_source_rejects_bad_jsearch_board(local_yaml: Path, empty_defaults: Path) -> None:
+    with pytest.raises(ValueError, match="JSearch search"):
+        sources_admin.add_source("jsearch", "query<script>", "Bad")
+    with pytest.raises(ValueError, match="JSearch search"):
+        sources_admin.add_source("jsearch", "x" * 200, "Bad")
+
+
+def test_add_source_still_rejects_query_chars_for_slug_sources(
+    local_yaml: Path, empty_defaults: Path
+) -> None:
+    with pytest.raises(ValueError, match="Board slug"):
+        sources_admin.add_source("greenhouse", "software engineer|Egypt", "Bad")
+
+
 def test_add_source_rejects_empty_company(local_yaml: Path, empty_defaults: Path) -> None:
     with pytest.raises(ValueError, match="Company"):
         sources_admin.add_source("greenhouse", "stripe", "")

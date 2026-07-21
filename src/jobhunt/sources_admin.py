@@ -20,6 +20,10 @@ from .scrapers import SCRAPER_REGISTRY
 # Allow letters, digits, underscore, slash, dot, dash. Workday boards look like
 # "tenant/wd5/site" so the slash is intentional.
 _BOARD_RE = re.compile(r"^[A-Za-z0-9_/.\-]{1,128}$")
+# jsearch "boards" are search queries ("<query>|<location>"), so spaces, '|',
+# and stack tokens like "c#"/"c++" are legal there — but nowhere else.
+_QUERY_BOARD_SOURCES = {"jsearch"}
+_QUERY_BOARD_RE = re.compile(r"^[A-Za-z0-9_/.\-|+# ]{1,128}$")
 _MAX_COMPANY = 128
 
 
@@ -83,7 +87,13 @@ def _validate(source: str, board: str, company: str) -> tuple[str, str, str]:
         raise ValueError(f"Unknown source type {source!r}. Valid: {valid}.")
     if not board:
         raise ValueError("Board slug is required.")
-    if not _BOARD_RE.match(board):
+    if source in _QUERY_BOARD_SOURCES:
+        if not _QUERY_BOARD_RE.match(board):
+            raise ValueError(
+                "JSearch search may only contain letters, digits, spaces and "
+                "'|', '_', '/', '.', '-', '+', '#' (max 128 chars)."
+            )
+    elif not _BOARD_RE.match(board):
         raise ValueError(
             "Board slug may only contain letters, digits, '_', '/', '.', '-' "
             "(max 128 chars)."

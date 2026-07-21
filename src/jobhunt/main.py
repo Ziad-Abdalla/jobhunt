@@ -1433,11 +1433,19 @@ def _load_user_env() -> dict[str, str]:
 
 
 def _save_user_env(data: dict[str, str]) -> None:
-    """Write key=value pairs to the user's .env file."""
+    """Write key=value pairs to the user's .env file.
+
+    Write-to-temp + atomic rename: an in-place truncate-write gives a
+    concurrent _load_user_env a window where the file reads empty, and a
+    save landing in that window rewrites the file without the stored API
+    keys (observed live: a location-only save wiped the JSearch key).
+    """
     path = _env_file_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [f"{k}={v}" for k, v in sorted(data.items()) if v]
-    path.write_text("\n".join(lines) + "\n" if lines else "")
+    tmp = path.with_name(".env.tmp")
+    tmp.write_text("\n".join(lines) + "\n" if lines else "")
+    tmp.replace(path)
 
 
 def _source_health_summary() -> dict:

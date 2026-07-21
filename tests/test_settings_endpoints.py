@@ -2,9 +2,24 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 
+from jobhunt import main as main_mod
 from jobhunt.main import app
+
+
+def test_save_user_env_atomic_and_roundtrips(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main_mod, "_env_file_path", lambda: tmp_path / ".env")
+    main_mod._save_user_env({"JOBHUNT_A": "1", "JOBHUNT_EMPTY": ""})
+    assert (tmp_path / ".env").read_text() == "JOBHUNT_A=1\n"
+    # No temp-file droppings, and a re-load sees exactly what was saved.
+    assert not list(tmp_path.glob("*.tmp"))
+    assert main_mod._load_user_env() == {"JOBHUNT_A": "1"}
 
 
 def test_settings_page_renders() -> None:

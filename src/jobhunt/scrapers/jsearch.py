@@ -19,9 +19,12 @@ just `"<query>"`. Append `|remote` as the location to request remote-only.
 
 from __future__ import annotations
 
+import asyncio
+import time
 from collections.abc import AsyncIterator
 from datetime import datetime
 
+import httpx
 from dateutil import parser as dateparser
 
 from ..config import settings
@@ -30,6 +33,42 @@ from .base import BaseScraper, RawJob
 _API_URL = "https://jsearch.p.rapidapi.com/search"
 _API_HOST = "jsearch.p.rapidapi.com"
 _MAX_JOBS = 30  # one page; respect the ~200/month free tier
+
+# The free tier rate-limits per second on top of the monthly quota, and
+# scrape_all runs boards concurrently — unthrottled, 4 jsearch boards fire
+# simultaneously and 3 get 429s (observed live). Serialize our own requests
+# with spacing, and retry once after a 429.
+_MIN_INTERVAL = 1.5
+_RETRY_DELAY = 5.0
+_last_request = 0.0
+
+# One lock per running event loop: an asyncio.Lock binds to the loop it is
+# first used on, and each test (and each asyncio.run) has its own loop.
+_locks: dict[int, asyncio.Lock] = {}
+
+
+def _loop_lock() -> asyncio.Lock:
+    key = id(asyncio.get_running_loop())
+    if key not in _locks:
+        _locks.clear()
+        _locks[key] = asyncio.Lock()
+    return _locks[key]
+
+
+async def _spaced_get(
+    client: httpx.AsyncClient, params: dict[str, str], headers: dict[str, str]
+) -> httpx.Response:
+    global _last_request
+    async with _loop_lock():
+        wait = _last_request + _MIN_INTERVAL - time.monotonic()
+        if wait > 0:
+            await asyncio.sleep(wait)
+        resp = await client.get(_API_URL, params=params, headers=headers)
+        if resp.status_code == 429:
+            await asyncio.sleep(_RETRY_DELAY)
+            resp = await client.get(_API_URL, params=params, headers=headers)
+        _last_request = time.monotonic()
+    return resp
 
 # JSearch job_employment_type values → the tokens refresh._EMPLOYMENT_TYPE_MAP
 # already normalizes. (FULLTIME→Full-time, PARTTIME→Part-time,
@@ -72,7 +111,7 @@ class JSearchScraper(BaseScraper):
             params["remote_jobs_only"] = "true"
         headers = {"X-RapidAPI-Key": api_key, "X-RapidAPI-Host": _API_HOST}
 
-        resp = await self.client.get(_API_URL, params=params, headers=headers)
+        resp = await _spaced_get(self.client, params, headers)
         resp.raise_for_status()
         payload = resp.json()
 
