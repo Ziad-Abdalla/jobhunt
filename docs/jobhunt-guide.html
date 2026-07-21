@@ -153,13 +153,13 @@
   <div class="mast">
     <span class="eyebrow">Operator's manual · runs at 127.0.0.1:8765</span>
     <h1>jobhunt</h1>
-    <p class="tagline">A job aggregator that lives on your machine. It scrapes 170+ sources into one
+    <p class="tagline">A job aggregator that lives on your machine. It scrapes 200+ sources into one
     searchable database, ranks every job by how well it fits <em>you</em>, and preps the application —
     nothing leaves your computer unless you send it.</p>
     <div class="statline">
       <span><b>36,000+</b> jobs</span>
-      <span><b>174</b> source entries</span>
-      <span><b>23</b> scraper types</span>
+      <span><b>204</b> source entries</span>
+      <span><b>25</b> scraper types</span>
       <span><b>~2,970</b> Egypt jobs</span>
       <span><b>16</b> filters</span>
       <span><b>0</b> cloud dependencies</span>
@@ -196,8 +196,9 @@
   <a href="http://127.0.0.1:8765">127.0.0.1:8765</a>; if it's already running, launching again just
   opens the existing window.</p>
   <ol>
-    <li><b>Refresh sources</b> (masthead button) — pulls fresh jobs from every source. Do this daily;
-      it takes a minute or two.</li>
+    <li><b>Refresh sources</b> (masthead button) — pulls fresh jobs from every source. Do this daily,
+      or set <code>JOBHUNT_REFRESH_INTERVAL_MINUTES</code> (see <a href="#config">Configuration</a>)
+      and it happens on its own while the app runs.</li>
     <li><b>Upload your CV</b> on the CV page — every job gets a match %, and the default sort starts
       favoring jobs that fit you.</li>
     <li><b>Set your location</b> on Settings (e.g. <i>Egypt</i>) — jobs you can't actually get
@@ -212,8 +213,11 @@
 <section id="jobs">
   <h2>Jobs</h2>
   <p class="where">/ — the main search</p>
-  <p>Everything in one place: tech roles worldwide plus Egypt via Wuzzuf and JSearch. Sixteen filters
-  stack together, and all of them combine with keyword search (full-text, handles Arabic).</p>
+  <p>Everything in one place: tech roles worldwide plus Egypt via Wuzzuf and JSearch. The built-in
+  source list tracks the major AI/LLM employers directly (Anthropic, OpenAI, Hugging Face, xAI,
+  Cohere, LangChain, ElevenLabs, Perplexity, Together AI and more) alongside AI/ML-specific search
+  terms, so applied-AI roles don't fall through the generic "developer" nets. Sixteen filters stack
+  together, and all of them combine with keyword search (full-text, handles Arabic).</p>
   <div class="tblwrap"><table>
     <tr><th>Filter</th><th>What it narrows</th></tr>
     <tr><td>Keyword</td><td>Full-text search over title, company, description</td></tr>
@@ -256,7 +260,10 @@
 <section id="freelance">
   <h2>Freelance</h2>
   <p class="where">/freelance</p>
-  <p>Contract and freelance listings, newest first. Same cards and actions as the main page.</p>
+  <p>Contract and freelance listings, newest first. Same cards and actions as the main page.
+  Fed by the contract boards plus Reddit hiring threads (r/forhire, r/jobbit, r/RemoteJobs) — only
+  posts explicitly marked <code>[Hiring]</code> come through, so job-seeker and discussion posts
+  never clutter the feed.</p>
 </section>
 
 <section id="apply">
@@ -349,7 +356,9 @@
     <li><b>Source filter</b> — watch only chosen sources (e.g. just Wuzzuf + JSearch).</li>
     <li><b>Priority</b> — a priority search gets its own fast-poll cycle
       (<code>JOBHUNT_FAST_POLL_MINUTES</code>), re-scraping just its sources on a tight interval.
-      Being among the first applicants is a real edge; this is how you get it.</li>
+      Being among the first applicants is a real edge; this is how you get it. Quota-capped sources
+      (JSearch) are automatically excluded from fast-polling so a tight loop can never burn the
+      monthly request budget.</li>
   </ul>
 </section>
 
@@ -440,7 +449,8 @@
     <tr><td><code>JOBHUNT_TELEGRAM_BOT_TOKEN</code> / <code>JOBHUNT_TELEGRAM_CHAT_ID</code></td><td>Telegram alerts</td></tr>
     <tr><td><code>JOBHUNT_SMTP_HOST</code> / <code>JOBHUNT_SMTP_TO</code></td><td>Email alerts (STARTTLS)</td></tr>
     <tr><td><code>JOBHUNT_COWORK_EXPORT=1</code></td><td>Enable the assistant handoff API (off by default)</td></tr>
-    <tr><td><code>JOBHUNT_JOOBLE_API_KEY</code> / <code>JOBHUNT_REED_API_KEY</code> / <code>JOBHUNT_JSEARCH_API_KEY</code></td><td>API keys (also settable in the UI)</td></tr>
+    <tr><td><code>JOBHUNT_JOOBLE_API_KEY</code> / <code>JOBHUNT_REED_API_KEY</code> / <code>JOBHUNT_JSEARCH_API_KEY</code> / <code>JOBHUNT_CAREERJET_AFFID</code></td><td>API keys / affiliate ID (also settable in the UI)</td></tr>
+    <tr><td><code>JOBHUNT_JSEARCH_COOLDOWN_HOURS</code></td><td>Minimum hours between JSearch sweeps on a full refresh (default 20; 0 disables the cooldown — only do this on a paid tier)</td></tr>
   </table></div>
 </section>
 
@@ -448,14 +458,20 @@
   <h2>Troubleshooting</h2>
   <ul>
     <li><b>A country/source shows no jobs</b> — run <code>jobhunt doctor</code>; it names exactly which
-      sources fail and why. Key-gated sources (Reed, Jooble, JSearch) report "no key" until one is set.</li>
+      sources fail and why. Key-gated sources (Reed, Jooble, JSearch, Careerjet) report "no key"
+      until one is set.</li>
+    <li><b>A reddit source shows a 429 error</b> — Reddit rate-limits unauthenticated readers hard.
+      The app already spaces its requests ~30s apart and retries once; an occasional 429 self-heals
+      on the next refresh, and three in a row just auto-disables the board until it recovers.</li>
     <li><b>CV upload errors</b> — the page explains the cause (empty PDF, image-only scan…). Export a
       text-based PDF and re-upload.</li>
     <li><b>Styles look stale after an update</b> — hard-refresh once (Ctrl+F5); normally cache-busting
       handles this automatically.</li>
     <li><b>Geo/apply badges missing on old jobs</b> — they fill in as jobs are re-seen; run a Refresh.</li>
     <li><b>JSearch stopped returning jobs</b> — check quota on your RapidAPI dashboard; the free tier
-      resets monthly. The app retries rate-limits automatically and spaces its requests.</li>
+      resets monthly. The app retries rate-limits automatically, spaces its requests, and holds
+      full refreshes to one JSearch sweep per ~20h so the scheduler can't drain the quota. Note a
+      refresh right after a sweep will legitimately skip JSearch — that's the cooldown, not a bug.</li>
     <li><b>Something else</b> — the in-app <a href="http://127.0.0.1:8765/help">Help page</a> covers
       every filter and error; <code>data_dir/jobhunt.log</code> has details for bug reports.</li>
   </ul>
