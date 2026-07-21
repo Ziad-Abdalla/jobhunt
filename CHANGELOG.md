@@ -3,6 +3,19 @@
 ## [Unreleased] — expansion 2026-07
 
 ### Fixed (JSearch live-probe hardening)
+- **Migrated to JSearch `/search-v2`** — upstream retired the `/search`
+  endpoint the adapter was built against (it now 404s). v2: results under
+  `data.jobs`, a proper `country` ISO param (resolved from the board's
+  location, e.g. `|Egypt` → `country=eg`), `work_from_home` for remote-only,
+  `language=en`, and employment type read from the stable
+  `job_employment_types` enum (the singular field is localized text).
+  Live-verified with a real key: 39 jobs / 34 real employers across the 4
+  Egypt+remote searches.
+- Aggregator company labels added via the Sources page are auto-wrapped in
+  parentheses for `jsearch`, so the label can never override the real
+  employer names on scraped jobs.
+- Level extraction: "Fresher" titles (MENA/India English for entry-level)
+  now classify as `entry` instead of falling through to a description match.
 - The Sources page now accepts `jsearch` search boards (`<query>|<location>`
   with spaces) — the board-slug validation predated the adapter and rejected
   them; other sources keep the strict ATS-slug rule.

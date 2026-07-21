@@ -45,8 +45,12 @@ def test_add_source_rejects_bad_board_chars(local_yaml: Path, empty_defaults: Pa
 def test_add_source_accepts_jsearch_query_board(local_yaml: Path, empty_defaults: Path) -> None:
     saved = sources_admin.add_source("jsearch", "software engineer|Egypt", "JSearch Egypt")
     assert saved["board"] == "software engineer|Egypt"
-    saved = sources_admin.add_source("jsearch", "c# developer|remote", "JSearch C#")
+    # Aggregator labels are auto-parenthesized so they never override the
+    # real employer names in refresh._persist.
+    assert saved["company"] == "(JSearch Egypt)"
+    saved = sources_admin.add_source("jsearch", "c# developer|remote", "(JSearch C#)")
     assert saved["board"] == "c# developer|remote"
+    assert saved["company"] == "(JSearch C#)"  # already wrapped — left alone
 
 
 def test_add_source_rejects_bad_jsearch_board(local_yaml: Path, empty_defaults: Path) -> None:

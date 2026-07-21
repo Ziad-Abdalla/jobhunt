@@ -92,7 +92,7 @@ _TITLE_LEVEL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ), "intern"),
     (re.compile(
         r"\bnew[- ]?grad(?:uate)?\b|\bgraduate\b|\bentry[- ]?level\b"
-        r"|\btrainee\b|\bapprentice(?:ship)?\b"
+        r"|\btrainee\b|\bapprentice(?:ship)?\b|\bfresher\b"
         r"|\b(?<!senior\s)associate\s+(?:software|developer|engineer)\b",
         re.I,
     ), "entry"),

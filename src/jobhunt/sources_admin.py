@@ -100,6 +100,11 @@ def _validate(source: str, board: str, company: str) -> tuple[str, str, str]:
         )
     if not company:
         raise ValueError("Company name is required.")
+    if source in _QUERY_BOARD_SOURCES and not company.startswith("("):
+        # Aggregator convention: refresh._persist treats a non-parenthesized
+        # company as an override for every job the board returns — a plain
+        # label would stamp itself over the real employer names.
+        company = f"({company})"
     if len(company) > _MAX_COMPANY:
         raise ValueError(f"Company name must be {_MAX_COMPANY} characters or fewer.")
     return source, board, company

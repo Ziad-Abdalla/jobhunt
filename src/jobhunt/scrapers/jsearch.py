@@ -4,7 +4,10 @@ The plan's best *indirect* Egypt route: JSearch aggregates Google-for-Jobs
 results, which surface Wuzzuf/Bayt/LinkedIn/company postings that jobhunt
 can't scrape directly. BYO-key, OFF by default.
 
-Endpoint: GET https://jsearch.p.rapidapi.com/search
+Endpoint: GET https://jsearch.p.rapidapi.com/search-v2 (the original /search
+was retired upstream — live-probed 2026-07-21: it 404s with "Endpoint
+'/search' does not exist"; v2 wraps results as data.jobs + a cursor, adds a
+`country` ISO param, and renames remote_jobs_only -> work_from_home).
 Auth headers: X-RapidAPI-Key: <key>, X-RapidAPI-Host: jsearch.p.rapidapi.com
 Docs: https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
 
@@ -30,7 +33,7 @@ from dateutil import parser as dateparser
 from ..config import settings
 from .base import BaseScraper, RawJob
 
-_API_URL = "https://jsearch.p.rapidapi.com/search"
+_API_URL = "https://jsearch.p.rapidapi.com/search-v2"
 _API_HOST = "jsearch.p.rapidapi.com"
 _MAX_JOBS = 30  # one page; respect the ~200/month free tier
 
@@ -70,9 +73,34 @@ async def _spaced_get(
         _last_request = time.monotonic()
     return resp
 
-# JSearch job_employment_type values → the tokens refresh._EMPLOYMENT_TYPE_MAP
+# v2's `country` ISO param beats in-query phrasing when we can resolve the
+# board's location; unresolved locations fall back to "<query> in <location>"
+# (which Google-for-Jobs still honors). Without a country the API defaults
+# to US — so resolving matters for the Egypt use case.
+_COUNTRY_CODES = {
+    "egypt": "eg",
+    "uk": "gb",
+    "united kingdom": "gb",
+    "germany": "de",
+    "usa": "us",
+    "united states": "us",
+    "saudi arabia": "sa",
+    "uae": "ae",
+    "united arab emirates": "ae",
+    "qatar": "qa",
+    "kuwait": "kw",
+    "jordan": "jo",
+    "morocco": "ma",
+    "france": "fr",
+    "netherlands": "nl",
+    "canada": "ca",
+    "india": "in",
+}
+
+# JSearch job_employment_types values → the tokens refresh._EMPLOYMENT_TYPE_MAP
 # already normalizes. (FULLTIME→Full-time, PARTTIME→Part-time,
-# CONTRACTOR→Contract, INTERN→Internship.)
+# CONTRACTOR→Contract, INTERN→Internship.) v2's singular job_employment_type
+# is localized display text ("دوام كامل" for country=eg) — never map from it.
 _ETYPE_MAP = {
     "FULLTIME": "fulltime",
     "PARTTIME": "parttime",
@@ -104,11 +132,18 @@ class JSearchScraper(BaseScraper):
         query, location, remote_only = _parse_board(self.board)
         if not query:
             return
-        full_query = f"{query} in {location}" if location else query
 
-        params: dict[str, str] = {"query": full_query, "page": "1", "num_pages": "1"}
+        # language=en keeps localized display fields (job_location, the
+        # singular employment type) in English when country != US.
+        params: dict[str, str] = {"query": query, "language": "en"}
         if remote_only:
-            params["remote_jobs_only"] = "true"
+            params["work_from_home"] = "true"
+        elif location:
+            code = _COUNTRY_CODES.get(location.lower())
+            if code:
+                params["country"] = code
+            else:
+                params["query"] = f"{query} in {location}"
         headers = {"X-RapidAPI-Key": api_key, "X-RapidAPI-Host": _API_HOST}
 
         resp = await _spaced_get(self.client, params, headers)
@@ -116,11 +151,12 @@ class JSearchScraper(BaseScraper):
         payload = resp.json()
 
         data = payload.get("data")
-        if not isinstance(data, list):
+        jobs = data.get("jobs") if isinstance(data, dict) else data
+        if not isinstance(jobs, list):
             return
 
         count = 0
-        for entry in data:
+        for entry in jobs:
             if not isinstance(entry, dict):
                 continue
             url = entry.get("job_apply_link") or ""
@@ -131,6 +167,9 @@ class JSearchScraper(BaseScraper):
             city = (entry.get("job_city") or "").strip()
             country = (entry.get("job_country") or "").strip()
             loc = ", ".join(p for p in (city, country) if p)
+            if not loc:
+                # job_location may carry a "• via <publisher>" display tail.
+                loc = (entry.get("job_location") or "").split("•")[0].strip()
 
             posted_at: datetime | None = None
             if dt := entry.get("job_posted_at_datetime_utc"):
@@ -139,7 +178,13 @@ class JSearchScraper(BaseScraper):
                 except (ValueError, TypeError):
                     posted_at = None
 
-            etype = _ETYPE_MAP.get((entry.get("job_employment_type") or "").upper(), "")
+            etypes = entry.get("job_employment_types")
+            etoken = (
+                etypes[0]
+                if isinstance(etypes, list) and etypes
+                else entry.get("job_employment_type") or ""
+            )
+            etype = _ETYPE_MAP.get(str(etoken).upper(), "")
             remote = "remote" if entry.get("job_is_remote") else ""
 
             sal_min = entry.get("job_min_salary")

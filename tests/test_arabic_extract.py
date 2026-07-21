@@ -66,6 +66,14 @@ class TestArabicDominant:
         assert is_arabic_dominant("123 - 456!") is False
 
 
+class TestMenaEnglishLevel:
+    def test_fresher_title_is_entry(self):
+        # MENA/India English: a "Fresher" title is an entry role, even when
+        # the description mentions senior teammates (found live via JSearch).
+        job = extract("You will work with senior engineers", title="Fresher Software Engineer")
+        assert job.level == "entry"
+
+
 class TestArabicLevel:
     def test_fresh_grad_title_is_entry(self):
         assert extract("", title="مطلوب محاسب حديث التخرج").level == "entry"

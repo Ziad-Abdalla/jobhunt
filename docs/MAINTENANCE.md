@@ -330,6 +330,8 @@ survives without you having to remember the whole maintenance picture.
 2026-07-20  add     greenhouse/tamara                              — MENA (Saudi) fintech; live-verified 39 jobs              — P7 expansion
 2026-07-20  add     greenhouse/careem                              — MENA (UAE/Egypt) super-app; live-verified 28 jobs        — P7 expansion
 2026-07-20  remove  greenhouse/unity3d                             — 404; Unity left public greenhouse, no findable ATS slug  — doctor pass (170 sources: 130 ok, 39 warn, 1 error)
+2026-07-21  fix     scraper jsearch.py                             — upstream retired /search → migrated to /search-v2 (data.jobs wrapper, country param, work_from_home, enum job_employment_types); added per-second throttle + 429 retry — P8 live probe with owner key
+2026-07-21  verify  jsearch/<4 owner boards>                       — live-verified 39 jobs, 34 real employers (Siemens, Orange, Toptal, almentor…), Egypt + remote — P8 live probe
 ```
 
 When the skill runs, it appends its findings here as `verify` /
