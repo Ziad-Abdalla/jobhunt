@@ -13,7 +13,31 @@ import uvicorn
 
 
 @pytest.fixture(scope="module")
-def server():
+def seed_jobs():
+    """Seed a few jobs so card-dependent tests have data. Before the
+    conftest data-dir isolation these tests silently leaned on the
+    developer's real scraped DB — on a fresh clone they never passed."""
+    from jobhunt.db import db_session, init_db
+    from jobhunt.models import Job
+
+    init_db()
+    rows = [
+        ("e2e-1", "Acme", "Python Developer", "Remote"),
+        ("e2e-2", "Globex", "Senior Python Engineer", "Cairo, Egypt"),
+        ("e2e-3", "Initech", "Frontend Developer", "London, UK"),
+    ]
+    with db_session() as s:
+        if s.query(Job).count() == 0:
+            for fp, company, title, location in rows:
+                s.add(Job(
+                    fingerprint=fp, source="greenhouse", source_id=fp,
+                    url=f"https://example.com/{fp}", company=company,
+                    title=title, location=location, description="",
+                ))
+
+
+@pytest.fixture(scope="module")
+def server(seed_jobs):
     """Start the app server for E2E tests."""
     t = threading.Thread(
         target=lambda: uvicorn.run(

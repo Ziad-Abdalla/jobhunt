@@ -2,6 +2,25 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Fixed (2026-07-22 — test suite mutated the developer's real data)
+- **The unit suite ran against the real data dir.** `tests/conftest.py` now
+  redirects `JOBHUNT_DB_PATH` + `JOBHUNT_LOCAL_SOURCES_FILE` to a per-run
+  temp dir before any jobhunt import. Without it, `test_backup_restore`'s
+  real `jobhunt backup` → `restore` round-trip rewrote the live `.env` —
+  restore keeps only its env allowlist, so the JSearch/Careerjet keys and
+  scheduler settings silently vanished (previously misdiagnosed as the
+  installed app's Settings save) — and `_clear_searches()` deleted the
+  user's live saved searches. Pinned by `tests/test_isolation.py`; the
+  Playwright e2e suite now seeds its own fixture jobs instead of leaning
+  on the developer's scraped DB.
+
+### Fixed (2026-07-22 — Careerjet live probe)
+- **Careerjet now sends a `Referer` header.** The live API rejects
+  referer-less calls with 403 "Undeclared referrer" — a requirement absent
+  from the offline docs the adapter was built against. Live-verified with a
+  real affiliate ID: 100 Egypt jobs (Capgemini, Deloitte, ZainCash…) across
+  two `en_EG` boards.
+
 ### Added (2026-07-21 — AI-role targeting + new sources)
 - **AI/LLM employer boards** (all live-probed): Hugging Face, Together AI,
   xAI, LangChain, DeepL, Character AI, Pinecone, Aleph Alpha, Stability AI,

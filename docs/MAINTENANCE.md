@@ -342,6 +342,8 @@ survives without you having to remember the whole maintenance picture.
 2026-07-21  fix     refresh.py jsearch cooldown                    — full refreshes skip jsearch for 20h (free tier ~200 req/mo vs 6-hour scheduler = 3.6× overrun); fast-poll refuses quota-capped sources
 2026-07-21  note    NOT probeable                                  — Mistral (lever postings API disabled upstream), Groq (Gem ATS no public feed), W&B (hires via CoreWeave), Paymob/Instabug(Luciq)/Vezeeta/Fawry/Khazna/Breadfast/MoneyFellows/Trella/Sylndr/Swvl/MaxAB (JS career sites, no public ATS feed)
 2026-07-21  verify  full doctor pass (207 sources)                 — 158 ok / 51 warn (key-gated + not-hiring) / 1 error: reddit/jobbit 429 under probe-day traffic → reddit throttle widened 15s→30s spacing, 60s retry
+2026-07-22  fix     scraper careerjet.py                           — live probe with owner affid hit 403 "Undeclared referrer" on every call (requirement absent from the offline docs); adapter now sends a Referer header (project homepage) — root-caused via curl matrix (user_ip/UA innocent, any referer accepted)
+2026-07-22  verify  careerjet/<2 owner Egypt boards>               — live-verified 100 jobs / 99 added (Capgemini, Deloitte, ZainCash, CodeNinja…), en_EG locale, real employers + Cairo locations — P8-followup live probe
 ```
 
 When the skill runs, it appends its findings here as `verify` /

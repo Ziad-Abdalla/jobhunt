@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 471 unit tests (460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 501 unit tests (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 471 (460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -83,8 +83,8 @@ ruff check src/              # style + bug lint
   (20h) pass — only_sources targeting bypasses, fast-poll never includes it];
   reddit [old.reddit Atom RSS, [Hiring]-marked posts only, ~15s serialized —
   the JSON endpoints are 403-blocked; live-verified]; careerjet [BYO-affid,
-  off by default, Egypt via locale en_EG, offline-built like jsearch was —
-  live probe pending an owner affid]. workable falls back to the v1 widget
+  off by default, Egypt via locale en_EG; live-verified 2026-07-22 — the
+  API 403s without a Referer header, adapter sends the project homepage]. workable falls back to the v1 widget
   API when v3 404s (huggingface-class accounts).
 - `sources.yaml` — 204 entries: 150+ company boards (incl. the 2026-07-21
   AI/LLM employer block + discovered boards) + Reed/Arbeitsagentur non-tech +
