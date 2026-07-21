@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -120,49 +121,93 @@ def _normalize_employment_types() -> None:
 
 _BACKFILL_CHUNK = 500
 _BACKFILL_THREAD_STARTED = False
-# We use 'other' as the default value; once the backfill has visited a row
-# we mark it with the explicit sentinel '_done' (rewritten to 'other' when the
-# row really has no signal). This avoids re-scanning the same rows every boot.
-_BACKFILL_NEEDS_VISIT = (
-    "category IS NULL OR category = 'other' OR category = ''"
-)
+
+# user_version bit flags (SQLite PRAGMA, one integer for the whole DB).
+# Bit 0 belongs to the P3 fingerprint migration; bit 1 records that the
+# category backfill completed one full pass over legacy 'other' rows.
+# Always set bits via _set_user_version_bit (read-modify-write) — a blind
+# `PRAGMA user_version = n` would clobber the other owner's flag.
+_UV_REFINGERPRINT_DONE = 1
+_UV_CATEGORY_DONE = 2
 
 
-def _backfill_chunk_once() -> int:
-    """Classify up to _BACKFILL_CHUNK rows. Returns the number processed."""
+def _get_user_version() -> int:
+    with _engine.begin() as conn:
+        return conn.execute(text("PRAGMA user_version")).scalar_one()
+
+
+# Serializes read-modify-write on the PRAGMA within this process: the
+# category-backfill worker thread and startup code can otherwise interleave
+# reads and lose a freshly-set bit (observed as a test-suite race). A lost
+# set would only mean benign re-work next boot, but cheap correctness wins.
+_user_version_lock = threading.Lock()
+
+
+def _set_user_version_bit(bit: int) -> None:
+    with _user_version_lock, _engine.begin() as conn:
+        version = conn.execute(text("PRAGMA user_version")).scalar_one()
+        conn.execute(text(f"PRAGMA user_version = {version | bit}"))
+
+
+def _category_pending_where(version: int) -> str:
+    """Rows the category backfill still needs to visit.
+
+    'other' is both the legacy column default AND a legitimate
+    classification result, so rows classified as 'other' are
+    indistinguishable from never-visited ones by value alone. Until one
+    full pass completes (user_version bit), every 'other' row is scanned;
+    afterwards only NULL/'' rows (which _persist never writes) are.
+    Observed live before this gate: the same 18,826 'other' rows re-queued
+    on every boot, churning the DB ('database is locked' in the log)."""
+    if version & _UV_CATEGORY_DONE:
+        return "category IS NULL OR category = ''"
+    return "category IS NULL OR category = 'other' OR category = ''"
+
+
+def _backfill_chunk_once(where: str, after_id: int) -> tuple[int, int]:
+    """Classify up to _BACKFILL_CHUNK rows with id > after_id. Returns
+    (rows processed, last id visited). The id cursor guarantees forward
+    progress: a row re-classified as 'other' stays in the WHERE set, and
+    without the cursor the same first chunk would be selected forever."""
     from .extract import classify_category
 
     with _engine.begin() as conn:
         rows = conn.execute(
             text(
                 f"SELECT id, title, description FROM jobs "
-                f"WHERE {_BACKFILL_NEEDS_VISIT} LIMIT :limit"
+                f"WHERE ({where}) AND id > :after ORDER BY id LIMIT :limit"
             ),
-            {"limit": _BACKFILL_CHUNK},
+            {"after": after_id, "limit": _BACKFILL_CHUNK},
         ).fetchall()
         if not rows:
-            return 0
+            return 0, after_id
         for row_id, title, description in rows:
             cat = classify_category(title or "", description or "")
-            # Write 'other' explicitly so we don't re-pick the row next chunk.
             conn.execute(
                 text("UPDATE jobs SET category = :cat WHERE id = :id"),
                 {"cat": cat or "other", "id": row_id},
             )
-    return len(rows)
+    return len(rows), rows[-1][0]
 
 
-def _backfill_categories_async() -> None:
+def _backfill_categories_async(where: str) -> None:
     """Background worker: scan + classify in chunks until done. Each chunk
-    is its own transaction so /local can serve requests while we work."""
+    is its own transaction so /local can serve requests while we work.
+    A completed pass sets the user_version flag so later boots skip the
+    legacy full scan; a crash leaves the flag unset and the pass re-runs."""
+    cursor = 0
     while True:
         try:
-            n = _backfill_chunk_once()
+            n, cursor = _backfill_chunk_once(where, cursor)
         except Exception as exc:  # noqa: BLE001
             log.warning("category backfill chunk failed: %s", exc)
             return
         if n < _BACKFILL_CHUNK:
             log.info("category backfill: finished")
+            try:
+                _set_user_version_bit(_UV_CATEGORY_DONE)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("category backfill: flag write failed: %s", exc)
             return
 
 
@@ -180,10 +225,15 @@ def _maybe_start_backfill() -> None:
         return
     # Cheap pre-check — the count below is fast even on a 100k-row DB.
     with _engine.begin() as conn:
+        version = conn.execute(text("PRAGMA user_version")).scalar_one()
+        where = _category_pending_where(version)
         remaining = conn.execute(
-            text(f"SELECT COUNT(*) FROM jobs WHERE {_BACKFILL_NEEDS_VISIT}")
+            text(f"SELECT COUNT(*) FROM jobs WHERE {where}")
         ).scalar_one()
     if not remaining:
+        # An empty legacy scan still counts as a completed pass.
+        if not version & _UV_CATEGORY_DONE:
+            _set_user_version_bit(_UV_CATEGORY_DONE)
         return
 
     import threading
@@ -191,6 +241,7 @@ def _maybe_start_backfill() -> None:
     log.info("category backfill: %d rows queued (background)", remaining)
     threading.Thread(
         target=_backfill_categories_async,
+        args=(where,),
         daemon=True,
         name="jobhunt-backfill",
     ).start()
@@ -486,9 +537,7 @@ def _maybe_refingerprint() -> None:
     insp = inspect(_engine)
     if not insp.has_table("jobs"):
         return
-    with _engine.begin() as conn:
-        version = conn.execute(text("PRAGMA user_version")).scalar_one()
-    if version >= 1:
+    if _get_user_version() & _UV_REFINGERPRINT_DONE:
         return
     try:
         n = _refingerprint_once()
@@ -496,8 +545,7 @@ def _maybe_refingerprint() -> None:
     except Exception as exc:  # noqa: BLE001 — degrade to temporary dupes, never block boot
         log.warning("fingerprint migration failed (will retry next boot): %s", exc)
         return
-    with _engine.begin() as conn:
-        conn.execute(text("PRAGMA user_version = 1"))
+    _set_user_version_bit(_UV_REFINGERPRINT_DONE)
 
 
 def check_integrity() -> tuple[bool, str]:
