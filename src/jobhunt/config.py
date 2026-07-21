@@ -107,4 +107,16 @@ class Settings(BaseSettings):
         return self.db_path.parent
 
 
-settings = Settings()
+def _build_settings() -> Settings:
+    """The Settings page saves user keys to data_dir/.env, but pydantic only
+    auto-reads a CWD .env — so saved keys/location silently vanished on every
+    restart. Two-phase load: resolve data_dir with defaults, then re-read with
+    the user file included (real env vars still take priority over both)."""
+    base = Settings()
+    user_env = base.data_dir / ".env"
+    if user_env.exists():
+        return Settings(_env_file=(".env", str(user_env)))
+    return base
+
+
+settings = _build_settings()

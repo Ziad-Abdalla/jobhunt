@@ -12,6 +12,12 @@
 - Settings saves write the `.env` atomically (temp file + rename). A save
   landing while another was mid-write could read the file as empty and
   rewrite it without the stored API keys.
+- **Saved settings now survive restarts.** The Settings page saves keys +
+  location to `data_dir/.env`, but nothing ever read that file back on
+  startup — every saved API key and the user location silently reverted on
+  restart (long-standing; also why `jobhunt doctor` never saw UI-saved
+  keys). Settings construction now includes the user file, with real
+  environment variables still taking priority.
 
 ### Added (P8 — indirect Egypt/MENA + remote via JSearch)
 - **JSearch (RapidAPI) adapter** — a bring-your-own-key, off-by-default
