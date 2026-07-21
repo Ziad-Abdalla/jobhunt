@@ -51,7 +51,15 @@ def collect_priority_sources() -> set[str]:
             data = ss.query_json or {}
             if data.get("priority"):
                 out.update(data.get("sources") or [])
-    return out
+    # Never fast-poll a quota-capped source (jsearch: ~200 req/month) —
+    # a tight tick would re-spend the monthly quota in days.
+    from .refresh import _source_cooldowns
+
+    capped = {src for src, hours in _source_cooldowns().items() if hours > 0}
+    dropped = out & capped
+    if dropped:
+        log.info("fast-poll: excluding quota-capped sources %s", sorted(dropped))
+    return out - capped
 
 
 async def check_alerts() -> dict:

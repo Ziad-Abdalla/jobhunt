@@ -84,6 +84,16 @@ class Settings(BaseSettings):
     # low-frequency sweep, not a per-refresh source. Redacted in backups
     # (key name ends in _API_KEY).
     jsearch_api_key: str = ""
+    # Careerjet public affiliate API (Egypt via locale en_EG). BYO
+    # affiliate ID — free partner account at careerjet.com/partners; the
+    # API 403s without one, so the source is off by default.
+    careerjet_affid: str = ""
+    # Minimum hours between jsearch passes on a full refresh, so an
+    # unattended scheduler can't burn the ~200 req/month free tier (each
+    # configured board costs one request per pass). 20h ≈ one sweep/day
+    # with headroom for a manual run. 0 disables the cooldown. A targeted
+    # scrape_all(only_sources={"jsearch"}) always bypasses it.
+    jsearch_cooldown_hours: float = 20.0
 
     # P6: default-OFF gate for /api/cowork/* (the applicant-data export /
     # write-back used by the Cowork handoff). Even when ON, those endpoints

@@ -17,10 +17,21 @@ def _clean():
     with db_session() as s:
         s.query(SavedSearch).filter(SavedSearch.name.like("AlertSrc%")).delete()
         s.query(Job).filter(Job.company == "AlertSrcAcme").delete()
+        # check_alerts() iterates EVERY saved search — including the user's
+        # real ones in the live DB — and stamps notified_job_ids /
+        # last_notified_at on them, silently eating their next real alert.
+        # Snapshot that state and restore it after the test.
+        alert_state = {
+            ss.id: (list(ss.notified_job_ids or []), ss.last_notified_at)
+            for ss in s.query(SavedSearch).all()
+        }
     yield
     with db_session() as s:
         s.query(SavedSearch).filter(SavedSearch.name.like("AlertSrc%")).delete()
         s.query(Job).filter(Job.company == "AlertSrcAcme").delete()
+        for ss in s.query(SavedSearch).all():
+            if ss.id in alert_state:
+                ss.notified_job_ids, ss.last_notified_at = alert_state[ss.id]
 
 
 def _seed_jobs():
@@ -45,10 +56,12 @@ def test_source_filter_narrows_notifications(monkeypatch):
             notify=True, notified_job_ids=[],
         ))
     asyncio.run(alerts_mod.check_alerts())
-    # Only the wuzzuf job should have produced an alert.
-    bodies = " ".join(a[1] for a in sent)
-    assert "AlertSrc Engineer @ AlertSrcAcme" in bodies
-    assert len(sent) == 1
+    # Only the wuzzuf job should have produced an alert. Count only sends
+    # about OUR seeded jobs — the live DB may hold the user's real saved
+    # searches, whose first-time notifications would inflate a raw count.
+    mine = [a for a in sent if "AlertSrcAcme" in a[1]]
+    assert len(mine) == 1
+    assert "AlertSrc Engineer @ AlertSrcAcme" in mine[0][1]
 
 
 def test_no_source_filter_alerts_all(monkeypatch):
@@ -62,7 +75,8 @@ def test_no_source_filter_alerts_all(monkeypatch):
             notify=True, notified_job_ids=[],
         ))
     asyncio.run(alerts_mod.check_alerts())
-    assert len(sent) == 2
+    mine = [a for a in sent if "AlertSrcAcme" in a[1]]
+    assert len(mine) == 2
 
 
 def test_priority_persisted_via_route():

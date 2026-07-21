@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 import yaml
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .apply_target import classify_apply
@@ -56,6 +56,11 @@ _EMPLOYMENT_TYPE_MAP: dict[str, str] = {
     "fixed term": "Contract",
     "casual": "Contract",
     "per diem": "Contract",
+    # JSearch /search-v2 variants (observed live 2026-07-21)
+    "full time contractor": "Contract",
+    "full-time contractor": "Contract",
+    "part time contractor": "Contract",
+    "part-time contractor": "Contract",
     "freelance / project": "Contract",
     # Wuzzuf shift-based roles are hourly/rotational — closest canonical bucket.
     "shift based": "Part-time",
@@ -68,6 +73,8 @@ _EMPLOYMENT_TYPE_MAP: dict[str, str] = {
     "trainee": "Internship",
     "co-op": "Internship",
     "coop": "Internship",
+    # Wuzzuf zero-experience student bucket (observed live 2026-07-21)
+    "no experience required / student": "Internship",
     "placement": "Internship",
     "volunteer": "Internship",
     # Suppress to unknown (these are career levels, not employment types)
@@ -382,6 +389,63 @@ def _disabled_sources(session: Session) -> dict[tuple[str, str], datetime]:
     return disabled
 
 
+def _source_cooldowns() -> dict[str, float]:
+    """Quota-capped sources → minimum hours between full-refresh attempts.
+    jsearch's free tier is ~200 req/month and every board costs a request,
+    so scheduler-driven refreshes must not re-hit it every cycle."""
+    return {"jsearch": settings.jsearch_cooldown_hours}
+
+
+def _last_attempts(session: Session, sources: set[str]) -> dict[str, datetime]:
+    """Most recent scrape_run.started_at per source (any board)."""
+    rows = session.execute(
+        select(ScrapeRun.source, func.max(ScrapeRun.started_at))
+        .where(ScrapeRun.source.in_(sources))
+        .group_by(ScrapeRun.source)
+    ).all()
+    out: dict[str, datetime] = {}
+    for source, latest in rows:
+        if latest is None:
+            continue
+        # func.max returns the raw column value — SQLite hands back an ISO
+        # string, so parse it to keep the datetime contract.
+        if isinstance(latest, str):
+            try:
+                latest = datetime.fromisoformat(latest)
+            except ValueError:
+                continue
+        out[source] = latest
+    return out
+
+
+def _apply_cooldown(
+    sources: list[dict],
+    cooldowns: dict[str, float],
+    last_attempts: dict[str, datetime],
+    now: datetime,
+    only_sources: set[str] | None = None,
+) -> tuple[list[dict], int]:
+    """Drop specs whose source is quota-capped and was attempted too
+    recently. An explicit only_sources request naming the source bypasses
+    the cooldown — a deliberate targeted run is never silently no-opped."""
+    kept: list[dict] = []
+    skipped = 0
+    for spec in sources:
+        src = spec.get("source", "")
+        hours = cooldowns.get(src)
+        last = last_attempts.get(src)
+        if (
+            hours
+            and last is not None
+            and not (only_sources and src in only_sources)
+            and not _retry_due(last, now, hours)
+        ):
+            skipped += 1
+            continue
+        kept.append(spec)
+    return kept, skipped
+
+
 async def scrape_all(only_sources: set[str] | None = None) -> dict:
     """Scrape configured sources. When `only_sources` is given, restrict the
     pass to specs whose `source` is in that set — the P7 fast-poll tier uses
@@ -404,7 +468,7 @@ async def scrape_all(only_sources: set[str] | None = None) -> dict:
             sources.append({"source": "jooble", "board": f"{kw}|{loc}"})
 
     if not sources:
-        return {"sources": 0, "added": 0, "seen": 0, "removed": 0}
+        return {"sources": 0, "added": 0, "seen": 0, "removed": 0, "skipped": 0}
 
     # Skip sources that have failed three scrapes in a row — they're almost
     # certainly dead, and hammering their URLs wastes time and adds 4xx noise.
@@ -430,6 +494,20 @@ async def scrape_all(only_sources: set[str] | None = None) -> dict:
             log.info("skipping %d auto-disabled sources (retry every %.0fh)",
                      skipped, settings.disabled_retry_hours)
         sources = active
+
+    # Quota-capped sources sit out until their cooldown elapses, so an
+    # unattended scheduler can't burn a monthly request quota.
+    cooldowns = {s: h for s, h in _source_cooldowns().items() if h > 0}
+    capped_present = {spec.get("source", "") for spec in sources} & set(cooldowns)
+    if capped_present:
+        with db_session() as s:
+            last_attempts = _last_attempts(s, capped_present)
+        sources, cooled = _apply_cooldown(
+            sources, cooldowns, last_attempts, retry_ref, only_sources
+        )
+        if cooled:
+            skipped += cooled
+            log.info("skipping %d quota-capped source boards (cooldown)", cooled)
 
     headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}
     sem = asyncio.Semaphore(settings.concurrency)

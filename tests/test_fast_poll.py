@@ -31,6 +31,9 @@ def test_only_sources_filters_to_nothing_without_network():
 
 
 def test_collect_priority_sources_unions_priority_searches():
+    # The live DB may legitimately hold the user's own priority searches —
+    # measure this test's contribution as a delta, not exact equality.
+    baseline = collect_priority_sources()
     with db_session() as s:
         s.add(SavedSearch(
             name="FastPoll a", notify=True, notified_job_ids=[],
@@ -48,7 +51,9 @@ def test_collect_priority_sources_unions_priority_searches():
             name="FastPoll d", notify=True, notified_job_ids=[],
             query_json={"priority": True},
         ))
-    assert collect_priority_sources() == {"wuzzuf", "remotive", "greenhouse"}
+    got = collect_priority_sources()
+    assert {"wuzzuf", "remotive", "greenhouse"} <= got
+    assert got - baseline <= {"wuzzuf", "remotive", "greenhouse"}
 
 
 def test_fast_poll_off_by_default():

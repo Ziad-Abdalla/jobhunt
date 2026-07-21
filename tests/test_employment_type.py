@@ -23,6 +23,18 @@ class TestEmploymentTypeNormalization:
         assert _normalize_employment_type("Freelance") == "Contract"
         assert _normalize_employment_type("Temporary") == "Contract"
 
+    def test_wuzzuf_student_bucket(self):
+        # Live straggler found 2026-07-21 (1 row): Wuzzuf's zero-experience
+        # student bucket must fold into the 4 canonical types.
+        assert _normalize_employment_type("No Experience Required / Student") == "Internship"
+
+    def test_jsearch_v2_contractor_variants(self):
+        # Observed live 2026-07-21: JSearch /search-v2 emits "Full Time
+        # Contractor" (and dash variants) — must fold into the 4 canonical types.
+        assert _normalize_employment_type("Full Time Contractor") == "Contract"
+        assert _normalize_employment_type("Full-time Contractor") == "Contract"
+        assert _normalize_employment_type("Part Time Contractor") == "Contract"
+
     def test_internship_variants(self):
         assert _normalize_employment_type("Internship") == "Internship"
         assert _normalize_employment_type("Intern") == "Internship"
