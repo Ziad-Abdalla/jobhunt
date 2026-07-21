@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jobhunt — Operator's Manual</title>
+<style>
+  :root {
+    --paper: #FAFAF7;
+    --ink: #1C2B33;
+    --muted: #5C6E76;
+    --line: #DDE3E0;
+    --teal: #0E7C7B;
+    --teal-soft: #E3F0EF;
+    --ats: #2E7D32;
+    --relay: #B26A00;
+    --own: #B3261E;
+    --card: #FFFFFF;
+    --code-bg: #EEF2F0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14191C;
+      --ink: #DEE5E7;
+      --muted: #8FA1A8;
+      --line: #2A343A;
+      --teal: #3FB0AE;
+      --teal-soft: #16302F;
+      --ats: #66BB6A;
+      --relay: #E0A03D;
+      --own: #E57373;
+      --card: #1A2125;
+      --code-bg: #202A2F;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  a { color: var(--teal); text-decoration: none; }
+  a:hover, a:focus-visible { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  code, .mono {
+    font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+    font-size: 0.86em;
+  }
+  code { background: var(--code-bg); padding: 0.12em 0.4em; border-radius: 4px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 0.8rem 1rem; overflow-x: auto; margin: 0.8rem 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  /* ---------- masthead ---------- */
+  header {
+    border-bottom: 3px solid var(--teal);
+    padding: 2.2rem 1.5rem 1.6rem;
+  }
+  .mast { max-width: 1060px; margin: 0 auto; }
+  .eyebrow {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--teal);
+  }
+  header h1 {
+    font-family: Charter, "Iowan Old Style", Georgia, serif;
+    font-size: clamp(1.9rem, 4.5vw, 2.8rem); font-weight: 700;
+    letter-spacing: -0.01em; margin: 0.2rem 0 0.4rem;
+  }
+  header h1 .ar { color: var(--muted); font-weight: 400; font-size: 0.55em; margin-inline-start: 0.5rem; }
+  .tagline { color: var(--muted); max-width: 62ch; }
+  .statline {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 1.1rem;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .statline b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout ---------- */
+  .wrap {
+    max-width: 1060px; margin: 0 auto; padding: 1.5rem;
+    display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 2.5rem;
+  }
+  nav.toc {
+    position: sticky; top: 1rem; align-self: start;
+    font-size: 0.86rem; line-height: 2;
+  }
+  nav.toc .eyebrow { display: block; margin-bottom: 0.4rem; }
+  nav.toc a { display: block; color: var(--ink); border-inline-start: 2px solid transparent; padding-inline-start: 0.7rem; }
+  nav.toc a:hover { color: var(--teal); border-color: var(--teal); text-decoration: none; }
+  nav.toc .sub { padding-inline-start: 1.6rem; color: var(--muted); }
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; gap: 1rem; }
+    nav.toc { position: static; columns: 2; }
+    nav.toc a { break-inside: avoid; }
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 1.8rem 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  h2 {
+    font-family: Charter, "Iowan Old Style", Georgia, serif;
+    font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em;
+    margin-bottom: 0.2rem;
+  }
+  h2 .ar { color: var(--muted); font-weight: 400; font-size: 0.62em; margin-inline-start: 0.55rem; }
+  h3 { font-size: 1.02rem; font-weight: 650; margin: 1.3rem 0 0.35rem; }
+  p { margin: 0.55rem 0; max-width: 74ch; }
+  ul, ol { margin: 0.55rem 0 0.55rem 1.3rem; max-width: 72ch; }
+  li { margin: 0.25rem 0; }
+  .where {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.78rem; color: var(--teal); margin-bottom: 0.6rem;
+  }
+  .note {
+    border-inline-start: 3px solid var(--teal); background: var(--teal-soft);
+    padding: 0.7rem 1rem; border-radius: 0 8px 8px 0; margin: 0.9rem 0; max-width: 70ch;
+    font-size: 0.93rem;
+  }
+  .note b:first-child { color: var(--teal); }
+
+  /* apply-kind chips — the product's own color language */
+  .kind { display: inline-block; padding: 0.05em 0.55em; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; border: 1px solid currentColor; }
+  .kind.ats { color: var(--ats); }
+  .kind.relay { color: var(--relay); }
+  .kind.own { color: var(--own); }
+
+  /* tables */
+  .tblwrap { overflow-x: auto; margin: 0.8rem 0; }
+  table { border-collapse: collapse; font-size: 0.9rem; min-width: 480px; }
+  th, td { text-align: left; padding: 0.45rem 0.9rem 0.45rem 0; vertical-align: top;
+    border-bottom: 1px solid var(--line); }
+  th { font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  td:first-child { white-space: nowrap; }
+
+  /* queue-state flow */
+  .flow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.82rem; margin: 0.8rem 0; }
+  .flow .st { border: 1px solid var(--line); background: var(--card); padding: 0.2rem 0.65rem; border-radius: 6px; }
+  .flow .gate { color: var(--own); font-weight: 700; }
+  .flow .arrow { color: var(--muted); }
+
+  footer { padding: 2rem 1.5rem 3rem; text-align: center; color: var(--muted); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mast">
+    <span class="eyebrow">Operator's manual · runs at 127.0.0.1:8765</span>
+    <h1>jobhunt <span class="ar">دليل التشغيل</span></h1>
+    <p class="tagline">A job aggregator that lives on your machine. It scrapes 170+ sources into one
+    searchable database, ranks every job by how well it fits <em>you</em>, and preps the application —
+    nothing leaves your computer unless you send it.</p>
+    <div class="statline">
+      <span><b>36,000+</b> jobs</span>
+      <span><b>174</b> source entries</span>
+      <span><b>23</b> scraper types</span>
+      <span><b>~2,970</b> Egypt jobs</span>
+      <span><b>16</b> filters</span>
+      <span><b>0</b> cloud dependencies</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <span class="eyebrow">Contents</span>
+  <a href="#start">Quick start</a>
+  <a href="#jobs">Jobs</a>
+  <a href="#local">Local Jobs</a>
+  <a href="#freelance">Freelance</a>
+  <a href="#apply">Apply</a>
+  <a class="sub" href="#queue">The queue &amp; Cowork</a>
+  <a class="sub" href="#tailor">Tailor a CV</a>
+  <a href="#profile">Profile</a>
+  <a href="#cv">CV Match</a>
+  <a href="#alerts">Alerts</a>
+  <a href="#sources">Sources</a>
+  <a href="#settings">Settings</a>
+  <a href="#egypt">Egypt &amp; Arabic</a>
+  <a href="#cli">Command line</a>
+  <a href="#config">Configuration</a>
+  <a href="#trouble">Troubleshooting</a>
+</nav>
+
+<main>
+
+<section id="start">
+  <h2>Quick start <span class="ar">البداية</span></h2>
+  <p>Launch with the desktop shortcut or by typing <code>jobhunt</code> in a terminal. The app opens at
+  <a href="http://127.0.0.1:8765">127.0.0.1:8765</a>; if it's already running, launching again just
+  opens the existing window.</p>
+  <ol>
+    <li><b>Refresh sources</b> (masthead button) — pulls fresh jobs from every source. Do this daily;
+      it takes a minute or two.</li>
+    <li><b>Upload your CV</b> on the CV page — every job gets a match %, and the default sort starts
+      favoring jobs that fit you.</li>
+    <li><b>Set your location</b> on Settings (e.g. <i>Egypt</i>) — jobs you can't actually get
+      (like "US only" remote roles) sink in the ranking.</li>
+    <li>Search on <b>Jobs</b>, queue interesting ones on <b>Apply</b>, and use <b>Tailor</b> before
+      you send anything.</li>
+  </ol>
+  <div class="note"><b>The daily loop:</b> Refresh → check Jobs with your saved filters → queue → tailor → apply.
+  Alerts (below) can replace the "check" step entirely.</div>
+</section>
+
+<section id="jobs">
+  <h2>Jobs <span class="ar">الوظائف</span></h2>
+  <p class="where">/ — the main search</p>
+  <p>Everything in one place: tech roles worldwide plus Egypt via Wuzzuf and JSearch. Sixteen filters
+  stack together, and all of them combine with keyword search (full-text, handles Arabic).</p>
+  <div class="tblwrap"><table>
+    <tr><th>Filter</th><th>What it narrows</th></tr>
+    <tr><td>Keyword</td><td>Full-text search over title, company, description</td></tr>
+    <tr><td>Career stage</td><td>Seniority of permanent roles: entry → graduate → junior → mid → senior+. <b>This is where you find zero-experience roles.</b></td></tr>
+    <tr><td>Job type</td><td>Contract kind — exactly four: Full-time, Part-time, Contract, Internship</td></tr>
+    <tr><td>Remote</td><td>Remote / hybrid / onsite</td></tr>
+    <tr><td>Remote eligibility</td><td>Whether a remote job is open to you: unrestricted, US-only, UK-only, EU-only… Set to <i>Unrestricted</i> to hide jobs that would reject an Egypt-based applicant on sight.</td></tr>
+    <tr><td>Salary floor</td><td>Minimum salary; estimates are region-aware (EGP, AED, GBP, EUR…)</td></tr>
+    <tr><td>Languages / Skills</td><td>Programming languages and tools extracted from the posting</td></tr>
+    <tr><td>Max experience</td><td>Hide jobs demanding more years than you have</td></tr>
+    <tr><td>Degree</td><td>Degree requirement detected in the text</td></tr>
+    <tr><td>CV match floor</td><td>Only jobs above a match % (needs a CV uploaded)</td></tr>
+    <tr><td>Posted within</td><td>Recency window</td></tr>
+    <tr><td>Source / Location / Score / Category</td><td>Self-explanatory</td></tr>
+  </table></div>
+  <h3>How ranking works</h3>
+  <p>The default <b>relevance</b> sort is: <code>quality score × (1 + 1.5 × CV match) × reachability</code>.
+  Quality score is a transparent 0–4 (salary listed, recent, detailed description…). CV match kicks in
+  once a CV is uploaded. Reachability demotes geo-restricted jobs when your location is set — a
+  "US only" role drops to roughly a third of its weight. A small pill above the results discloses when
+  this reordering is active. Sort by <i>newest</i> instead when you want pure recency.</p>
+  <div class="note"><b>Career stage vs Job type:</b> "Internship" lives under Job type (it's a contract kind).
+  Career stage is about seniority. They're separate on purpose — filtering Career stage = Entry does
+  <em>not</em> hide internships.</div>
+</section>
+
+<section id="local">
+  <h2>Local Jobs <span class="ar">وظائف محلية</span></h2>
+  <p class="where">/local — zero-experience work near you</p>
+  <p>Built for job-seekers who need work, not a career ladder: cleaning, warehouse, retail, kitchen,
+  delivery, reception, customer service, care, security. Defaults to non-tech; the
+  <i>What kind of work</i> toggle switches to tech. Sorted newest-first, because local hiring moves fast.</p>
+  <ul>
+    <li><b>UK</b> — via Reed (free API key needed, Settings page has a "Get a free key" link).</li>
+    <li><b>Germany</b> — via Arbeitsagentur, no key needed (10,000+ jobs).</li>
+    <li><b>Egypt</b> — region dropdown includes Cairo, Giza, Alexandria (Arabic names work too).</li>
+  </ul>
+</section>
+
+<section id="freelance">
+  <h2>Freelance <span class="ar">عمل حر</span></h2>
+  <p class="where">/freelance</p>
+  <p>Contract and freelance listings, newest first. Same cards and actions as the main page.</p>
+</section>
+
+<section id="apply">
+  <h2>Apply <span class="ar">التقديم</span></h2>
+  <p class="where">/apply — where applying actually happens</p>
+  <p>Every job's apply link is classified into one of three flows, shown as a colored badge. This tells
+  you what you're walking into <em>before</em> you click:</p>
+  <ul>
+    <li><span class="kind ats">ATS form</span> — a known application system (Greenhouse, Lever, Ashby…).
+      Usually a clean form you can fill directly. The easiest wins.</li>
+    <li><span class="kind relay">Job board</span> — the application happens on a board like Wuzzuf or
+      Bayt, and you may need an account there. Not one click away, but predictable.</li>
+    <li><span class="kind own">Company site</span> — the company's own careers page. Every one is
+      different; this is the bucket the assistant handoff exists for.</li>
+  </ul>
+  <p>Tabs filter by flow, with live counts. Results use the same blended relevance as the Jobs page,
+  so your best-fit, most-reachable options surface first.</p>
+
+  <h3 id="queue">The application queue &amp; the Cowork handoff</h3>
+  <p class="where">/apply?view=queue — only reachable from this computer</p>
+  <p>Press <b>Queue</b> on any job to start tracking it as an application. The queue enforces two
+  human decision points — nothing is ever submitted on your behalf without both:</p>
+  <div class="flow">
+    <span class="st">queued</span><span class="arrow">→</span>
+    <span class="st">drafted</span><span class="arrow">→</span>
+    <span class="gate">you review the exact fields</span><span class="arrow">→</span>
+    <span class="st">approved</span><span class="arrow">→</span>
+    <span class="st">submitted</span>
+  </div>
+  <p>An assistant (like Claude Cowork) can pick up queued applications through a local-only API,
+  draft the form answers from your Profile, and report back what it <em>would</em> fill. You see that
+  draft field-by-field and press <b>Approve</b> — or send it back. Rejected or failed applications can
+  be re-queued.</p>
+  <p>To turn the handoff on: add <code>JOBHUNT_COWORK_EXPORT=1</code> to your configuration
+  (see <a href="#config">Configuration</a>), restart, then run <code>jobhunt apply export</code> to see
+  the handoff document. Safety is structural: job descriptions are wrapped as untrusted data so a
+  malicious posting can't instruct the assistant, the field list is fixed by jobhunt (an assistant can
+  never invent new personal fields), and submissions are hard-stopped outside an exact-host domain
+  allow-list.</p>
+
+  <h3 id="tailor">Tailor a CV to a job</h3>
+  <p class="where">/apply/tailor/&lt;job&gt; — Tailor link on any apply card, or <code>jobhunt tailor &lt;id&gt;</code></p>
+  <p>A one-page prep sheet for a specific job:</p>
+  <ul>
+    <li><b>Keyword gap</b> — which of the job's keywords your CV already covers, and which are missing.
+      Works for non-tech roles too (forklift, barista, care work — not just Python).</li>
+    <li><b>Suggested Skills line</b> — your matched keywords first, since application systems scan for them.</li>
+    <li><b>ATS readiness check</b> — flags the formatting that makes application systems mis-read a CV:
+      missing contact info, non-standard section headers, multi-column or table layouts, garbled
+      encoding, unreasonable length.</li>
+  </ul>
+  <p>Everything is deterministic keyword analysis — it never invents a skill or an achievement.
+  Download the sheet as Markdown with the <b>.md</b> button.</p>
+</section>
+
+<section id="profile">
+  <h2>Profile <span class="ar">الملف الشخصي</span></h2>
+  <p class="where">/profile — only reachable from this computer</p>
+  <p>The details application forms always ask for — name, email, phone, links, work authorization,
+  notice period — entered once, reused by the queue and the assistant handoff.</p>
+  <p>Privacy is enforced by design, not policy: the page refuses connections from other devices even
+  if the app is exposed on your network; there are deliberately <b>no</b> passport or national-ID
+  fields; and the form rejects anything that looks like a pasted API key or password, so a credential
+  can never end up in the store. The data lives in your local database and appears in exactly one
+  place outside it: the handoff document you explicitly enable.</p>
+</section>
+
+<section id="cv">
+  <h2>CV Match <span class="ar">السيرة الذاتية</span></h2>
+  <p class="where">/cv</p>
+  <p>Upload a PDF CV and every job gets a match percentage. With the optional ML extra installed the
+  match is semantic (meaning-based); without it, a keyword overlap score — the upload always works
+  either way, and the page tells you which mode is active.</p>
+  <p>The match % is a pure "how well do I fit this role" number — location and reachability never
+  contaminate it. Ranking applies those separately, so the badge always means what it says.</p>
+</section>
+
+<section id="alerts">
+  <h2>Alerts <span class="ar">تنبيهات</span></h2>
+  <p class="where">/alerts</p>
+  <p>Save any search and get notified when new jobs match it. Three channels, each optional:</p>
+  <div class="tblwrap"><table>
+    <tr><th>Channel</th><th>Turn it on</th></tr>
+    <tr><td>Desktop</td><td>On by default while the app runs</td></tr>
+    <tr><td>Telegram</td><td>Set <code>JOBHUNT_TELEGRAM_BOT_TOKEN</code> + <code>JOBHUNT_TELEGRAM_CHAT_ID</code> (create a bot with @BotFather)</td></tr>
+    <tr><td>Email</td><td>Set <code>JOBHUNT_SMTP_HOST</code> + <code>JOBHUNT_SMTP_TO</code> (+ user/password if your server needs them)</td></tr>
+  </table></div>
+  <p>Two options per saved search worth knowing:</p>
+  <ul>
+    <li><b>Source filter</b> — watch only chosen sources (e.g. just Wuzzuf + JSearch).</li>
+    <li><b>Priority</b> — a priority search gets its own fast-poll cycle
+      (<code>JOBHUNT_FAST_POLL_MINUTES</code>), re-scraping just its sources on a tight interval.
+      Being among the first applicants is a real edge; this is how you get it.</li>
+  </ul>
+</section>
+
+<section id="sources">
+  <h2>Sources <span class="ar">المصادر</span></h2>
+  <p class="where">/sources</p>
+  <p>All configured sources, grouped by type. Add your own — a company's Greenhouse/Lever/Ashby/Workday
+  board, a Jooble or JSearch search — and it survives app updates (your entries are stored separately
+  from the built-in list).</p>
+  <ul>
+    <li><b>Company boards:</b> the board slug is the company name in its careers URL —
+      <code>stripe</code> from <code>boards.greenhouse.io/stripe</code>.</li>
+    <li><b>JSearch searches:</b> the "board" is a query — <code>developer|Egypt</code>,
+      <code>python developer|remote</code>. Each search costs one API request per refresh
+      (free tier ≈ 200/month, so 3–4 searches refreshed daily fits comfortably).</li>
+  </ul>
+  <p>Broken sources take care of themselves: after 3 consecutive failed scrapes a source is skipped
+  automatically, retried once a day, and re-enabled the moment it works again. The Settings page shows
+  a health summary; <code>jobhunt doctor</code> gives the full report.</p>
+</section>
+
+<section id="settings">
+  <h2>Settings <span class="ar">إعدادات</span></h2>
+  <p class="where">/settings</p>
+  <ul>
+    <li><b>API keys</b> — Jooble (free), Reed (free, unlocks UK local jobs), JSearch (free RapidAPI
+      tier, unlocks indirect Egypt + remote coverage). Keys are masked on screen, excluded from
+      backups, and the <b>Test keys</b> button verifies them with a real one-job request.</li>
+    <li><b>Your location</b> — one line (e.g. <i>Egypt</i>) that powers reachability ranking.</li>
+    <li><b>Source health</b> — offline / needs-attention counts at a glance.</li>
+    <li><b>Updates</b> — <i>Check</i> tells you if a newer version exists; <i>Install</i> actually
+      upgrades. <b>Uninstall</b> is one click and removes the app cleanly.</li>
+  </ul>
+</section>
+
+<section id="egypt">
+  <h2>Egypt &amp; Arabic <span class="ar">مصر والعربية</span></h2>
+  <p>jobhunt treats Egypt as a first-class market, not an afterthought:</p>
+  <ul>
+    <li><b>Wuzzuf</b> — the largest Egyptian job board, ~2,900 jobs via its public feed, with
+      structured career-level data mapped directly (no guessing).</li>
+    <li><b>JSearch</b> — Google-for-Jobs aggregation reaching postings on Bayt, LinkedIn and company
+      sites that can't be scraped directly. Bring-your-own-key, off by default.</li>
+    <li><b>MENA employers</b> — Careem, Tamara and other regional companies via their public boards.</li>
+    <li><b>Arabic extraction</b> — level, employment type and experience are detected from Arabic
+      text (حديث التخرج → entry, متدرب → intern…), Arabic-Indic digits are understood, and when an
+      Arabic posting gives no signal the job is honestly labeled "unknown" instead of guessed wrong.</li>
+    <li><b>RTL rendering</b> — Arabic titles and companies display right-to-left correctly.</li>
+    <li><b>Remote reality check</b> — the eligibility filter plus ranking demotion means "remote (US
+      only)" jobs stop wasting your time.</li>
+    <li><b>Salary context</b> — EGP and GCC currency estimates instead of US-centric numbers.</li>
+  </ul>
+</section>
+
+<section id="cli">
+  <h2>Command line <span class="ar">سطر الأوامر</span></h2>
+  <p>Everything below runs in a terminal. If <code>jobhunt</code> isn't found, use the desktop
+  shortcut's folder or your install's bin directory.</p>
+  <div class="tblwrap"><table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>jobhunt</code></td><td>Start the app (or focus the running one)</td></tr>
+    <tr><td><code>jobhunt doctor</code></td><td>Live-probe every source; <code>--json</code> for machine-readable output</td></tr>
+    <tr><td><code>jobhunt backup</code></td><td>Zip the database + config. Secrets are redacted unless you pass <code>--include-secrets</code></td></tr>
+    <tr><td><code>jobhunt restore</code></td><td>Restore from a backup (validates before writing)</td></tr>
+    <tr><td><code>jobhunt tailor &lt;id&gt;</code></td><td>Print the tailoring sheet for a job</td></tr>
+    <tr><td><code>jobhunt apply export</code></td><td>Print the Cowork handoff document (<code>--status queued</code> etc.)</td></tr>
+    <tr><td><code>jobhunt discover-boards</code></td><td>Harvest new company-board candidates from public directories into a review file — verify with <code>doctor</code> before adding</td></tr>
+  </table></div>
+</section>
+
+<section id="config">
+  <h2>Configuration <span class="ar">الإعدادات المتقدمة</span></h2>
+  <p>Settings-page values persist automatically. Power options go in a <code>.env</code> file inside
+  the data directory (on Windows: <code>%LOCALAPPDATA%\jobhunt\jobhunt\.env</code>), one
+  <code>KEY=value</code> per line, then restart the app.</p>
+  <div class="tblwrap"><table>
+    <tr><th>Variable</th><th>Effect</th></tr>
+    <tr><td><code>JOBHUNT_USER_LOCATION</code></td><td>Your home region for reachability ranking (also settable in the UI)</td></tr>
+    <tr><td><code>JOBHUNT_REFRESH_INTERVAL_MINUTES</code></td><td>Auto-refresh cadence; 0 (default) = manual only. <b>Careful:</b> auto-refresh also spends JSearch quota per cycle</td></tr>
+    <tr><td><code>JOBHUNT_FAST_POLL_MINUTES</code></td><td>Fast cycle for priority alert searches; 0 = off</td></tr>
+    <tr><td><code>JOBHUNT_TELEGRAM_BOT_TOKEN</code> / <code>JOBHUNT_TELEGRAM_CHAT_ID</code></td><td>Telegram alerts</td></tr>
+    <tr><td><code>JOBHUNT_SMTP_HOST</code> / <code>JOBHUNT_SMTP_TO</code></td><td>Email alerts (STARTTLS)</td></tr>
+    <tr><td><code>JOBHUNT_COWORK_EXPORT=1</code></td><td>Enable the assistant handoff API (off by default)</td></tr>
+    <tr><td><code>JOBHUNT_JOOBLE_API_KEY</code> / <code>JOBHUNT_REED_API_KEY</code> / <code>JOBHUNT_JSEARCH_API_KEY</code></td><td>API keys (also settable in the UI)</td></tr>
+  </table></div>
+</section>
+
+<section id="trouble">
+  <h2>Troubleshooting <span class="ar">حل المشاكل</span></h2>
+  <ul>
+    <li><b>A country/source shows no jobs</b> — run <code>jobhunt doctor</code>; it names exactly which
+      sources fail and why. Key-gated sources (Reed, Jooble, JSearch) report "no key" until one is set.</li>
+    <li><b>CV upload errors</b> — the page explains the cause (empty PDF, image-only scan…). Export a
+      text-based PDF and re-upload.</li>
+    <li><b>Styles look stale after an update</b> — hard-refresh once (Ctrl+F5); normally cache-busting
+      handles this automatically.</li>
+    <li><b>Geo/apply badges missing on old jobs</b> — they fill in as jobs are re-seen; run a Refresh.</li>
+    <li><b>JSearch stopped returning jobs</b> — check quota on your RapidAPI dashboard; the free tier
+      resets monthly. The app retries rate-limits automatically and spaces its requests.</li>
+    <li><b>Something else</b> — the in-app <a href="http://127.0.0.1:8765/help">Help page</a> covers
+      every filter and error; <code>data_dir/jobhunt.log</code> has details for bug reports.</li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<footer>
+  jobhunt · local-first · MIT · this guide: <span class="mono">docs/jobhunt-guide.html</span> — regenerate when features change
+</footer>
+
+</body>
+</html>
