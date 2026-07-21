@@ -3,7 +3,7 @@
 # Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
 # recruitee, workday, remoteok, hackernews, simplifyjobs, arbeitnow, jobicy,
 # himalayas, themuse, jooble, arbeitsagentur, reed, wuzzuf, remotive,
-# workingnomads, weworkremotely, pythonjobs, jsearch
+# workingnomads, weworkremotely, pythonjobs, jsearch, reddit, careerjet
 #
 # JSearch (jsearch) is a BYO-key indirect Egypt/MENA + remote route
 # (RapidAPI, ~200 req/month free tier — add only a FEW). Set the key on the
@@ -11,6 +11,14 @@
 #   - { source: jsearch, board: "developer|Egypt",        company: "(JSearch - Egypt)" }
 #   - { source: jsearch, board: "developer|remote",       company: "(JSearch - remote)" }
 #   - { source: jsearch, board: "software engineer|Cairo", company: "(JSearch - Cairo)" }
+#   - { source: jsearch, board: "machine learning engineer|Egypt", company: "(JSearch - Egypt ML)" }
+#   - { source: jsearch, board: "AI engineer|remote",     company: "(JSearch - remote AI)" }
+#
+# Careerjet (careerjet) is a BYO-affiliate-ID public search API with a real
+# Egypt index (careerjet.com.eg). Free partner account at
+# careerjet.com/partners — paste the affid on the Settings page, then e.g.:
+#   - { source: careerjet, board: "python developer|Egypt", company: "(Careerjet Egypt)" }
+#   - { source: careerjet, board: "machine learning|Egypt", company: "(Careerjet Egypt ML)" }
 
 # ═══════════════════════════════════════════════════════════════════
 #  INTERN / ENTRY-LEVEL FOCUSED SOURCES
@@ -43,6 +51,13 @@
 
 - { source: arbeitnow,     board: "freelance",    company: "(Arbeitnow Freelance)" }
 - { source: arbeitnow,     board: "contract",     company: "(Arbeitnow Contract)" }
+
+# Reddit hiring threads (added 2026-07-21) — [Hiring]-marked posts only;
+# gigs/contract work. Serialized ~30s apart (reddit rate-limits hard), so
+# keep the subreddit count low.
+- { source: reddit, board: forhire,    company: "(Reddit r/forhire)" }
+- { source: reddit, board: jobbit,     company: "(Reddit r/jobbit)" }
+- { source: reddit, board: RemoteJobs, company: "(Reddit r/RemoteJobs)" }
 
 # ═══════════════════════════════════════════════════════════════════
 #  WIDE-NET FIREHOSES (all levels)
@@ -267,3 +282,57 @@
 # ═══════════════════════════════════════════════════════════════════
 - { source: greenhouse, board: tamara, company: "Tamara (MENA fintech)" }
 - { source: greenhouse, board: careem, company: "Careem (MENA super-app)" }
+- { source: ashby,      board: thndr,  company: "Thndr (Egypt fintech)" }
+
+# ═══════════════════════════════════════════════════════════════════
+#  AI / LLM EMPLOYERS (added 2026-07-21 — all live-probed ≥1 job).
+#  Complements the AI boards above (Anthropic, OpenAI, Cohere,
+#  ElevenLabs, Perplexity, Anyscale, Scale AI, Modal, Runway, Cursor).
+#  Not probeable: Mistral (Lever postings API disabled upstream),
+#  Groq (Gem ATS, no public feed), W&B (hires via CoreWeave — covered).
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: workable,   board: huggingface, company: Hugging Face }
+- { source: greenhouse, board: togetherai,  company: Together AI }
+- { source: greenhouse, board: xai,         company: xAI }
+- { source: greenhouse, board: stabilityai, company: Stability AI }
+- { source: greenhouse, board: gleanwork,   company: Glean }
+- { source: greenhouse, board: fireworksai, company: Fireworks AI }
+- { source: ashby,      board: langchain,   company: LangChain }
+- { source: ashby,      board: deepl,       company: DeepL }
+- { source: ashby,      board: character,   company: Character AI }
+- { source: ashby,      board: pinecone,    company: Pinecone }
+- { source: ashby,      board: alephalpha,  company: Aleph Alpha }
+- { source: ashby,      board: writer,      company: Writer }
+- { source: ashby,      board: harvey,      company: Harvey }
+- { source: ashby,      board: sierra,      company: Sierra }
+- { source: ashby,      board: poolside,    company: Poolside }
+
+# ═══════════════════════════════════════════════════════════════════
+#  DISCOVERED 2026-07-21 (`jobhunt discover-boards` incl. the new
+#  hiring-without-whiteboards directory) — all doctor-probed ≥1 job.
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: greenhouse, board: b12,           company: B12 }
+- { source: greenhouse, board: emarketer,     company: EMARKETER }
+- { source: greenhouse, board: scout24,       company: Scout24 }
+- { source: greenhouse, board: seesaw,        company: Seesaw }
+- { source: lever,      board: BDG,           company: BDG Media }
+- { source: recruitee,  board: greatminds,    company: Great Minds }
+- { source: workable,   board: imachines,     company: Intuition Machines (hCaptcha) }
+- { source: workable,   board: bayutdubizzle, company: Bayut dubizzle (MENA) }
+
+# ═══════════════════════════════════════════════════════════════════
+#  AI / ML / LLM ROLE SEARCHES (added 2026-07-21) — targets applied-AI
+#  roles the generic "developer" terms miss. Reed/Jooble self-gate on
+#  their free API keys (Settings page).
+# ═══════════════════════════════════════════════════════════════════
+
+- { source: jooble, board: "machine learning engineer|Egypt",          company: "(Jooble Egypt - ML)" }
+- { source: jooble, board: "AI engineer|Egypt",                        company: "(Jooble Egypt - AI)" }
+- { source: jooble, board: "machine learning engineer|United Kingdom", company: "(Jooble UK - ML)" }
+- { source: jooble, board: "machine learning engineer|Germany",        company: "(Jooble Germany - ML)" }
+- { source: reed,   board: "machine learning engineer",                company: "(Reed UK - ML)" }
+- { source: reed,   board: "AI engineer",                              company: "(Reed UK - AI)" }
+- { source: arbeitsagentur, board: "Machine Learning Engineer",        company: "(Germany - ML)" }
+- { source: arbeitsagentur, board: "KI Entwickler",                    company: "(Germany - KI)" }

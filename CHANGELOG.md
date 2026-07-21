@@ -2,6 +2,45 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (2026-07-21 — AI-role targeting + new sources)
+- **AI/LLM employer boards** (all live-probed): Hugging Face, Together AI,
+  xAI, LangChain, DeepL, Character AI, Pinecone, Aleph Alpha, Stability AI,
+  Glean, Fireworks AI, Writer, Harvey, Sierra, Poolside — plus Thndr
+  (Egypt fintech) and, via board discovery, Scout24, Intuition Machines
+  (hCaptcha), Bayut|dubizzle (MENA), B12, EMARKETER, Seesaw, BDG Media,
+  Great Minds. sources.yaml is now 204 entries.
+- **AI/ML role searches**: machine-learning/AI keyword boards for Jooble
+  (Egypt/UK/Germany), Reed, and Arbeitsagentur, so applied-AI roles stop
+  falling through the generic "developer" nets.
+- **Reddit adapter** (`reddit`): [Hiring]-marked posts from subreddit
+  hiring threads (r/forhire, r/jobbit, r/RemoteJobs) via the old.reddit
+  Atom feed — the freelance/gig lane. Requests serialized ~30s apart with
+  a 429 retry (Reddit rate-limits unauthenticated clients hard).
+- **Careerjet adapter** (`careerjet`): BYO affiliate ID (free partner
+  account), off by default. Real Egypt index (locale `en_EG`) plus 90
+  other locales; `<keywords>|<location>` search boards like Jooble/JSearch.
+  Settings-page field (masked, backup-redacted).
+- **Workable v1 fallback**: some accounts (Hugging Face, Intuition
+  Machines, Bayut|dubizzle) 404 on the v3 widget API but publish via the
+  older v1 API — the adapter now falls back automatically.
+- Board discovery now also harvests the `hiring-without-whiteboards`
+  directory.
+
+### Fixed (2026-07-21)
+- **JSearch quota cooldown.** A full refresh now skips jsearch boards
+  until `JOBHUNT_JSEARCH_COOLDOWN_HOURS` (default 20) have passed since
+  the last pass — an unattended 6-hour scheduler was on track to burn
+  ~3.6× the ~200 req/month free tier. Targeted runs
+  (`only_sources={"jsearch"}`) bypass it, and the fast-poll tier refuses
+  to include quota-capped sources.
+- **Category backfill re-ran on every startup.** The promised
+  "visited" sentinel was never implemented, so the same ~18.8k
+  category='other' rows re-queued (and re-classified) on every boot —
+  observed as startup churn and a "database is locked" error. One full
+  pass now latches a user_version flag; later boots only visit NULL rows.
+- "Full Time Contractor" (a JSearch v2 employment label) now normalizes
+  to Contract instead of leaking a 5th employment type.
+
 ### Fixed (JSearch live-probe hardening)
 - **Migrated to JSearch `/search-v2`** — upstream retired the `/search`
   endpoint the adapter was built against (it now 404s). v2: results under

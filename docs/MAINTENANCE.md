@@ -332,6 +332,16 @@ survives without you having to remember the whole maintenance picture.
 2026-07-20  remove  greenhouse/unity3d                             — 404; Unity left public greenhouse, no findable ATS slug  — doctor pass (170 sources: 130 ok, 39 warn, 1 error)
 2026-07-21  fix     scraper jsearch.py                             — upstream retired /search → migrated to /search-v2 (data.jobs wrapper, country param, work_from_home, enum job_employment_types); added per-second throttle + 429 retry — P8 live probe with owner key
 2026-07-21  verify  jsearch/<4 owner boards>                       — live-verified 39 jobs, 34 real employers (Siemens, Orange, Toptal, almentor…), Egypt + remote — P8 live probe
+2026-07-21  add     15 AI/LLM employer boards                      — huggingface(workable-v1) togetherai xai langchain deepl character pinecone alephalpha stabilityai gleanwork fireworksai writer harvey sierra poolside — all probed ≥1 job — AI-role targeting
+2026-07-21  add     ashby/thndr                                    — Egypt fintech; probed 9 jobs                              — Egypt ATS pass
+2026-07-21  add     8 discovered boards                            — b12 emarketer scout24 seesaw BDG greatminds imachines(v1) bayutdubizzle(v1, MENA) — via discover-boards + hiring-without-whiteboards — doctor-probed ≥1 job
+2026-07-21  add     8 AI/ML role searches                          — jooble ML/AI Egypt+UK+DE, reed ML/AI, arbeitsagentur ML/KI                     — AI-role targeting
+2026-07-21  add     reddit/forhire jobbit RemoteJobs               — NEW reddit adapter (old.reddit Atom, [Hiring]-only, 15s throttle); live-verified 6 jobs r/forhire — freelance lane
+2026-07-21  add     scraper careerjet.py                           — NEW BYO-affid adapter (Egypt en_EG), off by default; offline-built, live probe pending owner affid — Egypt coverage
+2026-07-21  fix     scraper workable.py                            — v3 404 → v1 widget API fallback (huggingface/imachines/bayutdubizzle publish only via v1)
+2026-07-21  fix     refresh.py jsearch cooldown                    — full refreshes skip jsearch for 20h (free tier ~200 req/mo vs 6-hour scheduler = 3.6× overrun); fast-poll refuses quota-capped sources
+2026-07-21  note    NOT probeable                                  — Mistral (lever postings API disabled upstream), Groq (Gem ATS no public feed), W&B (hires via CoreWeave), Paymob/Instabug(Luciq)/Vezeeta/Fawry/Khazna/Breadfast/MoneyFellows/Trella/Sylndr/Swvl/MaxAB (JS career sites, no public ATS feed)
+2026-07-21  verify  full doctor pass (207 sources)                 — 158 ok / 51 warn (key-gated + not-hiring) / 1 error: reddit/jobbit 429 under probe-day traffic → reddit throttle widened 15s→30s spacing, 60s retry
 ```
 
 When the skill runs, it appends its findings here as `verify` /

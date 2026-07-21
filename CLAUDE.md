@@ -73,13 +73,22 @@ ruff check src/              # style + bug lint
 ## Architecture
 - `main.py` — all routes (10 pages incl. /apply, /apply/tailor, /profile;
   + ~20 API endpoints incl. /api/uninstall-now, /api/cowork/*)
-- `scrapers/` — 23 adapters (findajob removed in v0.9.1; 2026-07 added wuzzuf [Egypt],
+- `scrapers/` — 25 adapters (findajob removed in v0.9.1; 2026-07 added wuzzuf [Egypt],
   remotive, workingnomads, weworkremotely, pythonjobs — free/no-auth; jsearch [P8,
   BYO-key RapidAPI, indirect Egypt/MENA+remote, off by default; uses `/search-v2`
   — upstream retired `/search`; serialized ~1.5s apart + one 429 retry because the
   free tier rate-limits per second; employment from the `job_employment_types`
-  enum, the singular field is localized text; live-verified 2026-07-21])
-- `sources.yaml` — 130+ company boards + Reed/Arbeitsagentur non-tech entries
+  enum, the singular field is localized text; live-verified 2026-07-21;
+  **quota cooldown**: full refreshes skip jsearch until `jsearch_cooldown_hours`
+  (20h) pass — only_sources targeting bypasses, fast-poll never includes it];
+  reddit [old.reddit Atom RSS, [Hiring]-marked posts only, ~15s serialized —
+  the JSON endpoints are 403-blocked; live-verified]; careerjet [BYO-affid,
+  off by default, Egypt via locale en_EG, offline-built like jsearch was —
+  live probe pending an owner affid]. workable falls back to the v1 widget
+  API when v3 404s (huggingface-class accounts).
+- `sources.yaml` — 204 entries: 150+ company boards (incl. the 2026-07-21
+  AI/LLM employer block + discovered boards) + Reed/Arbeitsagentur non-tech +
+  AI/ML role searches + Reddit hiring threads
 - `refresh.py` — scrape pipeline + employment type normalization + category derivation
 - `extract.py` — regex extractors (level, remote, salary, skills, languages,
   **`classify_category`** → tech/nontech/other, **`extract_geo`** →
@@ -118,7 +127,9 @@ ruff check src/              # style + bug lint
   write-only and every UI-saved key silently vanished on restart). Real env
   vars always win. `main._save_user_env` writes it atomically (temp+rename).
 - `db.py` — SQLAlchemy + SQLite, forward-only column migrations + employment type
-  normalization + **`_backfill_categories`** (one-time pass on startup)
+  normalization + **`_backfill_categories`** (one-time pass; completion latches
+  a `user_version` bit — bit 0 = P3 refingerprint, bit 1 = category backfill —
+  always set bits read-modify-write via `_set_user_version_bit`)
 - `models.py` — `Job.category` ('tech' / 'nontech' / 'other') +
   `Job.geo_restrict` ('us-only' / 'uk-only' / 'eu-only' / 'restricted-other' /
   'unrestricted' / 'unknown') + `Job.apply_kind` (nullable — NULL means

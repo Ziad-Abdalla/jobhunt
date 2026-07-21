@@ -362,9 +362,12 @@
   <ul>
     <li><b>Company boards:</b> the board slug is the company name in its careers URL —
       <code>stripe</code> from <code>boards.greenhouse.io/stripe</code>.</li>
-    <li><b>JSearch searches:</b> the "board" is a query — <code>developer|Egypt</code>,
-      <code>python developer|remote</code>. Each search costs one API request per refresh
-      (free tier ≈ 200/month, so 3–4 searches refreshed daily fits comfortably).</li>
+    <li><b>JSearch / Careerjet searches:</b> the "board" is a query — <code>developer|Egypt</code>,
+      <code>python developer|remote</code>. Each JSearch search costs one API request per pass
+      (free tier ≈ 200/month) — a built-in 20-hour cooldown holds jsearch to about one sweep a
+      day no matter how often refreshes run.</li>
+    <li><b>Reddit hiring threads:</b> the board is a subreddit name (<code>forhire</code>,
+      <code>jobbit</code>) — only [Hiring]-marked posts come through, feeding the freelance lane.</li>
   </ul>
   <p>Broken sources take care of themselves: after 3 consecutive failed scrapes a source is skipped
   automatically, retried once a day, and re-enabled the moment it works again. The Settings page shows
@@ -376,8 +379,9 @@
   <p class="where">/settings</p>
   <ul>
     <li><b>API keys</b> — Jooble (free), Reed (free, unlocks UK local jobs), JSearch (free RapidAPI
-      tier, unlocks indirect Egypt + remote coverage). Keys are masked on screen, excluded from
-      backups, and the <b>Test keys</b> button verifies them with a real one-job request.</li>
+      tier, unlocks indirect Egypt + remote coverage), Careerjet (free affiliate ID, a real Egypt
+      index). Keys are masked on screen, excluded from backups, and the <b>Test keys</b> button
+      verifies Jooble/Reed with a real one-job request.</li>
     <li><b>Your location</b> — one line (e.g. <i>Egypt</i>) that powers reachability ranking.</li>
     <li><b>Source health</b> — offline / needs-attention counts at a glance.</li>
     <li><b>Updates</b> — <i>Check</i> tells you if a newer version exists; <i>Install</i> actually
@@ -393,7 +397,10 @@
       structured career-level data mapped directly (no guessing).</li>
     <li><b>JSearch</b> — Google-for-Jobs aggregation reaching postings on Bayt, LinkedIn and company
       sites that can't be scraped directly. Bring-your-own-key, off by default.</li>
-    <li><b>MENA employers</b> — Careem, Tamara and other regional companies via their public boards.</li>
+    <li><b>MENA employers</b> — Careem, Tamara, Thndr, Bayut|dubizzle and other regional companies
+      via their public boards.</li>
+    <li><b>Careerjet</b> — a public search API with a dedicated Egypt index (careerjet.com.eg);
+      free affiliate ID on the Settings page.</li>
     <li><b>Arabic extraction</b> — level, employment type and experience are detected from Arabic
       text, Arabic-Indic digits are understood, and when an
       Arabic posting gives no signal the job is honestly labeled "unknown" instead of guessed wrong.</li>
@@ -428,7 +435,7 @@
   <div class="tblwrap"><table>
     <tr><th>Variable</th><th>Effect</th></tr>
     <tr><td><code>JOBHUNT_USER_LOCATION</code></td><td>Your home region for reachability ranking (also settable in the UI)</td></tr>
-    <tr><td><code>JOBHUNT_REFRESH_INTERVAL_MINUTES</code></td><td>Auto-refresh cadence; 0 (default) = manual only. <b>Careful:</b> auto-refresh also spends JSearch quota per cycle</td></tr>
+    <tr><td><code>JOBHUNT_REFRESH_INTERVAL_MINUTES</code></td><td>Auto-refresh cadence; 0 (default) = manual only. JSearch quota is safe either way — a built-in 20h cooldown holds it to ~one sweep/day</td></tr>
     <tr><td><code>JOBHUNT_FAST_POLL_MINUTES</code></td><td>Fast cycle for priority alert searches; 0 = off</td></tr>
     <tr><td><code>JOBHUNT_TELEGRAM_BOT_TOKEN</code> / <code>JOBHUNT_TELEGRAM_CHAT_ID</code></td><td>Telegram alerts</td></tr>
     <tr><td><code>JOBHUNT_SMTP_HOST</code> / <code>JOBHUNT_SMTP_TO</code></td><td>Email alerts (STARTTLS)</td></tr>

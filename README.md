@@ -76,12 +76,13 @@ off by default, no passport/ID fields, credential-paste rejection).
 
 ## Features
 
-- **23 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
+- **25 job board adapters**: Greenhouse, Lever, Ashby, Workable, SmartRecruiters,
   Recruitee, Workday, RemoteOK, HackerNews, SimplifyJobs, Arbeitnow, Jobicy,
   Himalayas, TheMuse, Arbeitsagentur (Germany — all sectors, no key),
   Jooble (69 countries), Reed (UK — all sectors, broad keyword set),
   Wuzzuf (Egypt — all sectors, no key), Remotive, Working Nomads,
-  We Work Remotely, python.org Jobs, JSearch (BYO-key — indirect Egypt/MENA + remote)
+  We Work Remotely, python.org Jobs, JSearch (BYO-key — indirect Egypt/MENA + remote),
+  Reddit hiring threads (r/forhire-style gigs), Careerjet (BYO-affid — Egypt + 90 locales)
 - **Intern/junior focused**: 3,300+ entry-level roles. Detects intern, graduate,
   trainee, apprentice, co-op, Ausbildung, Werkstudent, and "0-1 years" patterns.
 - **Salary on every job**: real data where available, plus a self-calibrating estimator.
