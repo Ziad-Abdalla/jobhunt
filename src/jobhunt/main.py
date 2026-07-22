@@ -644,9 +644,7 @@ def _get_or_create_profile(s):
 
 @app.get("/profile", response_class=HTMLResponse)
 def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTMLResponse:
-    from .cowork_models import ApplicantProfile
-
-    from .cowork_models import AnswerBank
+    from .cowork_models import AnswerBank, ApplicantProfile
 
     with db_session() as s:
         p = s.get(ApplicantProfile, 1)
