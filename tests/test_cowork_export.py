@@ -113,7 +113,12 @@ class TestExportShape:
             "/api/cowork/export", params={"status": "queued"}
         ).json()["applications"] if a["job"]["company"] == _TEST_COMPANY)
         from jobhunt.cowork_export import FIELD_MAPPING_KEYS
-        assert set(rec["field_mapping"]) == set(FIELD_MAPPING_KEYS)
+        # The per-application mapping is the fixed vocabulary plus (at most)
+        # the two jobhunt-DERIVED work-authorization answers — still
+        # jobhunt-generated, never actuator-invented (full-auto P-C2).
+        extras = set(rec["field_mapping"]) - set(FIELD_MAPPING_KEYS)
+        assert extras <= {"authorized_to_work", "needs_sponsorship"}
+        assert set(FIELD_MAPPING_KEYS) <= set(rec["field_mapping"])
 
     def test_auto_submit_candidate_false_for_enterprise_ats(self):
         with db_session() as s:
@@ -284,3 +289,56 @@ class TestCliMirror:
         monkeypatch.setattr(settings, "cowork_export", False)
         result = CliRunner().invoke(cli_app, ["apply", "export"])
         assert result.exit_code == 2
+
+
+class TestFullAutoExport:
+    def _set_profile(self, **kw):
+        with db_session() as s:
+            p = s.get(ApplicantProfile, 1)
+            for k, v in kw.items():
+                setattr(p, k, v)
+
+    def test_cv_attachment_egypt(self):
+        self._set_profile(cv_path_egypt=r"C:\cv\eg.pdf",
+                          cv_path_remote=r"C:\cv\remote.pdf")
+        _queue()
+        data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+        rec = [a for a in data["applications"]
+               if a["job"]["company"] == _TEST_COMPANY][0]
+        assert rec["cv_attachment"]["path"] == r"C:\cv\eg.pdf"
+        assert rec["cv_attachment"]["variant"] == "egypt"
+        assert "Egypt" in rec["cv_attachment"]["reason"]
+
+    def test_cv_attachment_omitted_when_path_blank(self):
+        _queue()  # profile paths left blank
+        data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+        rec = [a for a in data["applications"]
+               if a["job"]["company"] == _TEST_COMPANY][0]
+        assert "cv_attachment" not in rec
+
+    def test_derived_answers_merged_into_field_mapping(self):
+        self._set_profile(notice_period="1 month", how_heard_default="Job board")
+        _queue()
+        data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+        rec = [a for a in data["applications"]
+               if a["job"]["company"] == _TEST_COMPANY][0]
+        fm = rec["field_mapping"]
+        assert fm["authorized_to_work"] == "yes"      # Cairo job -> Egypt rule
+        assert fm["needs_sponsorship"] == "no"
+        assert fm["notice_period"] == "1 month"
+        assert fm["how_heard"] == "Job board"
+
+    def test_answer_bank_exported(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        with db_session() as s:
+            s.query(AnswerBank).delete()
+            s.add(AnswerBank(question="Notice period?",
+                             question_norm="notice period", answer="1 month"))
+        try:
+            _queue()
+            data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+            assert data["answer_bank"] == {"notice period": "1 month"}
+        finally:
+            with db_session() as s:
+                s.query(AnswerBank).delete()
