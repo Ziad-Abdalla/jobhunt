@@ -392,3 +392,69 @@ class TestBulkRejectAuto:
 
     def test_loopback_gated(self):
         assert remote.post("/apply/queue/reject-auto").status_code == 403
+
+
+class TestOutcomeEndpoints:
+    @pytest.fixture(autouse=True)
+    def _cowork_on(self, monkeypatch):
+        from jobhunt.config import settings
+
+        monkeypatch.setattr(settings, "cowork_export", True)
+
+    def _submitted_id(self) -> int:
+        app_id = _queued_id()
+        _walk_to(app_id, "submitted")
+        return app_id
+
+    def test_cowork_outcome_on_submitted(self, monkeypatch):
+        pings = []
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: pings.append(a) or {})
+        app_id = self._submitted_id()
+        r = local.post("/api/cowork/outcome", json={
+            "application_id": app_id, "outcome": "interview",
+            "note": "phone screen Tuesday",
+        })
+        assert r.status_code == 200
+        with db_session() as s:
+            a = s.get(Application, app_id)
+        assert a.outcome == "interview"
+        assert a.outcome_note == "phone screen Tuesday"
+        assert pings
+
+    def test_outcome_rejected_on_non_submitted(self):
+        app_id = _queued_id()
+        r = local.post("/api/cowork/outcome", json={
+            "application_id": app_id, "outcome": "interview",
+        })
+        assert r.status_code == 409
+
+    def test_outcome_value_allow_listed(self):
+        app_id = self._submitted_id()
+        r = local.post("/api/cowork/outcome", json={
+            "application_id": app_id, "outcome": "ghosted-forever",
+        })
+        assert r.status_code == 400
+        r2 = local.post("/api/cowork/outcome", json={
+            "application_id": app_id, "outcome": "",
+        })
+        assert r2.status_code == 400  # '' is internal-only, not settable
+
+    def test_outcome_gated(self):
+        app_id = self._submitted_id()
+        assert remote.post("/api/cowork/outcome", json={
+            "application_id": app_id, "outcome": "replied",
+        }).status_code == 403
+
+    def test_human_outcome_form(self, monkeypatch):
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: {})
+        app_id = self._submitted_id()
+        r = local.post(f"/apply/queue/{app_id}/outcome",
+                       data={"outcome": "offer", "note": ""},
+                       follow_redirects=False)
+        assert r.status_code == 303
+        with db_session() as s:
+            assert s.get(Application, app_id).outcome == "offer"

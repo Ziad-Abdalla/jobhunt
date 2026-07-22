@@ -1089,6 +1089,54 @@ def cowork_receipt(
     return JSONResponse({"ok": True, "status": new_status})
 
 
+def _set_outcome(app_id: int, outcome: str, note: str) -> None:
+    """P-D shared setter: outcome is a lifecycle ON TOP of 'submitted' — the
+    state machine is never involved, and '' (pre-submit) is not settable."""
+    from .cowork_models import OUTCOME_VALUES, Application
+
+    if outcome not in OUTCOME_VALUES[1:]:
+        raise HTTPException(status_code=400, detail=f"unknown outcome: {outcome}")
+    with db_session() as s:
+        a = s.get(Application, app_id)
+        if a is None:
+            raise HTTPException(status_code=404, detail="no such application")
+        if a.status != "submitted":
+            raise HTTPException(
+                status_code=409,
+                detail="outcome applies to submitted applications only",
+            )
+        a.outcome = outcome
+        a.outcome_note = _trim(note, 2000)
+        a.outcome_updated_at = datetime.now(UTC)
+    _notify_application(f"jobhunt: Outcome — {outcome}", app_id, note[:120])
+
+
+class _OutcomeBody(BaseModel):
+    application_id: int
+    outcome: str
+    note: str = ""
+
+
+@app.post("/api/cowork/outcome")
+def cowork_outcome(
+    body: _OutcomeBody, request: Request, _: None = Depends(_require_cowork)
+) -> JSONResponse:
+    """P-D: the actuator's inbox duty posts employer-reply classifications
+    here (replied / interview / offer / rejected_by_employer / …). Same
+    gates as every cowork endpoint."""
+    _set_outcome(body.application_id, body.outcome, body.note)
+    return JSONResponse({"ok": True, "outcome": body.outcome})
+
+
+@app.post("/apply/queue/{app_id}/outcome", response_model=None)
+def apply_queue_outcome(
+    app_id: int, request: Request, outcome: str = Form(...), note: str = Form(""),
+    _: None = Depends(_require_loopback),
+):
+    _set_outcome(app_id, outcome, note)
+    return RedirectResponse("/apply?view=queue", status_code=303)
+
+
 # ---------- P6: application queue actions (human gates 1 + 2) ----------
 
 

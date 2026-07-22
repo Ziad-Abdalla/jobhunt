@@ -98,6 +98,19 @@
           {% endif %}
           <a class="apply-link" href="/apply/tailor/{{ r.job.id }}">Tailor</a>
           {% if r.app.receipt %}<span class="badge ok" title="submission receipt (message id)">receipt: {{ r.app.receipt }}</span>{% endif %}
+          {% if r.app.status == 'submitted' %}
+            {% if r.app.outcome %}<span class="badge {% if r.app.outcome in ('interview', 'offer') %}ok{% elif r.app.outcome == 'rejected_by_employer' %}bad{% else %}muted{% endif %}">{{ r.app.outcome.replace('_', ' ') }}</span>{% endif %}
+            <form method="post" action="/apply/queue/{{ r.app.id }}/outcome" style="display:inline-flex;gap:var(--sp-2);align-items:center;">
+              <select name="outcome">
+                {% for o in ('awaiting_reply', 'replied', 'interview', 'offer', 'rejected_by_employer', 'no_response') %}
+                <option value="{{ o }}" {% if r.app.outcome == o %}selected{% endif %}>{{ o.replace('_', ' ') }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="note" value="" maxlength="2000" placeholder="note (optional)" style="width:12em;" />
+              <button type="submit" class="ghost">Update</button>
+            </form>
+            {% if r.app.outcome_note %}<span style="color:var(--text-3);font:var(--fs-xs)/1.4 var(--font-body);" dir="auto">{{ r.app.outcome_note }}</span>{% endif %}
+          {% endif %}
           {% if r.app.error %}<span class="badge bad" title="actuator error">{{ r.app.error }}</span>{% endif %}
           <span style="color:var(--text-3);font:var(--fs-xs)/1 var(--font-body);">updated {{ r.app.updated_at | localdate }}</span>
         </div>
