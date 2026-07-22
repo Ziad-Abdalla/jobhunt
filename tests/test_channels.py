@@ -106,6 +106,53 @@ class TestSendAll:
         assert "desktop" in calls
 
 
+class TestDiscord:
+    @respx.mock
+    def test_sends_when_configured(self, monkeypatch):
+        monkeypatch.setattr(
+            channels.settings, "discord_webhook_url",
+            "https://discord.com/api/webhooks/1/abc",
+        )
+        route = respx.post("https://discord.com/api/webhooks/1/abc").mock(
+            return_value=Response(204)
+        )
+        ok = channels._send_discord("Title", "Body", "https://x.com/1")
+        assert ok is True
+        assert route.called
+        body = route.calls[0].request.content.decode()
+        assert "Title" in body and "https://x.com/1" in body
+
+    def test_disabled_when_unconfigured(self, monkeypatch):
+        monkeypatch.setattr(channels.settings, "discord_webhook_url", "")
+        assert channels._send_discord("T", "B", None) is False
+
+    @respx.mock
+    def test_failure_swallowed(self, monkeypatch):
+        monkeypatch.setattr(
+            channels.settings, "discord_webhook_url",
+            "https://discord.com/api/webhooks/1/abc",
+        )
+        respx.post("https://discord.com/api/webhooks/1/abc").mock(
+            return_value=Response(500)
+        )
+        assert channels._send_discord("T", "B", None) is False
+
+    def test_send_all_includes_discord(self, monkeypatch):
+        monkeypatch.setattr(channels, "notify", lambda *a, **k: True)
+        monkeypatch.setattr(channels.settings, "discord_webhook_url", "")
+        monkeypatch.setattr(channels.settings, "telegram_bot_token", "")
+        monkeypatch.setattr(channels.settings, "smtp_host", "")
+        out = channels.send_all("T", "B")
+        assert out["discord"] is False
+
+
+class TestWebhookRedaction:
+    def test_redacts_discord_webhook(self):
+        env = "JOBHUNT_DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/1/secrettok\n"
+        out = _redact_env(env)
+        assert "secrettok" not in out
+
+
 class TestBackupRedaction:
     def test_redacts_telegram_and_smtp_secrets(self):
         env = (

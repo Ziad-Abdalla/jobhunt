@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = ""
     smtp_to: str = ""
+    # Discord webhook (full-auto apply): one-way pings for "draft ready" /
+    # "submitted" / outcome changes. Self-gating like telegram/email — empty
+    # = channel off. The URL embeds the webhook secret: masked on the
+    # Settings page, redacted from backups (suffix WEBHOOK_URL).
+    discord_webhook_url: str = ""
 
     # P7 fast-poll tier: when > 0, priority saved searches get a tighter
     # scrape+alert loop over just their sources (0 = off; main interval

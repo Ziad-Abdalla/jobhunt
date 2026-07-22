@@ -79,6 +79,27 @@ def _send_email(title: str, body: str, url: str | None) -> bool:
     return False
 
 
+def _send_discord(title: str, body: str, url: str | None) -> bool:
+    """Post to a Discord webhook. Enabled when the webhook URL is set.
+    Discord caps content at 2000 chars; we stay under it."""
+    hook = settings.discord_webhook_url
+    if not hook:
+        return False
+    content = f"**{title}**\n{body}"
+    if url:
+        content += f"\n{url}"
+    try:
+        r = httpx.post(hook, json={"content": content[:1900]}, timeout=5.0)
+        if r.status_code // 100 == 2:
+            return True
+        log.debug("discord send returned %s", r.status_code)
+    except Exception as exc:  # noqa: BLE001
+        # Log the exception TYPE only — the webhook URL embeds its secret
+        # and a transport error's str() can echo the URL.
+        log.debug("discord send failed: %s", type(exc).__name__)
+    return False
+
+
 def send_all(title: str, body: str, url: str | None = None) -> dict[str, bool]:
     """Fan out one alert to every channel. Desktop always attempted; the
     off-machine channels self-gate on their config, so a user who sets no
@@ -86,5 +107,6 @@ def send_all(title: str, body: str, url: str | None = None) -> dict[str, bool]:
     return {
         "desktop": bool(notify(title, body, url=url)),
         "telegram": _send_telegram(title, body, url),
+        "discord": _send_discord(title, body, url),
         "email": _send_email(title, body, url),
     }

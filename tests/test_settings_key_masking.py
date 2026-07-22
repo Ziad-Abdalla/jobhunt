@@ -36,6 +36,28 @@ def test_blank_save_keeps_existing_key(monkeypatch, tmp_path):
     assert settings.user_location == "Cairo, Egypt"
 
 
+def test_discord_webhook_save_and_mask(monkeypatch):
+    monkeypatch.setattr(settings, "discord_webhook_url", "")
+    monkeypatch.setattr("jobhunt.main._load_user_env", lambda: {})
+    saved = {}
+    monkeypatch.setattr("jobhunt.main._save_user_env", lambda d: saved.update(d))
+    r = client.post("/api/settings/save", data={
+        "discord_webhook_url": "https://discord.com/api/webhooks/1/tok",
+        "user_location": "",
+    }, follow_redirects=False)
+    assert r.status_code in (302, 303)
+    assert settings.discord_webhook_url == "https://discord.com/api/webhooks/1/tok"
+    assert saved["JOBHUNT_DISCORD_WEBHOOK_URL"].endswith("/tok")
+    # The page never renders the raw webhook; blank re-save keeps it.
+    body = client.get("/settings").text
+    assert "webhooks/1/tok" not in body
+    assert "webhook set" in body
+    client.post("/api/settings/save", data={
+        "discord_webhook_url": "", "user_location": "",
+    }, follow_redirects=False)
+    assert settings.discord_webhook_url == "https://discord.com/api/webhooks/1/tok"
+
+
 def test_nonblank_save_updates_key(monkeypatch):
     monkeypatch.setattr(settings, "jooble_api_key", "OLD")
     monkeypatch.setattr("jobhunt.main._load_user_env", lambda: {})

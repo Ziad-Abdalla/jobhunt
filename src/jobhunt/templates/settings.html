@@ -78,6 +78,15 @@
             </a>
           </span>
         </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Discord webhook URL
+          {% if discord_webhook_url_set %}<span style="font-weight:400;font-size:var(--fs-xs);color:var(--green);">✓ webhook set</span>{% endif %}
+          <input type="password" name="discord_webhook_url" value="" autocomplete="off" placeholder="{% if discord_webhook_url_set %}Leave blank to keep current webhook{% else %}Paste your Discord webhook URL here{% endif %}" />
+          <span style="font-weight:400;font-size:var(--fs-xs);color:var(--text-3);">
+            One-way pings for application drafts and submissions
+            (Server settings &rarr; Integrations &rarr; Webhooks &rarr; New Webhook).
+          </span>
+        </label>
         <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
           <button type="submit">Save</button>
           <button type="button" id="test-keys-btn" class="ghost">Test keys</button>

@@ -1510,6 +1510,7 @@ def settings_page(request: Request) -> HTMLResponse:
             "reed_api_key_set": bool(settings.reed_api_key),
             "jsearch_api_key_set": bool(settings.jsearch_api_key),
             "careerjet_affid_set": bool(settings.careerjet_affid),
+            "discord_webhook_url_set": bool(settings.discord_webhook_url),
             "user_location": settings.user_location,
             "source_health": _source_health_summary(),
         },
@@ -1588,6 +1589,7 @@ def api_save_settings(
     reed_api_key: str = Form(""),
     jsearch_api_key: str = Form(""),
     careerjet_affid: str = Form(""),
+    discord_webhook_url: str = Form(""),
     user_location: str = Form(""),
 ) -> RedirectResponse:
     """Save user settings to a .env file in the data directory."""
@@ -1595,6 +1597,7 @@ def api_save_settings(
     rk = reed_api_key.strip()[:256]
     sk = jsearch_api_key.strip()[:256]
     ck = careerjet_affid.strip()[:256]
+    dw = discord_webhook_url.strip()[:512]
     ul = user_location.strip()[:256]
     env = _load_user_env()
     # The key fields render blank (masked) — a blank submit means "keep the
@@ -1612,6 +1615,9 @@ def api_save_settings(
     if ck:
         env["JOBHUNT_CAREERJET_AFFID"] = ck
         settings.careerjet_affid = ck
+    if dw:
+        env["JOBHUNT_DISCORD_WEBHOOK_URL"] = dw
+        settings.discord_webhook_url = dw
     env["JOBHUNT_USER_LOCATION"] = ul
     _save_user_env(env)
     settings.user_location = ul
