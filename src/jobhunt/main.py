@@ -18,6 +18,7 @@ from sqlalchemy import func, select
 from . import __version__
 from . import scheduler as sched_module
 from .alerts import check_alerts
+from .channels import send_all
 from .config import settings
 from .db import db_session, init_db
 from .filters import JobQuery, count, facets, search
@@ -1014,11 +1015,40 @@ def cowork_draft(
     queued→drafted (or →failed with an error). The draft is rendered on
     /apply?view=queue for human review (gate 2)."""
     new_status = "failed" if body.error else "drafted"
-    _cas_transition(body.application_id, new_status, extra={
+    extra: dict = {
         "fields_filled": body.fields_filled,
         "agent_notes": _trim(body.agent_notes, 2000),
         "error": _trim(body.error, 2000),
-    })
+    }
+    detail = ""
+    if not body.error:
+        # Full-auto P-C: server-computed annotations make the universal
+        # approve tap a 3-second glance (and the Discord ping targeted).
+        from .cowork_export import _PROFILE_ATTR_FOR_KEY, FIELD_MAPPING_KEYS
+        from .cowork_models import ApplicantProfile
+        from .cowork_policy import compute_annotations
+
+        with db_session() as s:
+            p = s.get(ApplicantProfile, 1)
+            profile_values = {
+                str(getattr(p, _PROFILE_ATTR_FOR_KEY.get(k, k), "") or "")
+                for k in FIELD_MAPPING_KEYS
+            } if p else set()
+        ann = compute_annotations(
+            body.fields_filled, body.agent_notes,
+            set(FIELD_MAPPING_KEYS), profile_values,
+        )
+        extra["annotations"] = ann
+        flags = (
+            (["agent notes"] if ann["agent_flags"] else [])
+            + [f"sensitive: {f}" for f in ann["sensitive_fields"]]
+            + [f"unmapped: {f}" for f in ann["unmapped_fields"]]
+            + [f"open question: {f}" for f in ann["unanswered"]]
+        )
+        detail = "clean" if not flags else f"{len(flags)} flagged: " + ", ".join(flags[:4])
+    _cas_transition(body.application_id, new_status, extra=extra)
+    if not body.error:
+        _notify_application("jobhunt: Draft ready", body.application_id, detail)
     return JSONResponse({"ok": True, "status": new_status})
 
 
@@ -1048,10 +1078,14 @@ def cowork_receipt(
     claimed state), so a submit that skipped the human approve gate OR the
     claim can never be recorded as success."""
     new_status = "failed" if body.error else "submitted"
-    _cas_transition(body.application_id, new_status, extra={
-        "receipt": body.receipt,
-        "error": _trim(body.error, 2000),
-    })
+    extra: dict = {"receipt": body.receipt, "error": _trim(body.error, 2000)}
+    if not body.error:
+        # P-D: submission opens the post-submit outcome lifecycle.
+        extra["outcome"] = "awaiting_reply"
+        extra["outcome_updated_at"] = datetime.now(UTC)
+    _cas_transition(body.application_id, new_status, extra=extra)
+    if not body.error:
+        _notify_application("jobhunt: Submitted", body.application_id)
     return JSONResponse({"ok": True, "status": new_status})
 
 
@@ -1088,6 +1122,26 @@ def apply_queue_add(
             existing.agent_notes = ""
             existing.updated_at = datetime.now(UTC)
     return RedirectResponse("/apply?view=queue", status_code=303)
+
+
+def _notify_application(title_prefix: str, app_id: int, detail: str = "") -> None:
+    """Fire a channel ping about an application. Best-effort by construction
+    (send_all never raises); sync handlers run on the threadpool, so calling
+    it inline never blocks the event loop."""
+    from .cowork_models import Application
+
+    with db_session() as s:
+        row = s.execute(
+            select(Application, Job).join(Job, Job.id == Application.job_id)
+            .where(Application.id == app_id)
+        ).first()
+    if not row:
+        return
+    _, j = row
+    body = f"{j.title} @ {j.company}"
+    if detail:
+        body += f" — {detail}"
+    send_all(title_prefix, body)
 
 
 def _cas_transition(app_id: int, new_status: str, *, extra: dict | None = None) -> None:

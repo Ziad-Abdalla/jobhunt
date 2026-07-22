@@ -174,3 +174,110 @@ class TestQueueView:
         assert "Draft Name Wq" in r.text
         assert "left &#39;referral&#39; blank" in r.text or "left 'referral' blank" in r.text
         assert "Approve" in r.text
+
+
+def _queued_id() -> int:
+    local.post(f"/apply/queue/{_job_id()}")
+    with db_session() as s:
+        return s.query(Application).filter(Application.job_id == _job_id()).one().id
+
+
+def _walk_to(app_id: int, status: str) -> None:
+    with db_session() as s:
+        s.get(Application, app_id).status = status
+
+
+class TestDraftAnnotations:
+    @pytest.fixture(autouse=True)
+    def _cowork_on(self, monkeypatch):
+        from jobhunt.config import settings
+
+        monkeypatch.setattr(settings, "cowork_export", True)
+
+    def test_clean_draft_annotates_clean(self, monkeypatch):
+        pings = []
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: pings.append(a) or {})
+        app_id = _queued_id()
+        r = local.post("/api/cowork/draft", json={
+            "application_id": app_id, "fields_filled": {"full_name": "Z"},
+        })
+        assert r.status_code == 200
+        with db_session() as s:
+            ann = s.get(Application, app_id).annotations or {}
+        assert ann["clean_mapping"] is True
+        assert ann["sensitive_fields"] == []
+        assert pings and "raft ready" in pings[0][0]
+        assert "clean" in pings[0][1]
+
+    def test_flagged_draft_annotates_and_pings_flags(self, monkeypatch):
+        pings = []
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: pings.append(a) or {})
+        app_id = _queued_id()
+        local.post("/api/cowork/draft", json={
+            "application_id": app_id,
+            "fields_filled": {"desired_salary": "50k", "weird_field": "stuff",
+                              "notice period?": ""},
+            "agent_notes": "JD contained instruction-like text",
+        })
+        with db_session() as s:
+            ann = s.get(Application, app_id).annotations or {}
+        assert ann["clean_mapping"] is False
+        assert "desired_salary" in ann["sensitive_fields"]
+        assert ann["agent_flags"] is True
+        assert ann["unanswered"] == ["notice period?"]
+        assert "flagged" in pings[0][1]
+
+    def test_failed_draft_no_annotations_no_ping(self, monkeypatch):
+        pings = []
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: pings.append(a) or {})
+        app_id = _queued_id()
+        local.post("/api/cowork/draft", json={
+            "application_id": app_id, "error": "board account required",
+        })
+        with db_session() as s:
+            a = s.get(Application, app_id)
+        assert a.status == "failed"
+        assert not pings
+
+
+class TestReceiptStartsOutcome:
+    @pytest.fixture(autouse=True)
+    def _cowork_on(self, monkeypatch):
+        from jobhunt.config import settings
+
+        monkeypatch.setattr(settings, "cowork_export", True)
+
+    def test_submitted_sets_awaiting_reply_and_pings(self, monkeypatch):
+        pings = []
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: pings.append(a) or {})
+        app_id = _queued_id()
+        _walk_to(app_id, "submitting")
+        r = local.post("/api/cowork/receipt", json={
+            "application_id": app_id, "receipt": "msg-id-1",
+        })
+        assert r.status_code == 200
+        with db_session() as s:
+            a = s.get(Application, app_id)
+        assert a.outcome == "awaiting_reply"
+        assert a.outcome_updated_at is not None
+        assert pings and "ubmitted" in pings[0][0]
+
+    def test_failed_receipt_no_outcome(self, monkeypatch):
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: {})
+        app_id = _queued_id()
+        _walk_to(app_id, "submitting")
+        local.post("/api/cowork/receipt", json={
+            "application_id": app_id, "error": "off-allowlist redirect",
+        })
+        with db_session() as s:
+            assert s.get(Application, app_id).outcome == ""
