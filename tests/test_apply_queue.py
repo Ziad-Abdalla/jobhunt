@@ -281,3 +281,114 @@ class TestReceiptStartsOutcome:
         })
         with db_session() as s:
             assert s.get(Application, app_id).outcome == ""
+
+
+def _drafted_id(annotations: dict | None = None) -> int:
+    app_id = _queued_id()
+    with db_session() as s:
+        a = s.get(Application, app_id)
+        a.status = "drafted"
+        a.fields_filled = {"full_name": "Z"}
+        if annotations is not None:
+            a.annotations = annotations
+    return app_id
+
+
+class TestApproveWithAnswers:
+    @pytest.fixture(autouse=True)
+    def _clean_bank(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        def wipe():
+            with db_session() as s:
+                s.query(AnswerBank).delete()
+        wipe()
+        yield
+        wipe()
+
+    def test_approve_saves_bank_answers(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        app_id = _drafted_id()
+        r = local.post(f"/apply/queue/{app_id}/approve",
+                       data={"bank__Notice period?": "1 month",
+                             "bank__empty one": ""},
+                       follow_redirects=False)
+        assert r.status_code == 303
+        with db_session() as s:
+            assert s.get(Application, app_id).status == "approved"
+            rows = {b.question_norm: b.answer for b in s.query(AnswerBank)}
+        assert rows.get("notice period") == "1 month"
+        assert "empty one" not in rows  # blanks are not saved
+
+    def test_approve_upserts_existing_question(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        with db_session() as s:
+            s.add(AnswerBank(question="Notice period?",
+                             question_norm="notice period", answer="old"))
+        app_id = _drafted_id()
+        local.post(f"/apply/queue/{app_id}/approve",
+                   data={"bank__Notice period?": "new"}, follow_redirects=False)
+        with db_session() as s:
+            rows = s.query(AnswerBank).filter_by(question_norm="notice period").all()
+        assert len(rows) == 1 and rows[0].answer == "new"
+
+    def test_approve_rejects_secret_answers(self):
+        app_id = _drafted_id()
+        r = local.post(f"/apply/queue/{app_id}/approve",
+                       data={"bank__q": "ghp_" + "a" * 36}, follow_redirects=False)
+        assert r.status_code == 400
+        with db_session() as s:
+            assert s.get(Application, app_id).status == "drafted"  # not approved
+
+    def test_plain_approve_still_works(self):
+        app_id = _drafted_id()
+        r = local.post(f"/apply/queue/{app_id}/approve", follow_redirects=False)
+        assert r.status_code == 303
+
+
+class TestQueueUiAnnotations:
+    def test_chips_answers_and_auto_badge_render(self):
+        app_id = _drafted_id({
+            "clean_mapping": False, "unmapped_fields": ["x"],
+            "agent_flags": True, "sensitive_fields": ["desired_salary"],
+            "unanswered": ["notice period?"],
+        })
+        with db_session() as s:
+            s.get(Application, app_id).queued_by = "auto"
+        r = local.get("/apply?view=queue")
+        assert "auto-queued" in r.text
+        assert "desired_salary" in r.text
+        assert 'name="bank__notice period?"' in r.text
+
+
+class TestBulkRejectAuto:
+    def test_rejects_only_queued_auto(self):
+        drafted = _drafted_id()
+        with db_session() as s:
+            s.get(Application, drafted).queued_by = "auto"
+        # a second job so we can have a queued auto row alongside
+        with db_session() as s:
+            s.add(Job(
+                fingerprint="applyq-" + "2" * 25, source="test-q", source_id="q2",
+                url="https://boards.greenhouse.io/acme/jobs/10",
+                company=_TEST_COMPANY, title="Queue Role Two", location="Cairo, Egypt",
+                description="d" * 60, apply_kind="ats",
+                apply_domain="boards.greenhouse.io", score=1.0,
+            ))
+        with db_session() as s:
+            j2 = s.query(Job).filter(Job.source_id == "q2",
+                                     Job.company == _TEST_COMPANY).one()
+            s.add(Application(job_id=j2.id, queued_by="auto"))
+        r = local.post("/apply/queue/reject-auto", follow_redirects=False)
+        assert r.status_code == 303
+        with db_session() as s:
+            assert s.get(Application, drafted).status == "drafted"  # untouched
+            j2 = s.query(Job).filter(Job.source_id == "q2",
+                                     Job.company == _TEST_COMPANY).one()
+            a2 = s.query(Application).filter(Application.job_id == j2.id).one()
+            assert a2.status == "rejected"
+
+    def test_loopback_gated(self):
+        assert remote.post("/apply/queue/reject-auto").status_code == 403

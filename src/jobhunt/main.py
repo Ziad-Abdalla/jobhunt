@@ -1092,6 +1092,25 @@ def cowork_receipt(
 # ---------- P6: application queue actions (human gates 1 + 2) ----------
 
 
+@app.post("/apply/queue/reject-auto", response_model=None)
+def apply_queue_reject_auto(request: Request, _: None = Depends(_require_loopback)):
+    """Bulk gate for auto-queued picks: reject every still-queued application
+    the auto-queue created. Never touches drafted/approved/submitting rows —
+    once drafting started, each row deserves its own look. Registered BEFORE
+    the /{job_id} route so the literal path isn't shadowed by the int param."""
+    from sqlalchemy import update as _update
+
+    from .cowork_models import Application
+
+    with db_session() as s:
+        s.execute(
+            _update(Application)
+            .where(Application.status == "queued", Application.queued_by == "auto")
+            .values(status="rejected", updated_at=datetime.now(UTC))
+        )
+    return RedirectResponse("/apply?view=queue", status_code=303)
+
+
 @app.post("/apply/queue/{job_id}", response_model=None)
 def apply_queue_add(
     job_id: int, request: Request, _: None = Depends(_require_loopback)
@@ -1179,14 +1198,50 @@ def _cas_transition(app_id: int, new_status: str, *, extra: dict | None = None) 
 
 
 @app.post("/apply/queue/{app_id}/approve", response_model=None)
-def apply_queue_approve(
+async def apply_queue_approve(
     app_id: int, request: Request, _: None = Depends(_require_loopback)
 ):
     """Gate 2: the human approves the reviewed draft. Only drafted→approved
     is legal (per the state machine) — approving from queued (no draft to
-    review) or from submitting (already claimed) is a 409."""
+    review) or from submitting (already claimed) is a 409.
+
+    Full-auto P-C2: any `bank__<question>` form fields carry the owner's
+    typed answers to the draft's open questions — saved to the answer bank
+    on approve, so the next export already knows them."""
+    form = await request.form()
+    answers = {
+        k[len("bank__"):]: str(v).strip()
+        for k, v in form.items()
+        if k.startswith("bank__") and str(v).strip()
+    }
+    for q, ans in answers.items():
+        if _find_secret(ans):
+            raise HTTPException(
+                status_code=400,
+                detail=f"answer to {q!r} looks like a secret/API key",
+            )
     _cas_transition(app_id, "approved")
+    if answers:
+        from .cowork_models import AnswerBank
+        from .cowork_policy import normalize_question
+
+        with db_session() as s:
+            for q, ans in answers.items():
+                norm = normalize_question(q)
+                if not norm:
+                    continue
+                row = s.execute(
+                    select(AnswerBank).where(AnswerBank.question_norm == norm)
+                ).scalar_one_or_none()
+                if row is None:
+                    s.add(AnswerBank(question=_trim(q, 512), question_norm=norm,
+                                     answer=_trim(ans, 2000)))
+                else:
+                    row.answer = _trim(ans, 2000)
+                    row.last_used_at = datetime.now(UTC)
     return RedirectResponse("/apply?view=queue", status_code=303)
+
+
 
 
 @app.post("/apply/queue/{app_id}/reject", response_model=None)
