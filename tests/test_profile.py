@@ -112,3 +112,80 @@ class TestSecretPasteRejection:
             "cover_note": "I skey through problems and eyJoy debugging.",
         }, follow_redirects=True)
         assert r.status_code == 200
+
+
+class TestFullAutoProfileFields:
+    def test_new_fields_render(self):
+        r = local.get("/profile")
+        assert r.status_code == 200
+        for name in ("cv_path_egypt", "cv_path_remote", "notice_period",
+                     "earliest_start", "how_heard_default", "eeo_default"):
+            assert f'name="{name}"' in r.text, name
+
+    def test_new_fields_save_roundtrip(self):
+        r = local.post("/profile", data={
+            "full_name": "Z", "cv_path_egypt": r"C:\cv\eg.pdf",
+            "cv_path_remote": r"C:\cv\remote.pdf",
+            "notice_period": "1 month", "earliest_start": "immediately",
+            "how_heard_default": "Job board", "eeo_default": "Prefer not to say",
+        }, follow_redirects=False)
+        assert r.status_code == 303
+        r2 = local.get("/profile")
+        assert r"C:\cv\eg.pdf" in r2.text
+        assert "1 month" in r2.text
+
+
+class TestAnswerBankUI:
+    @pytest.fixture(autouse=True)
+    def _clean_bank(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        with db_session() as s:
+            s.query(AnswerBank).delete()
+        yield
+        with db_session() as s:
+            s.query(AnswerBank).delete()
+
+    def _seed(self) -> int:
+        from jobhunt.cowork_models import AnswerBank
+
+        with db_session() as s:
+            s.add(AnswerBank(question="Notice period?",
+                             question_norm="notice period", answer="1 month"))
+        with db_session() as s:
+            return s.query(AnswerBank).one().id
+
+    def test_bank_renders_on_profile(self):
+        self._seed()
+        r = local.get("/profile")
+        assert "Notice period?" in r.text and "1 month" in r.text
+
+    def test_bank_update(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        bank_id = self._seed()
+        r = local.post(f"/profile/answers/{bank_id}", data={"answer": "2 weeks"},
+                       follow_redirects=False)
+        assert r.status_code == 303
+        with db_session() as s:
+            assert s.get(AnswerBank, bank_id).answer == "2 weeks"
+
+    def test_bank_delete(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        bank_id = self._seed()
+        local.post(f"/profile/answers/{bank_id}/delete", follow_redirects=False)
+        with db_session() as s:
+            assert s.get(AnswerBank, bank_id) is None
+
+    def test_bank_update_rejects_secrets(self):
+        bank_id = self._seed()
+        r = local.post(f"/profile/answers/{bank_id}",
+                       data={"answer": "ghp_" + "a" * 36}, follow_redirects=False)
+        assert r.status_code == 400
+
+    def test_bank_routes_loopback_gated(self):
+        bank_id = self._seed()
+        assert remote.post(f"/profile/answers/{bank_id}",
+                           data={"answer": "x"}).status_code == 403
+        assert remote.post(f"/profile/answers/{bank_id}/delete").status_code == 403

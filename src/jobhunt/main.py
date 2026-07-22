@@ -626,6 +626,8 @@ _PROFILE_FIELD_CAPS = {
     "full_name": 256, "email": 256, "phone": 64, "location": 256,
     "linkedin_url": 512, "github_url": 512, "portfolio_url": 512,
     "work_authorization": 512, "salary_expectation": 128, "cover_note": 4000,
+    "cv_path_egypt": 512, "cv_path_remote": 512, "notice_period": 128,
+    "earliest_start": 128, "how_heard_default": 128, "eeo_default": 128,
 }
 
 
@@ -643,10 +645,18 @@ def _get_or_create_profile(s):
 def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTMLResponse:
     from .cowork_models import ApplicantProfile
 
+    from .cowork_models import AnswerBank
+
     with db_session() as s:
         p = s.get(ApplicantProfile, 1)
         fields = {k: getattr(p, k, "") or "" for k in _PROFILE_FIELD_CAPS} if p else \
                  {k: "" for k in _PROFILE_FIELD_CAPS}
+        bank = [
+            {"id": b.id, "question": b.question or b.question_norm, "answer": b.answer}
+            for b in s.execute(
+                select(AnswerBank).order_by(AnswerBank.question_norm)
+            ).scalars()
+        ]
     return templates.TemplateResponse(
         request,
         "profile.html",
@@ -654,6 +664,7 @@ def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTML
             "nav": "profile",
             "today": _today(),
             "fields": fields,
+            "bank": bank,
             "saved": request.query_params.get("saved") == "1",
             "cowork_export_on": settings.cowork_export,
         },
@@ -674,6 +685,12 @@ def profile_save(
     work_authorization: str = Form(""),
     salary_expectation: str = Form(""),
     cover_note: str = Form(""),
+    cv_path_egypt: str = Form(""),
+    cv_path_remote: str = Form(""),
+    notice_period: str = Form(""),
+    earliest_start: str = Form(""),
+    how_heard_default: str = Form(""),
+    eeo_default: str = Form(""),
 ):
     values = {
         "full_name": full_name, "email": email, "phone": phone,
@@ -681,6 +698,9 @@ def profile_save(
         "github_url": github_url, "portfolio_url": portfolio_url,
         "work_authorization": work_authorization,
         "salary_expectation": salary_expectation, "cover_note": cover_note,
+        "cv_path_egypt": cv_path_egypt, "cv_path_remote": cv_path_remote,
+        "notice_period": notice_period, "earliest_start": earliest_start,
+        "how_heard_default": how_heard_default, "eeo_default": eeo_default,
     }
     for key, raw in values.items():
         if _find_secret(raw):
@@ -698,6 +718,41 @@ def profile_save(
         for key, val in values.items():
             setattr(p, key, val)
         p.updated_at = datetime.now(UTC)
+    return RedirectResponse("/profile?saved=1", status_code=303)
+
+
+@app.post("/profile/answers/{bank_id}", response_model=None)
+def profile_answer_update(
+    bank_id: int, request: Request, answer: str = Form(""),
+    _: None = Depends(_require_loopback),
+):
+    from .cowork_models import AnswerBank
+
+    if _find_secret(answer):
+        return HTMLResponse(
+            "<h1>That looks like a secret/API key.</h1>"
+            "<p>The answer bank must never hold credentials. "
+            '<a href="/profile">Back to profile</a></p>',
+            status_code=400,
+        )
+    with db_session() as s:
+        b = s.get(AnswerBank, bank_id)
+        if b is None:
+            raise HTTPException(status_code=404, detail="no such answer")
+        b.answer = _trim(answer, 2000)
+    return RedirectResponse("/profile?saved=1", status_code=303)
+
+
+@app.post("/profile/answers/{bank_id}/delete", response_model=None)
+def profile_answer_delete(
+    bank_id: int, request: Request, _: None = Depends(_require_loopback)
+):
+    from .cowork_models import AnswerBank
+
+    with db_session() as s:
+        b = s.get(AnswerBank, bank_id)
+        if b is not None:
+            s.delete(b)
     return RedirectResponse("/profile?saved=1", status_code=303)
 
 
