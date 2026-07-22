@@ -67,6 +67,42 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
     "scrape_runs": [
         ("board", "ALTER TABLE scrape_runs ADD COLUMN board VARCHAR(128) DEFAULT ''"),
     ],
+    # Full-auto apply (2026-07-22): the cowork tables predate these columns
+    # on live DBs, so create_all skips them — only ALTER reaches them.
+    "applicant_profile": [
+        (
+            "cv_path_egypt",
+            "ALTER TABLE applicant_profile ADD COLUMN cv_path_egypt VARCHAR(512) DEFAULT ''",
+        ),
+        (
+            "cv_path_remote",
+            "ALTER TABLE applicant_profile ADD COLUMN cv_path_remote VARCHAR(512) DEFAULT ''",
+        ),
+        (
+            "notice_period",
+            "ALTER TABLE applicant_profile ADD COLUMN notice_period VARCHAR(128) DEFAULT ''",
+        ),
+        (
+            "earliest_start",
+            "ALTER TABLE applicant_profile ADD COLUMN earliest_start VARCHAR(128) DEFAULT ''",
+        ),
+        (
+            "how_heard_default",
+            "ALTER TABLE applicant_profile ADD COLUMN how_heard_default VARCHAR(128) DEFAULT ''",
+        ),
+        (
+            "eeo_default",
+            "ALTER TABLE applicant_profile "
+            "ADD COLUMN eeo_default VARCHAR(128) DEFAULT 'Prefer not to say'",
+        ),
+    ],
+    "applications": [
+        ("queued_by", "ALTER TABLE applications ADD COLUMN queued_by VARCHAR(8) DEFAULT 'human'"),
+        ("annotations", "ALTER TABLE applications ADD COLUMN annotations JSON"),
+        ("outcome", "ALTER TABLE applications ADD COLUMN outcome VARCHAR(24) DEFAULT ''"),
+        ("outcome_note", "ALTER TABLE applications ADD COLUMN outcome_note TEXT DEFAULT ''"),
+        ("outcome_updated_at", "ALTER TABLE applications ADD COLUMN outcome_updated_at DATETIME"),
+    ],
 }
 
 

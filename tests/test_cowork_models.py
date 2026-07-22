@@ -130,3 +130,45 @@ def test_stale_sweep_protects_active_applications() -> None:
     with db_session() as s:
         assert s.get(Job, active_id) is not None  # protected
         assert s.get(Job, term_id) is None         # swept (terminal app)
+
+
+class TestFullAutoColumns:
+    def test_profile_standard_answer_fields(self):
+        p = ApplicantProfile(id=99)
+        for f in ("cv_path_egypt", "cv_path_remote", "notice_period",
+                  "earliest_start", "how_heard_default", "eeo_default"):
+            assert hasattr(p, f), f
+
+    def test_application_outcome_fields(self):
+        from jobhunt.cowork_models import OUTCOME_VALUES
+
+        a = Application(job_id=1)
+        for f in ("queued_by", "annotations", "outcome", "outcome_note",
+                  "outcome_updated_at"):
+            assert hasattr(a, f), f
+        assert OUTCOME_VALUES[0] == ""
+        assert "awaiting_reply" in OUTCOME_VALUES
+        assert "offer" in OUTCOME_VALUES
+
+    def test_answer_bank_roundtrip(self):
+        from jobhunt.cowork_models import AnswerBank
+
+        init_db()
+        with db_session() as s:
+            s.query(AnswerBank).filter_by(question_norm="notice period").delete()
+            s.add(AnswerBank(question="Notice period?",
+                             question_norm="notice period", answer="1 month"))
+        with db_session() as s:
+            row = s.query(AnswerBank).filter_by(question_norm="notice period").one()
+            assert row.answer == "1 month"
+            s.delete(row)
+
+    def test_forward_migrations_cover_new_columns(self):
+        from jobhunt.db import _FORWARD_COLUMNS
+
+        ap = {c for c, _ in _FORWARD_COLUMNS.get("applicant_profile", [])}
+        assert {"cv_path_egypt", "cv_path_remote", "notice_period",
+                "earliest_start", "how_heard_default", "eeo_default"} <= ap
+        apps = {c for c, _ in _FORWARD_COLUMNS.get("applications", [])}
+        assert {"queued_by", "annotations", "outcome", "outcome_note",
+                "outcome_updated_at"} <= apps
