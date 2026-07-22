@@ -34,7 +34,34 @@ hostname (anti-DNS-rebinding) on top of the loopback socket-peer check.
   crash-then-rerun or two overlapping actuators can't double-submit.
 - `POST /api/cowork/receipt` `{application_id, receipt}` — post-hoc proof
   after submitting a **claimed** (`submitting`) application (or `{…, error}`).
+- `POST /api/cowork/outcome` `{application_id, outcome, note}` — post-submit
+  employer-reply classification (inbox duty). Valid only on `submitted`
+  applications; `outcome` must be one of `awaiting_reply`, `replied`,
+  `interview`, `offer`, `rejected_by_employer`, `no_response`. The state
+  machine is not involved — outcome is a lifecycle on top of `submitted`
+  (which auto-sets `awaiting_reply` when the receipt lands).
 - CLI mirror: `jobhunt apply export --status queued`.
+
+## Full-auto additions to the export (2026-07-22)
+
+- **`cv_attachment`** (per application, optional): `{path, variant, reason}`
+  — jobhunt's CV pick (Egypt vs remote variant, location-first rule).
+  Present only when the profile has a path configured for the chosen
+  variant.
+- **`field_mapping`** may additionally carry two jobhunt-DERIVED answers —
+  `authorized_to_work`, `needs_sponsorship` — computed from the job's
+  location/remote status. They are trusted (jobhunt-generated), exactly
+  like the `apply_*` fields; rule 2 applies to them unchanged.
+- **`answer_bank`** (top level): `{normalized_question: answer}` learned
+  from the human at the approve gate. Consult it (normalize the page
+  question: lowercase, strip punctuation, collapse whitespace) before
+  flagging a question in `agent_notes`. The actuator can never WRITE the
+  bank — answers only enter it through the human approve form.
+- **Draft annotations:** when a draft is posted, jobhunt computes
+  annotations (clean-mapping check, sensitive-field chips, agent-note
+  flag, open questions) rendered at the review gate and included in the
+  human's Discord ping. They are informational for the human; nothing
+  about the actuator's obligations changes.
 
 ## State machine (server-enforced)
 

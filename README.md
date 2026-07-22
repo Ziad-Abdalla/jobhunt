@@ -72,6 +72,17 @@ for your review and **nothing is ever submitted without your approval**.
 Your profile never leaves your machine (loopback-only endpoints, export API
 off by default, no passport/ID fields, credential-paste rejection).
 
+Full-auto extras (all default OFF): an **auto-queue** that fills gate 1 from
+your saved searches (14-day per-company cooldown, category floor, bulk
+reject); **draft annotations** that turn your approval into a 3-second
+glance (clean/flagged chips, sensitive-field highlights); a learning
+**answer bank** — questions no profile field covers are asked once at the
+approve gate and reused forever; per-job **CV variant selection**
+(Egypt/remote) and derived work-authorization answers in the export;
+**Discord pings** for draft-ready/submitted/outcome events; and post-submit
+**outcome tracking** (awaiting reply → interview/offer/…), updatable by you
+or the assistant's inbox monitoring.
+
 ---
 
 ## Features

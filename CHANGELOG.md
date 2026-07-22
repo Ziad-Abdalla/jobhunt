@@ -2,6 +2,41 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (2026-07-22 — full-auto apply, pieces A–F)
+- **CV auto-selection (A):** the profile stores two CV paths (Egypt /
+  remote variants); every Cowork export picks one per job
+  (location-first rule, Wuzzuf always Egypt, unresolved → remote) as
+  `cv_attachment: {path, variant, reason}`.
+- **Auto-queue (B, default OFF — `JOBHUNT_AUTO_QUEUE=1`):** after each
+  scheduled refresh, jobs matching any saved search are queued
+  best-relevance-first, skipping already-applied jobs, companies applied
+  to within 14 days (`JOBHUNT_AUTO_QUEUE_COMPANY_COOLDOWN_DAYS`), and
+  category mismatches. Auto rows are badged in the queue and
+  bulk-rejectable; an optional daily cap exists
+  (`JOBHUNT_AUTO_QUEUE_DAILY_CAP`, 0 = unlimited).
+- **Draft annotations (C):** every draft is server-annotated
+  (clean-mapping check, sensitive-field chips — salary/visa/EEO/cover
+  letter/essay heuristic — agent-note tripwire, open questions) so the
+  universal approve tap is a 3-second glance. The state machine and both
+  human gates are unchanged.
+- **Standard answers + answer bank (C2):** profile gains notice period,
+  earliest start, "how heard" and EEO defaults (exported in the field
+  mapping) plus derived per-job `authorized_to_work` /
+  `needs_sponsorship` answers; unanswered draft questions are asked once
+  at the approve gate, saved to a learning answer bank (editable on
+  /profile), and included in every later export.
+- **Outcome layer (D):** submitted applications track
+  awaiting_reply/replied/interview/offer/rejected_by_employer/no_response
+  via the queue UI or `POST /api/cowork/outcome` (inbox monitoring);
+  every change pings the channels.
+- **Discord channel (E):** `JOBHUNT_DISCORD_WEBHOOK_URL` (masked on
+  Settings, backup-redacted) joins desktop/Telegram/email in the alert
+  fan-out.
+- **Actuator playbook (F):** `docs/cowork-actuator-playbook.md` +
+  `scripts/setup_cowork_folder.ps1` (creates the Cowork working folder,
+  copies CVs + playbook). Contract additions documented in
+  `docs/cowork-handoff.md`.
+
 ### Fixed (2026-07-22 — test suite mutated the developer's real data)
 - **The unit suite ran against the real data dir.** `tests/conftest.py` now
   redirects `JOBHUNT_DB_PATH` + `JOBHUNT_LOCAL_SOURCES_FILE` to a per-run

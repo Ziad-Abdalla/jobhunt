@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 501 unit tests (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 471 (460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 565 unit tests (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 501 before the full-auto apply build, 471 before the test-isolation fix, 460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -105,15 +105,26 @@ ruff check src/              # style + bug lint
   P6 Cowork routing, so false 'ats' labels are the failure mode to avoid.
   `AUTO_SUBMIT_DOMAINS` = the ONLY subset assisted submission may key on.
 - `cowork_models.py` — ApplicantProfile + Application (state machine:
-  queued→drafted→approved→submitted, terminal rejected/failed). PII module —
-  scrape pipeline must never import it (structural grep gate).
+  queued→drafted→approved→submitted, terminal rejected/failed) + AnswerBank
+  (learned approve-gate answers) + the post-submit `outcome` lifecycle.
+  PII module — scrape pipeline must never import it (structural grep gate).
+- `cowork_policy.py` — full-auto pure policy: CV variant rule (Egypt/remote,
+  location-first), derived work-authorization answers (never guesses),
+  draft annotations (clean-mapping / sensitive-field / agent-note tripwire /
+  open questions), answer-bank question normalization.
+- `auto_queue.py` — P-B: post-refresh pass queues saved-search matches
+  (`JOBHUNT_AUTO_QUEUE`, default OFF; 14d company cooldown, category floor,
+  optional daily cap). **Only ever creates `queued` rows (`queued_by='auto'`)
+  — the universal approve tap is locked owner posture; never add an
+  auto-approve path.**
 - `cowork_export.py` — `build_export_document()`: the handoff JSON (JD as
   `__untrusted_data__`, fixed field_mapping, allowed_domains hard stop).
   Shared by `/api/cowork/export` and `jobhunt apply export`. Contract doc:
   `docs/cowork-handoff.md`.
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `channels.py` — P7 off-machine alerts: `send_all()` fans one alert to
-  desktop + Telegram + email; each self-gates on config (empty = off).
+  desktop + Telegram + Discord (webhook) + email; each self-gates on config
+  (empty = off).
 - `board_discovery.py` — P7 offensive maintenance: `jobhunt discover-boards`
   harvests ATS slugs from GitHub company directories → review file (never
   auto-merges; doctor-before-ship).
