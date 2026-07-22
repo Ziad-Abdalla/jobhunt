@@ -105,6 +105,14 @@ class Settings(BaseSettings):
     # only answer loopback peers. Set JOBHUNT_COWORK_EXPORT=1 to enable.
     cowork_export: bool = False
 
+    # Full-auto apply: the auto-queue (spec P-B). Default OFF — when on, a
+    # post-refresh pass queues Applications for jobs matching any saved
+    # search (best-relevance-first), skipping already-applied jobs,
+    # companies applied to within the cooldown, and category mismatches.
+    auto_queue: bool = False
+    auto_queue_daily_cap: int = 0  # 0 = unlimited (owner decision)
+    auto_queue_company_cooldown_days: int = 14
+
     # User's location — used two ways: Jooble automatically fetches local jobs
     # for this area, and (P4) ranking demotes jobs geo-restricted to regions
     # you're not in (see scoring.home_region_from_location). Include the

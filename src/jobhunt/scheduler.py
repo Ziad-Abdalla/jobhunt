@@ -42,6 +42,14 @@ async def _job() -> None:
             await check_alerts()
         except Exception as exc:  # noqa: BLE001
             log.warning("scheduler: alert check failed: %s", exc)
+        # Full-auto P-B: queue fresh matches right after alerts (default OFF).
+        try:
+            from .auto_queue import auto_queue_pass
+
+            if settings.auto_queue:
+                await asyncio.to_thread(auto_queue_pass)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("scheduler: auto-queue failed: %s", exc)
     except Exception as exc:  # noqa: BLE001
         _last_run["at"] = datetime.now(UTC).isoformat()
         _last_run["error"] = f"{type(exc).__name__}: {exc}"
