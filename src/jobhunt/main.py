@@ -629,6 +629,7 @@ _PROFILE_FIELD_CAPS = {
     "work_authorization": 512, "salary_expectation": 128, "cover_note": 4000,
     "cv_path_egypt": 512, "cv_path_remote": 512, "notice_period": 128,
     "earliest_start": 128, "how_heard_default": 128, "eeo_default": 128,
+    "cv_docx_egypt": 512, "cv_docx_remote": 512, "summary_template": 1000,
 }
 
 
@@ -690,6 +691,9 @@ def profile_save(
     earliest_start: str = Form(""),
     how_heard_default: str = Form(""),
     eeo_default: str = Form(""),
+    cv_docx_egypt: str = Form(""),
+    cv_docx_remote: str = Form(""),
+    summary_template: str = Form(""),
 ):
     values = {
         "full_name": full_name, "email": email, "phone": phone,
@@ -700,6 +704,8 @@ def profile_save(
         "cv_path_egypt": cv_path_egypt, "cv_path_remote": cv_path_remote,
         "notice_period": notice_period, "earliest_start": earliest_start,
         "how_heard_default": how_heard_default, "eeo_default": eeo_default,
+        "cv_docx_egypt": cv_docx_egypt, "cv_docx_remote": cv_docx_remote,
+        "summary_template": summary_template,
     }
     for key, raw in values.items():
         if _find_secret(raw):
@@ -712,6 +718,13 @@ def profile_save(
                 status_code=400,
             )
         values[key] = _trim(raw, _PROFILE_FIELD_CAPS[key])
+    if any(ch in summary_template for ch in ("—", "–")):
+        return HTMLResponse(
+            "<h1>No em dashes in the summary template.</h1>"
+            "<p>Owner rule: external-facing text uses plain punctuation. "
+            'Replace the dash and save again. <a href="/profile">Back</a></p>',
+            status_code=400,
+        )
     with db_session() as s:
         p = _get_or_create_profile(s)
         for key, val in values.items():
@@ -753,6 +766,87 @@ def profile_answer_delete(
         if b is not None:
             s.delete(b)
     return RedirectResponse("/profile?saved=1", status_code=303)
+
+
+@app.post("/api/tailor/attest", response_model=None)
+def tailor_attest(
+    request: Request,
+    _: None = Depends(_require_loopback),
+    keyword: str = Form(""),
+    display: str = Form(""),
+    category_target: str = Form(""),
+    project_targets: list[str] = Form([]),
+    job_id: int = Form(0),
+):
+    """Attest a skill (2026-07-25 spec): the owner's 'I genuinely have
+    this', with CV placement. The ONLY write path into AttestedSkill."""
+    from .cowork_models import AttestedSkill
+
+    norm = " ".join(keyword.lower().split())
+    if not norm:
+        raise HTTPException(status_code=400, detail="empty keyword")
+    disp = (display or keyword).strip()
+    if any(ch in disp for ch in ("—", "–")) or _find_secret(disp):
+        return HTMLResponse(
+            "<h1>Invalid display text.</h1><p>No em/en dashes (owner rule) "
+            "and no key-like strings in CV text.</p>", status_code=400,
+        )
+    with db_session() as s:
+        row = s.execute(
+            select(AttestedSkill).where(AttestedSkill.keyword_norm == norm)
+        ).scalar_one_or_none()
+        if row is None:
+            row = AttestedSkill(keyword_norm=norm)
+            s.add(row)
+        row.display = _trim(disp, 128)
+        row.category_target = _trim(category_target, 64)
+        row.project_targets = [_trim(t, 128) for t in project_targets if t.strip()]
+    dest = f"/apply/tailor/{job_id}" if job_id else "/profile"
+    return RedirectResponse(dest, status_code=303)
+
+
+@app.post("/profile/attested/{skill_id}/delete", response_model=None)
+def attested_delete(
+    skill_id: int, request: Request, _: None = Depends(_require_loopback)
+):
+    from .cowork_models import AttestedSkill
+
+    with db_session() as s:
+        row = s.get(AttestedSkill, skill_id)
+        if row is not None:
+            s.delete(row)
+    return RedirectResponse("/profile?saved=1", status_code=303)
+
+
+@app.post("/profile/calibrate-cv", response_model=None)
+def profile_calibrate_cv(request: Request, _: None = Depends(_require_loopback)):
+    """Parse the configured docx masters into anchors the generator may
+    edit. Failures surface verbatim — calibration never guesses."""
+    import json as _json
+
+    from .cv_docx import calibrate_docx
+
+    results: dict = {}
+    errors: list[str] = []
+    with db_session() as s:
+        p = _get_or_create_profile(s)
+        for variant in ("egypt", "remote"):
+            path = getattr(p, f"cv_docx_{variant}", "") or ""
+            if not path:
+                continue
+            try:
+                results[variant] = calibrate_docx(path)
+            except Exception as exc:
+                errors.append(f"{variant}: {exc}")
+        if results:
+            p.cv_anchors = _json.dumps(results)
+    if errors and not results:
+        from urllib.parse import quote
+        return RedirectResponse(
+            f"/profile?calibrate_error={quote('; '.join(errors)[:300])}",
+            status_code=303,
+        )
+    return RedirectResponse("/profile?calibrated=1", status_code=303)
 
 
 # ---------- apply-target collection page (P5) ----------
@@ -867,7 +961,10 @@ def apply_page(
 
 def _tailor_for_job(job_id: int):
     """Build a TailorReport for a job against the loaded CV. Returns
-    (report, job, cv_loaded) or raises 404 if the job is gone."""
+    (report, job, cv_loaded, attested) or raises 404 if the job is gone.
+    `attested` is the full AttestedSkill list (as dicts) — attested displays
+    are merged into cv_skills so they show as matched on the sheet."""
+    from .cowork_models import AttestedSkill
     from .cv_tailor import tailor
 
     with db_session() as s:
@@ -879,6 +976,13 @@ def _tailor_for_job(job_id: int):
         cv_languages = list(cv.detected_languages or []) if cv else []
         cv_text = (cv.text or "") if cv else ""
         cv_loaded = cv is not None
+        attested_rows = s.execute(select(AttestedSkill)).scalars().all()
+        attested = [
+            {"keyword_norm": r.keyword_norm, "display": r.display,
+             "category_target": r.category_target,
+             "project_targets": list(r.project_targets or [])}
+            for r in attested_rows
+        ]
         # Detach the values we need before the session closes.
         job_view = {
             "id": job.id, "title": job.title, "company": job.company,
@@ -886,9 +990,10 @@ def _tailor_for_job(job_id: int):
             "languages": list(job.languages or []),
             "description": job.description or "",
         }
+    cv_skills = cv_skills + [a["display"] for a in attested]
     job_obj = type("J", (), job_view)
     report = tailor(job_obj, cv_skills, cv_languages, cv_text)
-    return report, job_obj, cv_loaded
+    return report, job_obj, cv_loaded, attested
 
 
 @app.get("/apply/tailor/{job_id:int}", response_class=HTMLResponse)
@@ -898,7 +1003,27 @@ def apply_tailor(
     """Keyword-gap tailoring sheet + ATS lint for a job vs the loaded CV.
     Loopback-gated: it renders the CV's skill inventory (applicant data),
     like /profile and the queue view."""
-    report, job, cv_loaded = _tailor_for_job(job_id)
+    import json
+
+    from .cowork_models import ApplicantProfile
+
+    report, job, cv_loaded, attested = _tailor_for_job(job_id)
+    attested_norms = {a["keyword_norm"] for a in attested}
+    categories: list[str] = []
+    projects: list[str] = []
+    with db_session() as s:
+        p = s.get(ApplicantProfile, 1)
+        try:
+            anchors_all = json.loads(p.cv_anchors) if p and p.cv_anchors else {}
+        except ValueError:
+            anchors_all = {}
+    for cal in anchors_all.values():
+        for line in cal.get("skills_lines", []):
+            if line["label"] not in categories:
+                categories.append(line["label"])
+        for proj in cal.get("projects", []):
+            if proj["name"] not in projects:
+                projects.append(proj["name"])
     return templates.TemplateResponse(
         request,
         "tailor.html",
@@ -908,6 +1033,9 @@ def apply_tailor(
             "report": report,
             "job": job,
             "cv_loaded": cv_loaded,
+            "attested_norms": attested_norms,
+            "categories": categories,
+            "projects": projects,
         },
     )
 
@@ -920,7 +1048,7 @@ def apply_tailor_md(
     it embeds the applicant's name + CV skill inventory."""
     from .cv_tailor import render_markdown
 
-    report, job, _ = _tailor_for_job(job_id)
+    report, job, _cv_loaded, _attested = _tailor_for_job(job_id)
     name = ""
     with db_session() as s:
         from .cowork_models import ApplicantProfile
