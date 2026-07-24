@@ -307,6 +307,7 @@ class TestFullAutoExport:
                if a["job"]["company"] == _TEST_COMPANY][0]
         assert rec["cv_attachment"]["path"] == r"C:\cv\eg.pdf"
         assert rec["cv_attachment"]["variant"] == "egypt"
+        assert rec["cv_attachment"]["tailored"] is False
         assert "Egypt" in rec["cv_attachment"]["reason"]
 
     def test_cv_attachment_omitted_when_path_blank(self):
@@ -342,3 +343,83 @@ class TestFullAutoExport:
         finally:
             with db_session() as s:
                 s.query(AnswerBank).delete()
+
+    def test_export_attaches_tailored_docx(self, tmp_path):
+        # The seeded job's location ("Cairo, Egypt") resolves to the
+        # "egypt" CV variant (cv_variant_for_job, location-first rule).
+        import json
+        from pathlib import Path
+
+        from jobhunt.cowork_models import AttestedSkill
+        from jobhunt.cv_docx import calibrate_docx
+        from tests.test_cv_docx import make_cv_docx
+
+        master = tmp_path / "master.docx"
+        make_cv_docx(master)
+        cal = calibrate_docx(master)
+        with db_session() as s:
+            s.query(AttestedSkill).delete()
+        self._set_profile(
+            cv_docx_egypt=str(master),
+            cv_anchors=json.dumps({"egypt": cal}),
+        )
+        with db_session() as s:
+            s.add(AttestedSkill(
+                keyword_norm="graphql", display="GraphQL",
+                category_target="Backend / Frontend", project_targets=[],
+            ))
+            # The JD must actually ask for graphql, or keyword_gap never
+            # counts the attested skill as "matched" (it matches JD demand
+            # against CV/attested supply, not the other way round). jd_keywords
+            # reads job.skills (extraction output), not the raw description.
+            job = s.query(Job).filter(Job.company == _TEST_COMPANY).one()
+            job.skills = ["graphql"]
+        try:
+            _queue()
+            data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+            rec = [a for a in data["applications"]
+                   if a["job"]["company"] == _TEST_COMPANY][0]
+            att = rec["cv_attachment"]
+            assert att["tailored"] is True
+            assert att["path"].endswith(".docx")
+            assert Path(att["path"]).exists()
+            matched = rec["tailoring"]["matched"]
+            assert "GraphQL" in matched or "graphql" in matched
+        finally:
+            with db_session() as s:
+                s.query(AttestedSkill).delete()
+
+    def test_export_falls_back_to_pdf_on_drift(self, tmp_path):
+        import json
+
+        from jobhunt.cv_docx import calibrate_docx
+        from tests.test_cv_docx import make_cv_docx
+
+        master = tmp_path / "master.docx"
+        make_cv_docx(master)
+        cal = calibrate_docx(master)
+        cal["sha256"] = "wrong"
+        self._set_profile(
+            cv_path_egypt=r"C:\cv\eg.pdf",
+            cv_docx_egypt=str(master),
+            cv_anchors=json.dumps({"egypt": cal}),
+        )
+        _queue()
+        data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+        rec = [a for a in data["applications"]
+               if a["job"]["company"] == _TEST_COMPANY][0]
+        att = rec["cv_attachment"]
+        assert att["tailored"] is False
+        assert att["path"] == r"C:\cv\eg.pdf"
+        assert "recalibrate" in att["reason"]
+
+    def test_export_without_docx_config_keeps_old_behavior(self):
+        self._set_profile(cv_path_egypt=r"C:\cv\eg.pdf")
+        _queue()
+        data = local.get("/api/cowork/export", params={"status": "queued"}).json()
+        rec = [a for a in data["applications"]
+               if a["job"]["company"] == _TEST_COMPANY][0]
+        att = rec["cv_attachment"]
+        assert att["tailored"] is False
+        assert att["path"] == r"C:\cv\eg.pdf"
+        assert "reason" in att

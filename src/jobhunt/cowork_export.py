@@ -8,13 +8,18 @@ docs/cowork-handoff.md.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .apply_target import AUTO_SUBMIT_DOMAINS, classify_apply
-from .cowork_models import AnswerBank, ApplicantProfile, Application
+from .config import settings
+from .cowork_models import AnswerBank, ApplicantProfile, Application, AttestedSkill
 from .cowork_policy import cv_variant_for_job, derived_answers
-from .cv_tailor import keyword_gap
+from .cv_docx import generate_tailored_docx, slug
+from .cv_tailor import jd_keywords, keyword_gap
 from .models import CVProfile, Job
 
 # Fixed field vocabulary — jobhunt generates the mapping; the actuator must
@@ -69,6 +74,22 @@ def build_export_document(session: Session, status: str) -> dict:
     cv_skills = list(cv.detected_skills or []) if cv else []
     cv_languages = list(cv.detected_languages or []) if cv else []
 
+    # 2026-07-25: attested skills join the matched set (owner-confirmed
+    # truths) and drive the per-job tailored docx.
+    attested = [
+        {"keyword_norm": r.keyword_norm, "display": r.display,
+         "category_target": r.category_target,
+         "project_targets": list(r.project_targets or [])}
+        for r in session.execute(select(AttestedSkill)).scalars()
+    ]
+    cv_skills = cv_skills + [a["display"] for a in attested]
+    try:
+        anchors_all = json.loads(p.cv_anchors) if p and p.cv_anchors else {}
+    except ValueError:
+        anchors_all = {}
+    summary_template = (p.summary_template or "") if p else ""
+    full_name = profile.get("full_name") or "CV"
+
     applications = []
     for a, j in rows:
         domain = j.apply_domain or classify_apply(j.url).domain
@@ -113,9 +134,33 @@ def build_export_document(session: Session, status: str) -> dict:
             # applicant leaks — the full CV is already the top-level cv_text.
             "tailoring": _tailoring_block(j, cv_skills, cv_languages, cv_text),
         }
-        if cv_path:
+        docx_path = (getattr(p, f"cv_docx_{variant}", "") or "") if p else ""
+        anchors = anchors_all.get(variant) or {}
+        tailored_ok, tailor_reason = False, "no docx master calibrated"
+        out_file = None
+        if docx_path and anchors:
+            out_file = (
+                Path(settings.data_dir) / "tailored_cvs" / str(a.id)
+                / f"{slug(full_name)}_CV_{slug(j.company or '')}.docx"
+            )
+            try:
+                tailored_ok, tailor_reason = generate_tailored_docx(
+                    docx_path, anchors, attested, jd_keywords(j),
+                    record["tailoring"]["matched"], summary_template, out_file,
+                )
+            except Exception as exc:  # tailoring must never block an export
+                tailored_ok, tailor_reason = False, (
+                    f"tailoring error: {type(exc).__name__}"
+                )
+        if tailored_ok:
             record["cv_attachment"] = {
-                "path": cv_path, "variant": variant, "reason": reason,
+                "path": str(out_file), "variant": variant,
+                "tailored": True, "reason": reason,
+            }
+        elif cv_path:
+            record["cv_attachment"] = {
+                "path": cv_path, "variant": variant,
+                "tailored": False, "reason": f"{reason}; {tailor_reason}",
             }
         applications.append(record)
 
