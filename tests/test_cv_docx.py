@@ -6,7 +6,7 @@ import pytest
 ATTESTED = [
     {"keyword_norm": "graphql", "display": "GraphQL",
      "category_target": "Backend / Frontend",
-     "project_targets": ["UniVeranstaltungen"]},
+     "project_targets": ["UniVeranstaltungen - Events Platform"]},
     {"keyword_norm": "security", "display": "Security",
      "category_target": "Data / DevOps", "project_targets": []},
 ]
@@ -35,9 +35,15 @@ def test_merged_skills_body_no_duplicate_insert():
 
 def test_stack_addition_only_when_jd_asks():
     from jobhunt.cv_docx import stack_addition
-    assert stack_addition("UniVeranstaltungen", ATTESTED, {"graphql"}) == ["GraphQL"]
-    assert stack_addition("UniVeranstaltungen", ATTESTED, {"python"}) == []
-    assert stack_addition("DocAI", ATTESTED, {"graphql"}) == []
+    assert stack_addition(
+        "UniVeranstaltungen - Events Platform", ATTESTED, {"graphql"}
+    ) == ["GraphQL"]
+    assert stack_addition(
+        "UniVeranstaltungen - Events Platform", ATTESTED, {"python"}
+    ) == []
+    assert stack_addition(
+        "DocAI - Intelligent Document Processing", ATTESTED, {"graphql"}
+    ) == []
 
 
 def test_render_summary_and_em_dash_guard():

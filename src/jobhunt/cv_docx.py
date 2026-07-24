@@ -75,7 +75,7 @@ def stack_addition(project_name: str, attested: list[dict], jd: set[str]) -> lis
     return [
         (a.get("display") or a["keyword_norm"])
         for a in attested
-        if any(t in project_name for t in (a.get("project_targets") or []))
+        if project_name in (a.get("project_targets") or [])
         and a["keyword_norm"] in jd
     ]
 
