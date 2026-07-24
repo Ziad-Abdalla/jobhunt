@@ -56,6 +56,14 @@ class ApplicantProfile(Base):
     earliest_start: Mapped[str] = mapped_column(String(128), default="")
     how_heard_default: Mapped[str] = mapped_column(String(128), default="")
     eeo_default: Mapped[str] = mapped_column(String(128), default="Prefer not to say")
+    # CV auto-tailoring (2026-07-25 spec): docx masters (edited as COPIES
+    # only), the owner-approved summary template ({skills} slot, em dashes
+    # rejected on save), and the calibration anchors JSON (exact paragraph
+    # strings + master sha256 per variant — the drift guard).
+    cv_docx_egypt: Mapped[str] = mapped_column(String(512), default="")
+    cv_docx_remote: Mapped[str] = mapped_column(String(512), default="")
+    summary_template: Mapped[str] = mapped_column(Text, default="")
+    cv_anchors: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
@@ -153,3 +161,19 @@ class AnswerBank(Base):
     answer: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class AttestedSkill(Base):
+    """Keywords the owner personally confirmed they have (2026-07-25 spec),
+    with CV placement. The ONLY path into a generated CV besides CV-parsed
+    skills — written from the loopback-gated attest form, never by the
+    actuator. Lives in the PII module; the import guard applies."""
+
+    __tablename__ = "attested_skills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    keyword_norm: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    display: Mapped[str] = mapped_column(String(128), default="")
+    category_target: Mapped[str] = mapped_column(String(64), default="")
+    project_targets: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

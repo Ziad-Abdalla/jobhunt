@@ -95,6 +95,22 @@ _FORWARD_COLUMNS: dict[str, list[tuple[str, str]]] = {
             "ALTER TABLE applicant_profile "
             "ADD COLUMN eeo_default VARCHAR(128) DEFAULT 'Prefer not to say'",
         ),
+        (
+            "cv_docx_egypt",
+            "ALTER TABLE applicant_profile ADD COLUMN cv_docx_egypt VARCHAR(512) DEFAULT ''",
+        ),
+        (
+            "cv_docx_remote",
+            "ALTER TABLE applicant_profile ADD COLUMN cv_docx_remote VARCHAR(512) DEFAULT ''",
+        ),
+        (
+            "summary_template",
+            "ALTER TABLE applicant_profile ADD COLUMN summary_template TEXT DEFAULT ''",
+        ),
+        (
+            "cv_anchors",
+            "ALTER TABLE applicant_profile ADD COLUMN cv_anchors TEXT DEFAULT ''",
+        ),
     ],
     "applications": [
         ("queued_by", "ALTER TABLE applications ADD COLUMN queued_by VARCHAR(8) DEFAULT 'human'"),
