@@ -15,6 +15,8 @@ import hashlib
 import re
 from pathlib import Path
 
+from docx import Document
+
 SEP = " · "                     # the CV's list separator
 _EM_DASHES = ("—", "–")  # — and – : owner rule, never generated
 
@@ -100,3 +102,50 @@ def top_skills_for(
         if len(out) == limit:
             break
     return out
+
+
+def calibrate_docx(path: str | Path) -> dict:
+    """Parse a CV master into exact-string anchors. Fails loudly (ValueError
+    naming what's missing) rather than guessing — the /profile calibration
+    surface shows the owner exactly what was detected for confirmation."""
+    doc = Document(str(path))
+    current = ""
+    summary = ""
+    skills_lines: list[dict] = []
+    projects: list[dict] = []
+    for p in doc.paragraphs:
+        stripped = p.text.strip()
+        if not stripped:
+            continue
+        if stripped.lower() in _HEADINGS:
+            current = stripped.lower()
+            continue
+        if current == "professional profile" and not summary:
+            summary = p.text
+        elif current == "technical skills" and ":" in stripped:
+            skills_lines.append(
+                {"label": stripped.split(":", 1)[0].strip(), "text": p.text}
+            )
+        elif current == "key projects" and not stripped.startswith("•"):
+            m = _PROJECT_RE.match(stripped)
+            if m:
+                projects.append({
+                    "name": m.group("name").strip(),
+                    "stack": m.group("stack").strip(),
+                    "text": p.text,
+                })
+    missing = [
+        name for name, ok in (
+            ("summary", summary),
+            ("skills lines", skills_lines),
+            ("projects", projects),
+        ) if not ok
+    ]
+    if missing:
+        raise ValueError(f"calibration failed: no {', '.join(missing)} found")
+    return {
+        "sha256": file_sha256(path),
+        "summary": summary,
+        "skills_lines": skills_lines,
+        "projects": projects,
+    }

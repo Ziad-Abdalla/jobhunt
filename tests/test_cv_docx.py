@@ -59,3 +59,54 @@ def test_slug():
     from jobhunt.cv_docx import slug
     assert slug("GitLab, Inc.") == "GitLab_Inc"
     assert slug("") == "CV"
+
+
+def make_cv_docx(path):
+    """Fixture mirroring the real masters' layout, incl. multi-run
+    paragraphs (bold labels) so run-level editing is genuinely exercised."""
+    from docx import Document
+    doc = Document()
+    doc.add_paragraph("Ziad Ahmed Abdalla")
+    doc.add_paragraph("Professional Profile")
+    doc.add_paragraph("AI engineer who ships products end-to-end.")
+    doc.add_paragraph("Key Projects")
+    proj = doc.add_paragraph()
+    proj.add_run("UniVeranstaltungen - Events Platform   ").bold = True
+    proj.add_run("(React · TypeScript · Node)")
+    doc.add_paragraph("•  100+ components (JWT RBAC) shipped")
+    doc.add_paragraph("Technical Skills")
+    line = doc.add_paragraph()
+    line.add_run("Backend / Frontend:").bold = True
+    line.add_run("   FastAPI · REST · React")
+    doc.add_paragraph("Data / DevOps:   PostgreSQL · Docker")
+    doc.add_paragraph("Education")
+    doc.add_paragraph("German University in Cairo")
+    doc.save(str(path))
+
+
+def test_calibrate_docx(tmp_path):
+    from jobhunt.cv_docx import calibrate_docx, file_sha256
+    f = tmp_path / "cv.docx"
+    make_cv_docx(f)
+    cal = calibrate_docx(f)
+    assert cal["sha256"] == file_sha256(f)
+    assert cal["summary"] == "AI engineer who ships products end-to-end."
+    assert [line["label"] for line in cal["skills_lines"]] == \
+        ["Backend / Frontend", "Data / DevOps"]
+    assert cal["projects"][0]["name"] == "UniVeranstaltungen - Events Platform"
+    assert cal["projects"][0]["stack"] == "React · TypeScript · Node"
+    # the bullet with parentheses must NOT be a project
+    assert len(cal["projects"]) == 1
+
+
+def test_calibrate_docx_missing_sections_raises(tmp_path):
+    from docx import Document
+
+    from jobhunt.cv_docx import calibrate_docx
+
+    f = tmp_path / "bad.docx"
+    d = Document()
+    d.add_paragraph("Just a name")
+    d.save(str(f))
+    with pytest.raises(ValueError, match="summary"):
+        calibrate_docx(f)
