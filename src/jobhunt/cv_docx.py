@@ -13,10 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-import shutil
 from pathlib import Path
-
-from docx import Document
 
 SEP = " · "                     # the CV's list separator
 _EM_DASHES = ("—", "–")  # — and – : owner rule, never generated

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pytest
 
-
 ATTESTED = [
     {"keyword_norm": "graphql", "display": "GraphQL",
      "category_target": "Backend / Frontend",
