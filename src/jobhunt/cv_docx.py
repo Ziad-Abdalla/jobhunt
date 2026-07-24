@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 from pathlib import Path
 
 from docx import Document
@@ -74,7 +75,7 @@ def stack_addition(project_name: str, attested: list[dict], jd: set[str]) -> lis
     return [
         (a.get("display") or a["keyword_norm"])
         for a in attested
-        if project_name in (a.get("project_targets") or [])
+        if any(t in project_name for t in (a.get("project_targets") or []))
         and a["keyword_norm"] in jd
     ]
 
@@ -149,3 +150,121 @@ def calibrate_docx(path: str | Path) -> dict:
         "skills_lines": skills_lines,
         "projects": projects,
     }
+
+
+def _find_paragraph(doc, anchor_text: str):
+    for p in doc.paragraphs:
+        if p.text == anchor_text:
+            return p
+    return None
+
+
+def _label_prefix(anchor_text: str) -> str:
+    """'Backend / Frontend:   FastAPI · …' → 'Backend / Frontend:   '."""
+    i = anchor_text.index(":") + 1
+    while i < len(anchor_text) and anchor_text[i] == " ":
+        i += 1
+    return anchor_text[:i]
+
+
+def _replace_body_after_label(p, prefix: str, new_body: str) -> bool:
+    """Rewrite everything after `prefix`, editing runs in place so the
+    label's formatting is untouched. False when the prefix boundary can't
+    be located cleanly — caller skips + flags, never guesses."""
+    if not p.text.startswith(prefix) or not p.runs:
+        return False
+    pos = 0
+    for i, r in enumerate(p.runs):
+        end = pos + len(r.text)
+        if end >= len(prefix):
+            keep = prefix[pos:]
+            if not r.text.startswith(keep):
+                return False
+            r.text = keep + new_body
+            for later in p.runs[i + 1:]:
+                later.text = ""
+            return True
+        pos = end
+    return False
+
+
+def _append_into_stack(p, additions: list[str]) -> bool:
+    """Insert ' · X · Y' before the stack's closing paren, in whichever run
+    holds it — formatting elsewhere untouched."""
+    if not additions:
+        return True
+    for r in reversed(p.runs):
+        idx = r.text.rfind(")")
+        if idx != -1:
+            r.text = r.text[:idx] + SEP + SEP.join(additions) + r.text[idx:]
+            return True
+    return False
+
+
+def _set_paragraph_text(p, new_text: str) -> bool:
+    """Whole-paragraph replace (summary only): first run keeps its
+    formatting and takes the text; the rest are cleared."""
+    if not p.runs:
+        return False
+    p.runs[0].text = new_text
+    for r in p.runs[1:]:
+        r.text = ""
+    return True
+
+
+def generate_tailored_docx(
+    master_path: str,
+    anchors: dict,
+    attested: list[dict],
+    jd_keywords: list[str],
+    matched: list[str],
+    summary_template: str,
+    out_path: Path,
+) -> tuple[bool, str]:
+    """Copy the master to out_path and apply the three deterministic edits
+    (skills lines, project stacks, summary). Returns (fully_tailored,
+    reason); the caller treats anything but (True, …) as fall-back-to-PDF.
+    The master itself is never written."""
+    if file_sha256(master_path) != anchors.get("sha256"):
+        return False, "cv changed since calibration; recalibrate on /profile"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(master_path, out_path)
+    doc = Document(str(out_path))
+    jd = {k.lower() for k in jd_keywords}
+    skipped: list[str] = []
+
+    for line in anchors.get("skills_lines", []):
+        p = _find_paragraph(doc, line["text"])
+        if p is None or ":" not in line["text"]:
+            skipped.append(f"skills line '{line['label']}'")
+            continue
+        prefix = _label_prefix(line["text"])
+        body = line["text"][len(prefix):]
+        new_body = merged_skills_body(body, attested, line["label"], jd)
+        if not _replace_body_after_label(p, prefix, new_body):
+            skipped.append(f"skills line '{line['label']}'")
+
+    for proj in anchors.get("projects", []):
+        additions = stack_addition(proj["name"], attested, jd)
+        if not additions:
+            continue
+        p = _find_paragraph(doc, proj["text"])
+        if p is None or not _append_into_stack(p, additions):
+            skipped.append(f"project '{proj['name']}'")
+
+    if summary_template.strip():
+        top = top_skills_for(jd_keywords, matched, attested)
+        p = _find_paragraph(doc, anchors.get("summary", ""))
+        if p is None or not top:
+            skipped.append("summary")
+        else:
+            try:
+                if not _set_paragraph_text(p, render_summary(summary_template, top)):
+                    skipped.append("summary")
+            except ValueError:
+                return False, "summary template renders an em dash (owner rule)"
+
+    doc.save(str(out_path))
+    if skipped:
+        return False, "partial tailoring; skipped: " + ", ".join(skipped)
+    return True, "tailored from attested skills"

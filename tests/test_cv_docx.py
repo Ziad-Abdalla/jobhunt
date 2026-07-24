@@ -110,3 +110,69 @@ def test_calibrate_docx_missing_sections_raises(tmp_path):
     d.save(str(f))
     with pytest.raises(ValueError, match="summary"):
         calibrate_docx(f)
+
+
+def _gen(tmp_path, attested, jd, matched, template=""):
+    from jobhunt.cv_docx import calibrate_docx, generate_tailored_docx
+    master = tmp_path / "master.docx"
+    make_cv_docx(master)
+    cal = calibrate_docx(master)
+    out = tmp_path / "out" / "T_CV_X.docx"
+    ok, reason = generate_tailored_docx(
+        str(master), cal, attested, jd, matched, template, out)
+    return master, out, ok, reason
+
+
+def _texts(path):
+    from docx import Document
+    return [p.text for p in Document(str(path)).paragraphs]
+
+
+def test_generate_edits_skills_projects_summary(tmp_path):
+    master, out, ok, reason = _gen(
+        tmp_path, ATTESTED, ["graphql", "react"], ["react"],
+        template="Engineer with {skills}.")
+    assert ok, reason
+    texts = _texts(out)
+    assert "Backend / Frontend:   React · GraphQL · FastAPI · REST" in texts
+    assert any("(React · TypeScript · Node · GraphQL)" in t for t in texts)
+    # jd order is ["graphql", "react"] → GraphQL (attested display) leads
+    assert "Engineer with GraphQL, react." in texts
+    # master untouched
+    assert "Backend / Frontend:   FastAPI · REST · React" in _texts(master)
+
+
+def test_generate_preserves_label_formatting(tmp_path):
+    from docx import Document
+    _, out, ok, _ = _gen(tmp_path, ATTESTED, ["graphql"], [])
+    assert ok
+    doc = Document(str(out))
+    line = next(p for p in doc.paragraphs
+                if p.text.startswith("Backend / Frontend:"))
+    assert line.runs[0].bold is True
+    assert line.runs[0].text == "Backend / Frontend:"
+
+
+def test_generate_drift_aborts(tmp_path):
+    from jobhunt.cv_docx import calibrate_docx, generate_tailored_docx
+    master = tmp_path / "m.docx"
+    make_cv_docx(master)
+    cal = calibrate_docx(master)
+    master.write_bytes(master.read_bytes() + b"x")  # master changed post-calibration
+    out = tmp_path / "o.docx"
+    ok, reason = generate_tailored_docx(str(master), cal, [], [], [], "", out)
+    assert not ok and "recalibrate" in reason
+    assert not out.exists()  # drift aborts BEFORE copying
+
+
+def test_generate_anchor_miss_is_partial_not_crash(tmp_path):
+    from jobhunt.cv_docx import calibrate_docx, file_sha256, generate_tailored_docx
+    master = tmp_path / "m.docx"
+    make_cv_docx(master)
+    cal = calibrate_docx(master)
+    cal["skills_lines"][0]["text"] = "NOT IN THE DOCUMENT"
+    cal["sha256"] = file_sha256(master)
+    out = tmp_path / "o.docx"
+    ok, reason = generate_tailored_docx(
+        str(master), cal, ATTESTED, ["graphql"], [], "", out)
+    assert not ok and "skipped" in reason and "Backend / Frontend" in reason
