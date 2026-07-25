@@ -110,7 +110,11 @@ or the assistant's inbox monitoring.
   CV already covers and what's missing, get a suggested Skills line, and a
   resume ATS-readiness check (contact info, sections, layout, length).
   Deterministic — never invents a skill. Download as markdown or `jobhunt
-  tailor <job>`.
+  tailor <job>`. Attest the missing skills you genuinely have (with a
+  placement: skills category and/or project) and jobhunt auto-generates a
+  per-job tailored .docx from your calibrated CV master for every queued
+  application — masters are never edited, and only attested or CV-parsed
+  keywords can ever appear.
 - **Settings page**: update, clear data, enter API keys, uninstall — all from the UI.
 - **Auto-refresh**: re-scrape every N hours in the background.
 
