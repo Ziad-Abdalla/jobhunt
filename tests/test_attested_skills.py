@@ -126,6 +126,26 @@ def test_calibrate_cv_stores_anchors(client, tmp_path):
         assert "remote" in json.loads(p.cv_anchors)
 
 
+def test_calibrate_cv_shows_detected_content_on_profile(client, tmp_path):
+    """Spec's Calibration section: shows what it detected -- summary,
+    skills-category lines, project names + stacks -- for the owner to
+    confirm, not just a 'calibrated' badge."""
+    from tests.test_cv_docx import make_cv_docx
+
+    master = tmp_path / "m.docx"
+    make_cv_docx(master)
+    client.post("/profile", data={
+        "full_name": "Z", "cv_docx_remote": str(master),
+    }, follow_redirects=False)
+    client.post("/profile/calibrate-cv", follow_redirects=False)
+    r = client.get("/profile")
+    assert r.status_code == 200
+    assert "AI engineer who ships products end-to-end." in r.text
+    assert "UniVeranstaltungen - Events Platform" in r.text
+    assert "React · TypeScript · Node" in r.text
+    assert "Backend / Frontend:   FastAPI · REST · React" in r.text
+
+
 def test_calibrate_cv_error_when_calibration_fails(client, tmp_path):
     from docx import Document
 

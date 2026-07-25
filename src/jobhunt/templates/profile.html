@@ -127,6 +127,20 @@
         <button type="submit">Calibrate CV masters</button>
       </form>
 
+      {% for variant, cal in cv_anchors.items() %}
+      <div class="form-card" style="margin-top:var(--sp-3);" dir="auto">
+        <h4 style="margin:0 0 var(--sp-2) 0;text-transform:capitalize;">{{ variant }} variant, detected</h4>
+        <p style="color:var(--text-3);font:var(--fs-sm)/1.5 var(--font-body);margin:0 0 var(--sp-2) 0;">
+          <strong>Summary:</strong> {{ cal.summary }}</p>
+        {% for line in cal.skills_lines %}
+        <p class="mono" style="margin:var(--sp-1) 0;">{{ line.text }}</p>
+        {% endfor %}
+        {% for proj in cal.projects %}
+        <p style="margin:var(--sp-1) 0;"><strong>{{ proj.name }}</strong> ({{ proj.stack }})</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+
       <h3 style="margin-top:var(--sp-4);">Attested skills</h3>
       <p style="color:var(--text-3);font:var(--fs-sm)/1.5 var(--font-body);">
         Keywords you confirmed you genuinely have from the tailor sheet. They join

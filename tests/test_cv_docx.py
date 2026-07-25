@@ -46,6 +46,24 @@ def test_stack_addition_only_when_jd_asks():
     ) == []
 
 
+def test_stack_addition_dedupes_against_existing_stack():
+    from jobhunt.cv_docx import stack_addition
+    # "Node" is already in the fixture project's stack
+    # (React · TypeScript · Node) -- an attestation for it must not
+    # produce a duplicate "(React · TypeScript · Node · Node)".
+    attested_node = [{"keyword_norm": "node", "display": "Node",
+                       "category_target": None,
+                       "project_targets": ["UniVeranstaltungen - Events Platform"]}]
+    assert stack_addition(
+        "UniVeranstaltungen - Events Platform", attested_node, {"node"},
+        "React · TypeScript · Node",
+    ) == []
+    # a genuinely new keyword still gets added
+    assert stack_addition(
+        "UniVeranstaltungen - Events Platform", attested_node, {"node"}, "React",
+    ) == ["Node"]
+
+
 def test_render_summary_and_em_dash_guard():
     from jobhunt.cv_docx import render_summary
     assert render_summary("Engineer with {skills}.", ["RAG", "GraphQL"]) == \
@@ -148,6 +166,21 @@ def test_generate_edits_skills_projects_summary(tmp_path):
     assert "Backend / Frontend:   FastAPI · REST · React" in _texts(master)
 
 
+def test_generate_no_duplicate_stack_keyword(tmp_path):
+    """An attested keyword already in the docx stack (e.g. 'Node' parsed
+    from the fixture project's stack, but missing from the PDF-extracted
+    CV skills so the owner attested it anyway) must not be duplicated."""
+    attested = [{"keyword_norm": "node", "display": "Node",
+                 "category_target": None,
+                 "project_targets": ["UniVeranstaltungen - Events Platform"]}]
+    master, out, ok, reason = _gen(tmp_path, attested, ["node"], [])
+    assert ok, reason
+    texts = _texts(out)
+    stack_line = next(t for t in texts if "UniVeranstaltungen" in t)
+    assert stack_line.count("Node") == 1
+    assert "(React · TypeScript · Node)" in stack_line
+
+
 def test_generate_preserves_label_formatting(tmp_path):
     from docx import Document
     _, out, ok, _ = _gen(tmp_path, ATTESTED, ["graphql"], [])
@@ -182,3 +215,18 @@ def test_generate_anchor_miss_is_partial_not_crash(tmp_path):
     ok, reason = generate_tailored_docx(
         str(master), cal, ATTESTED, ["graphql"], [], "", out)
     assert not ok and "skipped" in reason and "Backend / Frontend" in reason
+    # a partial (non-True) result must not leave a stray/stale docx behind —
+    # the filename is stable per application, so a leftover partial copy
+    # could masquerade as (or overwrite) a previously good tailored file.
+    assert not out.exists()
+
+
+def test_generate_em_dash_summary_leaves_no_stray_file(tmp_path):
+    """The em-dash guard path (a caller-supplied summary_template that
+    would render a dash) also must not leave a partially-edited docx
+    behind — same stray-file hazard as the anchor-miss path."""
+    master, out, ok, reason = _gen(
+        tmp_path, ATTESTED, ["graphql"], ["graphql"],
+        template="Engineer — {skills}.")  # em dash
+    assert not ok and "em dash" in reason
+    assert not out.exists()

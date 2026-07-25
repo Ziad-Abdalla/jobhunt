@@ -69,14 +69,22 @@ def merged_skills_body(
     return SEP.join(order_for_jd(items, jd))
 
 
-def stack_addition(project_name: str, attested: list[dict], jd: set[str]) -> list[str]:
+def stack_addition(
+    project_name: str, attested: list[dict], jd: set[str], existing_stack: str = "",
+) -> list[str]:
     """Attested keywords placed in this project AND asked for by the JD —
-    stacks must not bloat on jobs that don't care."""
+    stacks must not bloat on jobs that don't care. Also deduped
+    case-insensitively against `existing_stack` (the project's calibrated
+    parenthesized stack): a keyword already listed there must never be
+    appended again, even if it's missing from the PDF-extracted CV skills
+    the owner separately attested it against."""
+    have = {s.lower() for s in split_items(existing_stack)}
     return [
         (a.get("display") or a["keyword_norm"])
         for a in attested
         if project_name in (a.get("project_targets") or [])
         and a["keyword_norm"] in jd
+        and a["keyword_norm"] not in have
     ]
 
 
@@ -212,23 +220,17 @@ def _set_paragraph_text(p, new_text: str) -> bool:
     return True
 
 
-def generate_tailored_docx(
-    master_path: str,
+def _apply_tailoring_edits(
+    out_path: Path,
     anchors: dict,
     attested: list[dict],
     jd_keywords: list[str],
     matched: list[str],
     summary_template: str,
-    out_path: Path,
 ) -> tuple[bool, str]:
-    """Copy the master to out_path and apply the three deterministic edits
-    (skills lines, project stacks, summary). Returns (fully_tailored,
-    reason); the caller treats anything but (True, …) as fall-back-to-PDF.
-    The master itself is never written."""
-    if file_sha256(master_path) != anchors.get("sha256"):
-        return False, "cv changed since calibration; recalibrate on /profile"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(master_path, out_path)
+    """The edit body, operating on the already-copied `out_path`. Returns
+    (fully_tailored, reason) — never touches the master, never decides
+    whether to keep or remove `out_path` (the caller owns that)."""
     doc = Document(str(out_path))
     jd = {k.lower() for k in jd_keywords}
     skipped: list[str] = []
@@ -245,7 +247,7 @@ def generate_tailored_docx(
             skipped.append(f"skills line '{line['label']}'")
 
     for proj in anchors.get("projects", []):
-        additions = stack_addition(proj["name"], attested, jd)
+        additions = stack_addition(proj["name"], attested, jd, proj.get("stack", ""))
         if not additions:
             continue
         p = _find_paragraph(doc, proj["text"])
@@ -268,3 +270,32 @@ def generate_tailored_docx(
     if skipped:
         return False, "partial tailoring; skipped: " + ", ".join(skipped)
     return True, "tailored from attested skills"
+
+
+def generate_tailored_docx(
+    master_path: str,
+    anchors: dict,
+    attested: list[dict],
+    jd_keywords: list[str],
+    matched: list[str],
+    summary_template: str,
+    out_path: Path,
+) -> tuple[bool, str]:
+    """Copy the master to out_path and apply the three deterministic edits
+    (skills lines, project stacks, summary). Returns (fully_tailored,
+    reason); the caller treats anything but (True, …) as fall-back-to-PDF.
+    The master itself is never written. Anything other than (True, …) after
+    the copy was made removes `out_path` again — the filename is stable per
+    application, so leaving a pristine or partially-edited copy behind
+    would silently overwrite (or masquerade as) a previously good tailored
+    file the next time this application is exported."""
+    if file_sha256(master_path) != anchors.get("sha256"):
+        return False, "cv changed since calibration; recalibrate on /profile"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(master_path, out_path)
+    ok, reason = _apply_tailoring_edits(
+        out_path, anchors, attested, jd_keywords, matched, summary_template
+    )
+    if not ok:
+        out_path.unlink(missing_ok=True)
+    return ok, reason

@@ -1050,6 +1050,8 @@ def apply_tailor(
     # whichever variant IS calibrated when the resolved one isn't — the
     # preview should still show something useful rather than nothing.
     preview: dict | None = None
+    preview_variant_mismatch = False
+    resolved_variant = ""
     if anchors_all:
         from .cowork_policy import cv_variant_for_job
         from .cv_docx import merged_skills_body, render_summary, top_skills_for
@@ -1058,7 +1060,13 @@ def apply_tailor(
         variant, _reason = cv_variant_for_job(
             job.location or "", getattr(job, "source", "")
         )
+        resolved_variant = variant
         other = "remote" if variant == "egypt" else "egypt"
+        # The resolved variant has no anchors -- the preview below, if any,
+        # is built from the OTHER variant's calibration for visibility
+        # only. The export has no such fallback, so it will NOT tailor
+        # until the resolved variant itself is calibrated.
+        preview_variant_mismatch = variant not in anchors_all and other in anchors_all
         cal = anchors_all.get(variant) or anchors_all.get(other)
         if cal:
             jd_set = set(jd_keywords(job))
@@ -1092,6 +1100,8 @@ def apply_tailor(
             "categories": categories,
             "projects": projects,
             "preview": preview,
+            "preview_variant_mismatch": preview_variant_mismatch,
+            "resolved_variant": resolved_variant,
         },
     )
 

@@ -114,6 +114,10 @@ class TestTailorRoute:
             r = client.get(f"/apply/tailor/{_job_id()}")
             assert r.status_code == 200
             assert "Tailored CV preview" in r.text
+            # the preview came from the remote master but this job resolves
+            # to egypt -- the export won't tailor, so the page must say so
+            assert "other master" in r.text
+            assert "egypt" in r.text
         finally:
             with db_session() as s:
                 s.query(ApplicantProfile).delete()

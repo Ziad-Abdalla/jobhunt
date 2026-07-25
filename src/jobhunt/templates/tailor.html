@@ -78,6 +78,12 @@
     {% if preview %}
     <section style="margin:var(--sp-4) 0;">
       <h2>Tailored CV preview</h2>
+      {% if preview_variant_mismatch %}
+      <p class="badge warn" role="status">
+        This preview is from the other master. This job exports untailored
+        until the {{ resolved_variant }} master is calibrated.
+      </p>
+      {% endif %}
       {% for line in preview.skills_lines %}<p class="mono">{{ line }}</p>{% endfor %}
       {% if preview.summary %}<p>{{ preview.summary }}</p>{% endif %}
     </section>
