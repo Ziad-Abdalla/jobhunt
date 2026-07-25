@@ -136,6 +136,37 @@ def test_calibrate_cv_error_when_calibration_fails(client, tmp_path):
     }, follow_redirects=False)
     r = client.post("/profile/calibrate-cv", follow_redirects=False)
     assert r.status_code == 303 and "calibrate_error=" in r.headers["location"]
+    assert "calibrated=1" not in r.headers["location"]
+    with db_session() as s:
+        p = s.get(ApplicantProfile, 1)
+        assert p.cv_anchors == ""
+
+
+def test_calibrate_cv_partial_failure_surfaces_both_signals(client, tmp_path):
+    from tests.test_cv_docx import make_cv_docx
+
+    good = tmp_path / "good.docx"
+    make_cv_docx(good)
+    bad = tmp_path / "missing.docx"  # never written -> calibrate_docx errors
+    client.post("/profile", data={
+        "full_name": "Z", "cv_docx_remote": str(good), "cv_docx_egypt": str(bad),
+    }, follow_redirects=False)
+    r = client.post("/profile/calibrate-cv", follow_redirects=False)
+    assert r.status_code == 303
+    loc = r.headers["location"]
+    assert "calibrated=1" in loc and "calibrate_error=" in loc
+    with db_session() as s:
+        p = s.get(ApplicantProfile, 1)
+        anchors = json.loads(p.cv_anchors)
+        assert "remote" in anchors and "egypt" not in anchors
+
+
+def test_calibrate_cv_no_paths_configured(client):
+    client.post("/profile", data={"full_name": "Z"}, follow_redirects=False)
+    r = client.post("/profile/calibrate-cv", follow_redirects=False)
+    assert r.status_code == 303
+    loc = r.headers["location"]
+    assert "calibrate_error=" in loc and "calibrated=1" not in loc
     with db_session() as s:
         p = s.get(ApplicantProfile, 1)
         assert p.cv_anchors == ""

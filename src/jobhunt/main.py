@@ -840,13 +840,16 @@ def profile_calibrate_cv(request: Request, _: None = Depends(_require_loopback))
                 errors.append(f"{variant}: {exc}")
         if results:
             p.cv_anchors = _json.dumps(results)
-    if errors and not results:
-        from urllib.parse import quote
-        return RedirectResponse(
-            f"/profile?calibrate_error={quote('; '.join(errors)[:300])}",
-            status_code=303,
-        )
-    return RedirectResponse("/profile?calibrated=1", status_code=303)
+    if not results and not errors:
+        errors = ["no docx master paths configured"]
+    from urllib.parse import quote
+
+    params: list[str] = []
+    if results:
+        params.append("calibrated=1")
+    if errors:
+        params.append(f"calibrate_error={quote('; '.join(errors)[:300])}")
+    return RedirectResponse(f"/profile?{'&'.join(params)}", status_code=303)
 
 
 # ---------- apply-target collection page (P5) ----------
