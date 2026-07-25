@@ -1226,9 +1226,15 @@ def cowork_draft(
                 str(getattr(p, _PROFILE_ATTR_FOR_KEY.get(k, k), "") or "")
                 for k in FIELD_MAPPING_KEYS
             } if p else set()
+        # The playbook (docs/cowork-actuator-playbook.md, Phase 1 step 4)
+        # requires every draft to name the attached CV under
+        # fields_filled['cv'] so the approve gate can see the CV choice.
+        # That key is a known, expected part of a compliant draft — not a
+        # profile field, so it must never enter FIELD_MAPPING_KEYS/the
+        # export's field_mapping — but it must also not trip clean_mapping.
         ann = compute_annotations(
             body.fields_filled, body.agent_notes,
-            set(FIELD_MAPPING_KEYS), profile_values,
+            set(FIELD_MAPPING_KEYS) | {"cv"}, profile_values,
         )
         extra["annotations"] = ann
         flags = (

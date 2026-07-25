@@ -211,6 +211,28 @@ class TestDraftAnnotations:
         assert pings and "raft ready" in pings[0][0]
         assert "clean" in pings[0][1]
 
+    def test_cv_field_does_not_break_clean_mapping(self, monkeypatch):
+        # The playbook requires drafts to name the attached CV under
+        # fields_filled['cv'] -- that must not flag as unmapped.
+        pings = []
+        from jobhunt import main as main_mod
+
+        monkeypatch.setattr(main_mod, "send_all", lambda *a, **k: pings.append(a) or {})
+        app_id = _queued_id()
+        r = local.post("/api/cowork/draft", json={
+            "application_id": app_id,
+            "fields_filled": {
+                "full_name": "Z",
+                "cv": "tailored_cvs/1/Z_CV_Acme.docx (tailored)",
+            },
+        })
+        assert r.status_code == 200
+        with db_session() as s:
+            ann = s.get(Application, app_id).annotations or {}
+        assert ann["clean_mapping"] is True
+        assert "cv" not in ann["unmapped_fields"]
+        assert "clean" in pings[0][1]
+
     def test_flagged_draft_annotates_and_pings_flags(self, monkeypatch):
         pings = []
         from jobhunt import main as main_mod
