@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 565 unit tests (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 501 before the full-auto apply build, 471 before the test-isolation fix, 460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 595 unit tests, 2 skipped (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 565 before the CV auto-tailoring build, 501 before the full-auto apply build, 471 before the test-isolation fix, 460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -106,8 +106,16 @@ ruff check src/              # style + bug lint
   `AUTO_SUBMIT_DOMAINS` = the ONLY subset assisted submission may key on.
 - `cowork_models.py` — ApplicantProfile + Application (state machine:
   queued→drafted→approved→submitted, terminal rejected/failed) + AnswerBank
-  (learned approve-gate answers) + the post-submit `outcome` lifecycle.
-  PII module — scrape pipeline must never import it (structural grep gate).
+  (learned approve-gate answers) + AttestedSkill (owner-confirmed CV
+  keywords + placement, feeds `cv_docx.py`) + the post-submit `outcome`
+  lifecycle. PII module — scrape pipeline must never import it (structural
+  grep gate).
+- `cv_docx.py` — calibration (locates the summary/skills/project anchors in
+  a CV master docx) + run-level docx edits (reorders skills, inserts
+  attested project-stack additions, rewrites the summary) to produce a
+  per-job tailored CV. Applicant-side, import-guarded like `cowork_models`;
+  operates only on copies, masters are never written; never-fabricate by
+  construction (content comes from the CV or owner-attested keywords only).
 - `cowork_policy.py` — full-auto pure policy: CV variant rule (Egypt/remote,
   location-first), derived work-authorization answers (never guesses),
   draft annotations (clean-mapping / sensitive-field / agent-note tripwire /
@@ -119,8 +127,10 @@ ruff check src/              # style + bug lint
   auto-approve path.**
 - `cowork_export.py` — `build_export_document()`: the handoff JSON (JD as
   `__untrusted_data__`, fixed field_mapping, allowed_domains hard stop).
-  Shared by `/api/cowork/export` and `jobhunt apply export`. Contract doc:
-  `docs/cowork-handoff.md`.
+  `cv_attachment` is `{path, variant, tailored, reason}` — a per-job docx
+  from `cv_docx.py` when `tailored` is true, the base CV PDF (with `reason`)
+  otherwise. Shared by `/api/cowork/export` and `jobhunt apply export`.
+  Contract doc: `docs/cowork-handoff.md`.
 - `cv.py` — `has_semantic_model()`, `keyword_score()`, `embed_text()` (optional)
 - `channels.py` — P7 off-machine alerts: `send_all()` fans one alert to
   desktop + Telegram + Discord (webhook) + email; each self-gates on config

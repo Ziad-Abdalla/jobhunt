@@ -28,7 +28,10 @@ _PIPELINE_FILES = [
     *sorted((SRC / "scrapers").glob("*.py")),
 ]
 
-_FORBIDDEN = re.compile(r"\bcowork_models\b|\bApplicantProfile\b|\bApplication\b(?!Error)")
+_FORBIDDEN = re.compile(
+    r"\bcowork_models\b|\bcv_docx\b|\bApplicantProfile\b|\bAttestedSkill\b"
+    r"|\bApplication\b(?!Error)"
+)
 
 
 def test_pipeline_never_imports_pii_models() -> None:

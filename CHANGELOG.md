@@ -2,6 +2,27 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (2026-07-25 — attested-skills CV auto-tailoring)
+- **Tailor-sheet attest forms:** the `/apply/tailor/<job>` sheet gains a form
+  where the applicant attests which suggested skills are genuinely theirs and
+  where they were used (project or role placement); attested skills are
+  stored per profile (`AttestedSkill`, in `cowork_models.py`, PII-side).
+- **Per-job tailored CV in every Cowork export:** `cv_attachment` in the
+  export now includes `tailored` (bool). When true, jobhunt has generated a
+  per-job docx at `data_dir/tailored_cvs/<app_id>/<Name>_CV_<Company>.docx`
+  by reordering and lightly augmenting sections from the applicant's base
+  docx with attested, JD-relevant skills; when false, `path` is the base CV
+  PDF and `reason` explains why (no docx master configured, or generation
+  failed).
+- **Calibration + drift guard:** before first use, and whenever the base
+  docx changes (content hash check), jobhunt calibrates the master docx
+  (locates the summary and skills/stack paragraphs it will edit) and refuses
+  to auto-tailor if calibration cannot find the expected structure, falling
+  back to the base PDF instead of silently mangling the file.
+- **New dependency:** `python-docx`, used only by the new `cv_docx.py`
+  module (applicant-side; the scrape pipeline is structurally guarded from
+  importing it, same as `cowork_models`).
+
 ### Added (2026-07-22 — full-auto apply, pieces A–F)
 - **CV auto-selection (A):** the profile stores two CV paths (Egypt /
   remote variants); every Cowork export picks one per job

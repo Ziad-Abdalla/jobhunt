@@ -44,10 +44,17 @@ hostname (anti-DNS-rebinding) on top of the loopback socket-peer check.
 
 ## Full-auto additions to the export (2026-07-22)
 
-- **`cv_attachment`** (per application, optional): `{path, variant, reason}`
-  — jobhunt's CV pick (Egypt vs remote variant, location-first rule).
-  Present only when the profile has a path configured for the chosen
-  variant.
+- **`cv_attachment`** (per application, optional): `{path, variant, tailored,
+  reason}` — jobhunt's CV pick (Egypt vs remote variant, location-first
+  rule). Present only when the profile has a path configured for the chosen
+  variant. When `tailored` is true, `path` points to a per-job generated
+  docx (`data_dir/tailored_cvs/<app_id>/<Name>_CV_<Company>.docx`) built by
+  reordering and lightly augmenting the applicant's own CV sections with
+  skills the applicant attested to on the tailor sheet; nothing is
+  fabricated. When `tailored` is false, `path` is the applicant's base CV
+  PDF and `reason` explains why (no docx master configured, calibration
+  never run, the CV changed since calibration, or generation could not
+  complete cleanly). Either way, attach exactly the file at `path`.
 - **`field_mapping`** may additionally carry two jobhunt-DERIVED answers —
   `authorized_to_work`, `needs_sponsorship` — computed from the job's
   location/remote status. They are trusted (jobhunt-generated), exactly
