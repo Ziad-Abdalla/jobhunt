@@ -161,6 +161,14 @@ def test_calibrate_cv_partial_failure_surfaces_both_signals(client, tmp_path):
         assert "remote" in anchors and "egypt" not in anchors
 
 
+def test_profile_renders_tailoring_section(client):
+    r = client.get("/profile")
+    assert r.status_code == 200
+    assert "cv_docx_egypt" in r.text
+    assert "summary_template" in r.text
+    assert "/profile/calibrate-cv" in r.text
+
+
 def test_calibrate_cv_no_paths_configured(client):
     client.post("/profile", data={"full_name": "Z"}, follow_redirects=False)
     r = client.post("/profile/calibrate-cv", follow_redirects=False)

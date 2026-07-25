@@ -645,7 +645,9 @@ def _get_or_create_profile(s):
 
 @app.get("/profile", response_class=HTMLResponse)
 def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTMLResponse:
-    from .cowork_models import AnswerBank, ApplicantProfile
+    import json as _json
+
+    from .cowork_models import AnswerBank, ApplicantProfile, AttestedSkill
 
     with db_session() as s:
         p = s.get(ApplicantProfile, 1)
@@ -657,6 +659,18 @@ def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTML
                 select(AnswerBank).order_by(AnswerBank.question_norm)
             ).scalars()
         ]
+        attested = [
+            {"id": a.id, "display": a.display,
+             "category_target": a.category_target,
+             "project_targets": list(a.project_targets or [])}
+            for a in s.execute(
+                select(AttestedSkill).order_by(AttestedSkill.keyword_norm)
+            ).scalars()
+        ]
+        try:
+            cv_anchors = _json.loads(p.cv_anchors) if p and p.cv_anchors else {}
+        except ValueError:
+            cv_anchors = {}
     return templates.TemplateResponse(
         request,
         "profile.html",
@@ -665,6 +679,8 @@ def profile_page(request: Request, _: None = Depends(_require_loopback)) -> HTML
             "today": _today(),
             "fields": fields,
             "bank": bank,
+            "attested": attested,
+            "cv_anchors": cv_anchors,
             "saved": request.query_params.get("saved") == "1",
             "cowork_export_on": settings.cowork_export,
         },
@@ -992,6 +1008,7 @@ def _tailor_for_job(job_id: int):
             "location": job.location, "skills": list(job.skills or []),
             "languages": list(job.languages or []),
             "description": job.description or "",
+            "source": job.source,
         }
     cv_skills = cv_skills + [a["display"] for a in attested]
     job_obj = type("J", (), job_view)
@@ -1020,6 +1037,7 @@ def apply_tailor(
             anchors_all = json.loads(p.cv_anchors) if p and p.cv_anchors else {}
         except ValueError:
             anchors_all = {}
+        summary_template = (p.summary_template or "") if p else ""
     for cal in anchors_all.values():
         for line in cal.get("skills_lines", []):
             if line["label"] not in categories:
@@ -1027,6 +1045,40 @@ def apply_tailor(
         for proj in cal.get("projects", []):
             if proj["name"] not in projects:
                 projects.append(proj["name"])
+
+    # Preview: resolve the job's CV variant (rule A), falling back to
+    # whichever variant IS calibrated when the resolved one isn't — the
+    # preview should still show something useful rather than nothing.
+    preview: dict | None = None
+    if anchors_all:
+        from .cowork_policy import cv_variant_for_job
+        from .cv_docx import merged_skills_body, render_summary, top_skills_for
+        from .cv_tailor import jd_keywords
+
+        variant, _reason = cv_variant_for_job(
+            job.location or "", getattr(job, "source", "")
+        )
+        other = "remote" if variant == "egypt" else "egypt"
+        cal = anchors_all.get(variant) or anchors_all.get(other)
+        if cal:
+            jd_set = set(jd_keywords(job))
+            skills_lines: list[str] = []
+            for line in cal.get("skills_lines", []):
+                text = line["text"]
+                i = text.index(":") + 1
+                while i < len(text) and text[i] == " ":
+                    i += 1
+                body = merged_skills_body(text[i:], attested, line["label"], jd_set)
+                skills_lines.append(f"{line['label']}: {body}")
+            summary = ""
+            if summary_template.strip():
+                top = top_skills_for(jd_keywords(job), report.matched, attested)
+                try:
+                    summary = render_summary(summary_template, top)
+                except ValueError:
+                    summary = "(template contains an em dash, fix on /profile)"
+            preview = {"skills_lines": skills_lines, "summary": summary}
+
     return templates.TemplateResponse(
         request,
         "tailor.html",
@@ -1039,6 +1091,7 @@ def apply_tailor(
             "attested_norms": attested_norms,
             "categories": categories,
             "projects": projects,
+            "preview": preview,
         },
     )
 

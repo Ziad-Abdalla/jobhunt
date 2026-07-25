@@ -69,6 +69,20 @@
           <input type="text" name="cv_path_remote" value="{{ fields.cv_path_remote }}" maxlength="512" placeholder="C:\...\Ziad_Ahmed_CV_2026.pdf" />
         </label>
         <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          CV master (.docx), Egypt variant
+          <input type="text" name="cv_docx_egypt" value="{{ fields.cv_docx_egypt }}" maxlength="512" placeholder="C:\...\Ziad_Ahmed_CV_2026_EG.docx" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          CV master (.docx), remote variant
+          <input type="text" name="cv_docx_remote" value="{{ fields.cv_docx_remote }}" maxlength="512" placeholder="C:\...\Ziad_Ahmed_CV_2026.docx" />
+        </label>
+        <label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
+          Summary sentence template
+          <textarea name="summary_template" rows="2" maxlength="1000">{{ fields.summary_template }}</textarea>
+          <span class="muted" style="font-weight:400;">Summary sentence template; use {skills} where the top
+            job-relevant skills go. Plain punctuation only.</span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:var(--sp-1);font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--text-2);">
           Notice period
           <input type="text" name="notice_period" value="{{ fields.notice_period }}" maxlength="128" placeholder="e.g. 1 month" />
         </label>
@@ -93,6 +107,46 @@
         </div>
       </form>
     </div>
+
+    <section style="margin-top:var(--sp-6);">
+      <h2>CV tailoring</h2>
+      <p class="muted">Parses the two docx masters above into anchors the tailored-CV
+        generator can edit; the masters themselves are never written.
+        <span class="badge {% if 'egypt' in cv_anchors %}ok{% else %}muted{% endif %}">
+          Egypt {% if 'egypt' in cv_anchors %}calibrated{% else %}not calibrated{% endif %}
+        </span>
+        <span class="badge {% if 'remote' in cv_anchors %}ok{% else %}muted{% endif %}">
+          Remote {% if 'remote' in cv_anchors %}calibrated{% else %}not calibrated{% endif %}
+        </span>
+      </p>
+      {% if request.query_params.get('calibrated') %}<p class="badge ok" role="status">Calibrated.</p>{% endif %}
+      {% if request.query_params.get('calibrate_error') %}
+        <p class="badge bad" role="alert">{{ request.query_params.get('calibrate_error') }}</p>
+      {% endif %}
+      <form method="post" action="/profile/calibrate-cv">
+        <button type="submit">Calibrate CV masters</button>
+      </form>
+
+      <h3 style="margin-top:var(--sp-4);">Attested skills</h3>
+      <p style="color:var(--text-3);font:var(--fs-sm)/1.5 var(--font-body);">
+        Keywords you confirmed you genuinely have from the tailor sheet. They join
+        every future tailored CV automatically at the placement chosen there.</p>
+      {% if not attested %}<p class="empty">Empty, attest a keyword from a job's tailor sheet to add one.</p>{% endif %}
+      <ul class="attested-list" style="list-style:none;padding:0;">
+        {% for a in attested %}
+        <li class="form-card" style="margin-top:var(--sp-2);display:flex;gap:var(--sp-3);align-items:center;" dir="auto">
+          <span style="flex:1;">
+            <strong>{{ a.display }}</strong>
+            {% if a.category_target %}&rarr; {{ a.category_target }}{% endif %}
+            {% if a.project_targets %}({{ a.project_targets|join(', ') }}){% endif %}
+          </span>
+          <form method="post" action="/profile/attested/{{ a.id }}/delete">
+            <button type="submit" class="ghost" aria-label="Remove {{ a.display }}">Remove</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
 
     <h2 style="margin-top:var(--sp-6);">Answer bank</h2>
     <p style="color:var(--text-3);font:var(--fs-sm)/1.5 var(--font-body);">

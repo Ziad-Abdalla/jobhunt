@@ -33,12 +33,55 @@
         {% for k in report.matched %}<span class="badge ok">{{ k }}</span> {% endfor %}
         {% if not report.matched %}<span class="muted">(none yet)</span>{% endif %}
       </p>
-      <p>
-        <strong>Missing — add if you genuinely have them:</strong>
-        {% for k in report.missing %}<span class="badge warn">{{ k }}</span> {% endfor %}
-        {% if not report.missing %}<span class="muted">(none — great coverage)</span>{% endif %}
-      </p>
+      <div>
+        <strong>Missing (add if you genuinely have them):</strong>
+        {% if not report.missing %}
+          <span class="muted">(none, great coverage)</span>
+        {% else %}
+          {% if categories %}
+          <p class="muted attest-explainer">Ticking a keyword attests you genuinely have it;
+            it joins your CV permanently (placement below) and future tailored CVs automatically.</p>
+          {% else %}
+          <p class="muted attest-explainer">Calibrate your CV masters on the
+            <a href="/profile">profile page</a> to enable placement.</p>
+          {% endif %}
+          <div class="attest-rows">
+            {% for kw in report.missing %}
+              {% if kw in attested_norms %}
+                <span class="badge ok">{{ kw }}</span>
+              {% else %}
+                <form method="post" action="/api/tailor/attest" class="attest-row">
+                  <input type="hidden" name="keyword" value="{{ kw }}">
+                  <input type="hidden" name="job_id" value="{{ job.id }}">
+                  <span class="badge warn">{{ kw }}</span>
+                  <input type="text" name="display" value="{{ kw }}" size="14"
+                         aria-label="How it should read on the CV">
+                  {% if categories %}
+                  <select name="category_target" aria-label="Skills category">
+                    <option value="">(no skills-line placement)</option>
+                    {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                  </select>
+                  <select name="project_targets" multiple size="1"
+                          aria-label="Projects that used it">
+                    {% for p in projects %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+                  </select>
+                  {% endif %}
+                  <button type="submit">I have this</button>
+                </form>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
     </section>
+
+    {% if preview %}
+    <section style="margin:var(--sp-4) 0;">
+      <h2>Tailored CV preview</h2>
+      {% for line in preview.skills_lines %}<p class="mono">{{ line }}</p>{% endfor %}
+      {% if preview.summary %}<p>{{ preview.summary }}</p>{% endif %}
+    </section>
+    {% endif %}
 
     <section style="margin:var(--sp-4) 0;">
       <h2>Suggested Skills line</h2>

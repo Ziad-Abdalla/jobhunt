@@ -684,6 +684,24 @@ main#results, main.page {
 }
 .alert strong { color: var(--text); }
 
+/* CV tailoring: per-keyword attest rows on the tailor sheet + preview */
+.attest-explainer { margin: var(--sp-2) 0; font: var(--fs-sm)/1.5 var(--font-body); }
+.attest-rows { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
+.attest-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.attest-row input[type="text"], .attest-row select {
+  font: var(--fs-sm)/1.4 var(--font-body);
+  color: var(--text);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  background: var(--bg-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: var(--sp-1) 0;
+}
+
 /* ============================================================
    Reduced motion
    ============================================================ */

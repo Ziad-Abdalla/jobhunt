@@ -89,6 +89,35 @@ class TestTailorRoute:
         assert remote.get(f"/apply/tailor/{_job_id()}").status_code == 403
         assert remote.get(f"/apply/tailor/{_job_id()}.md").status_code == 403
 
+    def test_page_renders_attest_forms(self):
+        _load_cv()
+        r = client.get(f"/apply/tailor/{_job_id()}")
+        assert "/api/tailor/attest" in r.text  # per-missing-keyword form
+        assert "I have this" in r.text
+
+    def test_page_renders_tailored_preview_with_calibrated_anchors(self, tmp_path):
+        from jobhunt.cowork_models import ApplicantProfile
+        from tests.test_cv_docx import make_cv_docx
+
+        _load_cv()
+        master = tmp_path / "m.docx"
+        make_cv_docx(master)
+        # Job location is "Cairo, Egypt" (resolves to the egypt variant) but
+        # only the remote variant gets calibrated here — exercises the
+        # fallback-to-the-other-variant path.
+        client.post("/profile", data={
+            "full_name": "Z", "cv_docx_remote": str(master),
+            "summary_template": "Engineer skilled in {skills}.",
+        }, follow_redirects=False)
+        client.post("/profile/calibrate-cv", follow_redirects=False)
+        try:
+            r = client.get(f"/apply/tailor/{_job_id()}")
+            assert r.status_code == 200
+            assert "Tailored CV preview" in r.text
+        finally:
+            with db_session() as s:
+                s.query(ApplicantProfile).delete()
+
 
 class TestExportTailoring:
     def test_export_carries_tailoring_block(self, monkeypatch):
