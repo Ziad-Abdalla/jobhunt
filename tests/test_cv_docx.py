@@ -76,7 +76,20 @@ def test_top_skills_for_jd_ordered_max3():
     from jobhunt.cv_docx import top_skills_for
     jd = ["ai", "graphql", "python", "rag", "rest"]
     out = top_skills_for(jd, matched=["ai", "python", "rag", "rest"], attested=ATTESTED)
-    assert out == ["ai", "GraphQL", "python"]  # first 3 in JD order, display-cased
+    assert out == ["AI", "GraphQL", "Python"]  # first 3 in JD order, display-cased
+
+
+def test_top_skills_display_casing():
+    from jobhunt.cv_docx import top_skills_for
+    # CV-matched acronyms/proper nouns must not reach an employer summary
+    # lowercase ("ai, ci-cd, javascript"); unknown generic vocabulary
+    # passes through unchanged; attested display always wins.
+    attested = [{"keyword_norm": "compliance", "display": "Compliance",
+                 "category_target": "Data / DevOps", "project_targets": []}]
+    jd = ["ci-cd", "javascript", "compliance", "reporting"]
+    out = top_skills_for(jd, matched=["ci-cd", "javascript", "reporting"],
+                         attested=attested, limit=4)
+    assert out == ["CI/CD", "JavaScript", "Compliance", "reporting"]
 
 
 def test_slug():
@@ -161,7 +174,7 @@ def test_generate_edits_skills_projects_summary(tmp_path):
     assert "Backend / Frontend:   React · GraphQL · FastAPI · REST" in texts
     assert any("(React · TypeScript · Node · GraphQL)" in t for t in texts)
     # jd order is ["graphql", "react"] → GraphQL (attested display) leads
-    assert "Engineer with GraphQL, react." in texts
+    assert "Engineer with GraphQL, React." in texts
     # master untouched
     assert "Backend / Frontend:   FastAPI · REST · React" in _texts(master)
 

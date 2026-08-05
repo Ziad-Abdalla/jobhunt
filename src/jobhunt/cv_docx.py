@@ -95,19 +95,48 @@ def render_summary(template: str, top_skills: list[str]) -> str:
     return out
 
 
+# JD keywords are normalized lowercase; acronyms and proper nouns must not
+# reach an employer-facing summary as "ai" or "javascript". Keywords absent
+# here pass through unchanged (generic vocabulary reads fine lowercase).
+_DISPLAY_CASE = {
+    "ai": "AI", "ml": "ML", "nlp": "NLP", "llm": "LLM", "rag": "RAG",
+    "ci-cd": "CI/CD", "api": "API", "rest": "REST", "graphql": "GraphQL",
+    "sql": "SQL", "nosql": "NoSQL", "aws": "AWS", "gcp": "GCP",
+    "azure": "Azure", "python": "Python", "java": "Java",
+    "javascript": "JavaScript", "typescript": "TypeScript", "c#": "C#",
+    "c++": "C++", "go": "Go", "rust": "Rust", "php": "PHP", "ruby": "Ruby",
+    "kotlin": "Kotlin", "swift": "Swift", "r": "R", "react": "React",
+    "angular": "Angular", "vue": "Vue", "nextjs": "Next.js",
+    "node": "Node.js", "nodejs": "Node.js", "django": "Django",
+    "flask": "Flask", "fastapi": "FastAPI", "spring": "Spring",
+    "rails": "Rails", "laravel": "Laravel", "docker": "Docker",
+    "kubernetes": "Kubernetes", "terraform": "Terraform", "linux": "Linux",
+    "git": "Git", "github": "GitHub", "gitlab": "GitLab",
+    "postgres": "PostgreSQL", "postgresql": "PostgreSQL", "mysql": "MySQL",
+    "mongodb": "MongoDB", "redis": "Redis", "sqlite": "SQLite",
+    "elasticsearch": "Elasticsearch", "kafka": "Kafka", "spark": "Spark",
+    "pytorch": "PyTorch", "tensorflow": "TensorFlow", "numpy": "NumPy",
+    "pandas": "pandas", "devops": "DevOps", "qa": "QA", "seo": "SEO",
+    "crm": "CRM", "sap": "SAP", "excel": "Excel", "salesforce": "Salesforce",
+    "english": "English", "arabic": "Arabic", "german": "German",
+    "french": "French",
+}
+
+
 def top_skills_for(
     jd_keywords: list[str], matched: list[str], attested: list[dict],
     limit: int = 3,
 ) -> list[str]:
     """The summary slot: first `limit` JD keywords the applicant actually
-    has (CV-matched or attested), display-cased where attested."""
+    has (CV-matched or attested). Attested display casing wins; CV-matched
+    keywords fall back to _DISPLAY_CASE, then pass through as-is."""
     display = {a["keyword_norm"]: (a.get("display") or a["keyword_norm"])
                for a in attested}
     have = {m.lower() for m in matched} | set(display)
     out: list[str] = []
     for kw in jd_keywords:
         if kw in have:
-            out.append(display.get(kw, kw))
+            out.append(display.get(kw, _DISPLAY_CASE.get(kw, kw)))
         if len(out) == limit:
             break
     return out
