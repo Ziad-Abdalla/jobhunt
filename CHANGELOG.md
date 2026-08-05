@@ -2,6 +2,13 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Fixed (2026-08-05 — final walkthrough session)
+- **Summary keyword casing:** CV-matched JD keywords reached the generated
+  summary lowercase ("ai, ci-cd, javascript"); acronyms and proper nouns now
+  render properly cased ("AI, CI/CD, JavaScript") via a display map in
+  `cv_docx.py`. Attested skills keep their owner-entered casing; unknown
+  generic vocabulary still passes through unchanged.
+
 ### Added (2026-07-25 — attested-skills CV auto-tailoring)
 - **Tailor-sheet attest forms:** the `/apply/tailor/<job>` sheet gains a form
   where the applicant attests which suggested skills are genuinely theirs and
