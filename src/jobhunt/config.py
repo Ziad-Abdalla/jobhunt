@@ -113,6 +113,14 @@ class Settings(BaseSettings):
     auto_queue_daily_cap: int = 0  # 0 = unlimited (owner decision)
     auto_queue_company_cooldown_days: int = 14
 
+    # Full-auto apply: server-side auto-approve (owner override 2026-08-05,
+    # reversing the earlier universal-approve-tap posture). When ON, a
+    # non-error draft is approved the moment it arrives and the actuator's
+    # derived answers to unmapped questions join the answer bank. The daily
+    # cap bounds a runaway pipeline; 0 = unlimited.
+    auto_approve: bool = False
+    auto_approve_daily_cap: int = 15
+
     # User's location — used two ways: Jooble automatically fetches local jobs
     # for this area, and (P4) ranking demotes jobs geo-restricted to regions
     # you're not in (see scoring.home_region_from_location). Include the

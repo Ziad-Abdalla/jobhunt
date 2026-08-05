@@ -1246,8 +1246,68 @@ def cowork_draft(
         detail = "clean" if not flags else f"{len(flags)} flagged: " + ", ".join(flags[:4])
     _cas_transition(body.application_id, new_status, extra=extra)
     if not body.error:
-        _notify_application("jobhunt: Draft ready", body.application_id, detail)
+        approved = settings.auto_approve and _auto_approve(
+            body.application_id, body.fields_filled, extra["annotations"]
+        )
+        title = ("jobhunt: Draft auto-approved (submits next run)"
+                 if approved else "jobhunt: Draft ready")
+        _notify_application(title, body.application_id, detail)
+        if approved:
+            return JSONResponse({"ok": True, "status": "approved"})
     return JSONResponse({"ok": True, "status": new_status})
+
+
+def _auto_approve(app_id: int, fields_filled: dict, ann: dict) -> bool:
+    """Owner override 2026-08-05 (JOBHUNT_AUTO_APPROVE=1, reversing the
+    universal-approve-tap posture): approve every non-error draft on
+    arrival. The actuator's derived answers to unmapped questions join the
+    answer bank exactly as a human approve would have saved them; secret-
+    like values are refused. The daily cap is the runaway brake — beyond
+    it, drafts park for the human tap as before.
+
+    Drafts with blank unmapped questions also park: the owner's paired
+    rule is "no blank answers on a submitted form", so a question nothing
+    in the owner's data could answer needs the human once (the answer then
+    joins the bank and that question never parks again)."""
+    if ann.get("unanswered"):
+        return False
+    cap = settings.auto_approve_daily_cap
+    today = datetime.now(UTC).date().isoformat()
+    from .cowork_export import FIELD_MAPPING_KEYS
+    from .cowork_models import AnswerBank, Application
+    from .cowork_policy import normalize_question
+
+    if cap > 0:
+        with db_session() as s:
+            done_today = sum(
+                1 for a in s.execute(select(Application)).scalars()
+                if (a.annotations or {}).get("auto_approved_on") == today
+            )
+        if done_today >= cap:
+            return False
+    known = set(FIELD_MAPPING_KEYS) | {"cv"}
+    with db_session() as s:
+        for q, raw in fields_filled.items():
+            ans = str(raw).strip()
+            if q in known or not ans or _find_secret(ans):
+                continue
+            norm = normalize_question(q)
+            if not norm:
+                continue
+            row = s.execute(
+                select(AnswerBank).where(AnswerBank.question_norm == norm)
+            ).scalar_one_or_none()
+            if row is None:
+                s.add(AnswerBank(question=_trim(q, 512), question_norm=norm,
+                                 answer=_trim(ans, 2000)))
+            else:
+                row.answer = _trim(ans, 2000)
+                row.last_used_at = datetime.now(UTC)
+    ann = dict(ann)
+    ann["auto_approved"] = True
+    ann["auto_approved_on"] = today
+    _cas_transition(app_id, "approved", extra={"annotations": ann})
+    return True
 
 
 class _ClaimBody(BaseModel):

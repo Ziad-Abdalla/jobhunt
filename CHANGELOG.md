@@ -2,6 +2,20 @@
 
 ## [Unreleased] — expansion 2026-07
 
+### Added (2026-08-05 — full-auto approve, owner override)
+- **Server-side auto-approve** (`JOBHUNT_AUTO_APPROVE`, default OFF): a
+  non-error draft is approved the moment the actuator posts it, and the
+  actuator's derived answers to unmapped form questions join the answer
+  bank automatically (secret-like values refused). Reverses the earlier
+  universal-approve-tap posture on the owner's explicit 2026-08-05
+  instruction. Two brakes remain: drafts containing a blank unmapped
+  question park for the human (never submit a blank answer), and
+  `JOBHUNT_AUTO_APPROVE_DAILY_CAP` (default 15) parks everything beyond
+  the cap. The actuator playbook gains the paired derivation rules:
+  answers must be grounded in the owner's CV/profile/answer bank, never
+  invented; ungroundable legal/background/compensation questions stay
+  blank so the draft parks.
+
 ### Fixed (2026-08-05 — final walkthrough session)
 - **Summary keyword casing:** CV-matched JD keywords reached the generated
   summary lowercase ("ai, ci-cd, javascript"); acronyms and proper nouns now

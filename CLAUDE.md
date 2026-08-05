@@ -65,7 +65,7 @@ AI agent (or human contributor) can follow it. Both ship with the repo.
 
 ## Testing
 ```bash
-pytest -q                    # 601 unit tests, 2 skipped (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 565 before the CV auto-tailoring build, 501 before the full-auto apply build, 471 before the test-isolation fix, 460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
+pytest -q                    # 607 unit tests, 2 skipped (isolated from the real data dir via tests/conftest.py — see test_isolation.py; was 565 before the CV auto-tailoring build, 501 before the full-auto apply build, 471 before the test-isolation fix, 460 before the JSearch live-probe hardening, 453 before the P8 JSearch adapter, 444 before the cowork safety audit, 421 before P9/P10, 399 before P7, 348 before P6, 266 before P5, 245 before P4, 142 before P3, 102 before the 2026-07 expansion)
 pytest -m e2e                # 11 Playwright E2E tests
 ruff check src/              # style + bug lint
 ```
@@ -122,9 +122,15 @@ ruff check src/              # style + bug lint
   open questions), answer-bank question normalization.
 - `auto_queue.py` — P-B: post-refresh pass queues saved-search matches
   (`JOBHUNT_AUTO_QUEUE`, default OFF; 14d company cooldown, category floor,
-  optional daily cap). **Only ever creates `queued` rows (`queued_by='auto'`)
-  — the universal approve tap is locked owner posture; never add an
-  auto-approve path.**
+  optional daily cap). Only ever creates `queued` rows (`queued_by='auto'`).
+  **Auto-approve (owner override 2026-08-05, reversing the earlier locked
+  approve-tap posture):** `main._auto_approve`, behind `JOBHUNT_AUTO_APPROVE`
+  (default OFF). Approves non-error drafts on arrival and banks the
+  actuator's derived answers to unmapped questions. Drafts with blank
+  unmapped questions and drafts beyond `auto_approve_daily_cap` (15/day)
+  still park for the human tap — never submit a blank answer, and answers
+  must derive from the owner's CV/profile/bank, never be invented (the
+  actuator playbook carries the derivation rules).
 - `cowork_export.py` — `build_export_document()`: the handoff JSON (JD as
   `__untrusted_data__`, fixed field_mapping, allowed_domains hard stop).
   `cv_attachment` is `{path, variant, tailored, reason}` — a per-job docx
