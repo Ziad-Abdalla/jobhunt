@@ -68,7 +68,8 @@ ranked list by application flow and pick targets by effort.
 
 Queue jobs you want to apply to, keep your applicant details in a local-only
 profile, and let a local assistant draft applications — every draft is shown
-for your review and **nothing is ever submitted without your approval**.
+for your review and, by default, **nothing is ever submitted without your
+approval**.
 Your profile never leaves your machine (loopback-only endpoints, export API
 off by default, no passport/ID fields, credential-paste rejection).
 
@@ -79,9 +80,13 @@ glance (clean/flagged chips, sensitive-field highlights); a learning
 **answer bank** — questions no profile field covers are asked once at the
 approve gate and reused forever; per-job **CV variant selection**
 (Egypt/remote) and derived work-authorization answers in the export;
-**Discord pings** for draft-ready/submitted/outcome events; and post-submit
+**Discord pings** for draft-ready/submitted/outcome events; post-submit
 **outcome tracking** (awaiting reply → interview/offer/…), updatable by you
-or the assistant's inbox monitoring.
+or the assistant's inbox monitoring; and **auto-approve**
+(`JOBHUNT_AUTO_APPROVE`) for a fully hands-off pipeline — non-error drafts
+approve on arrival, the assistant's derived answers join the answer bank,
+and only drafts with a blank answer (or beyond the daily cap) still wait
+for your tap.
 
 ---
 
