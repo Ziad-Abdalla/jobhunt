@@ -74,10 +74,9 @@
 - **Discord channel (E):** `JOBHUNT_DISCORD_WEBHOOK_URL` (masked on
   Settings, backup-redacted) joins desktop/Telegram/email in the alert
   fan-out.
-- **Actuator playbook (F):** `docs/cowork-actuator-playbook.md` +
-  `scripts/setup_cowork_folder.ps1` (creates the Cowork working folder,
-  copies CVs + playbook). Contract additions documented in
-  `docs/cowork-handoff.md`.
+- **Actuator playbook (F):** the operator-side playbook and its setup
+  script are maintained privately. The contract every actuator must honour
+  is documented in `docs/cowork-handoff.md`.
 
 ### Fixed (2026-07-22 — test suite mutated the developer's real data)
 - **The unit suite ran against the real data dir.** `tests/conftest.py` now

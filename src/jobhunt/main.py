@@ -1226,7 +1226,7 @@ def cowork_draft(
                 str(getattr(p, _PROFILE_ATTR_FOR_KEY.get(k, k), "") or "")
                 for k in FIELD_MAPPING_KEYS
             } if p else set()
-        # The playbook (docs/cowork-actuator-playbook.md, Phase 1 step 4)
+        # The actuator playbook (Phase 1 step 4; see docs/cowork-handoff.md)
         # requires every draft to name the attached CV under
         # fields_filled['cv'] so the approve gate can see the CV choice.
         # That key is a known, expected part of a compliant draft — not a
@@ -1865,7 +1865,7 @@ def sources_remove_route(source: str, board: str) -> RedirectResponse:
 # ---------- settings page ----------
 
 
-_GITHUB_REPO = "Abdalla2004-collab/Jobhunt"
+_GITHUB_REPO = "Ziad-Abdalla/jobhunt"
 
 
 def _detect_install_method() -> str:

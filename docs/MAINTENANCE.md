@@ -78,7 +78,7 @@ rituals in §6; new-API discovery is a periodic active search (§7).
 > 🗒️ 2026-07 expansion (17 → 23 adapters): first `wuzzuf` + 4 remote sources
 > (all free, no-auth, live-verified) closed the Egypt/MENA + worldwide-remote
 > gaps; later `jsearch` (P8, BYO-key RapidAPI, indirect Egypt/MENA + remote,
-> off by default) was added. See `docs/internal/EXPANSION_PLAN_2026_07_20.md`.
+> off by default) was added. (Planning notes for that expansion are kept privately.)
 
 > 🗒️ `findajob` (UK DWP) was removed in v0.9.1 — DWP deprecated their
 > `?format=rss` query and every URL now returns HTML. UK non-tech

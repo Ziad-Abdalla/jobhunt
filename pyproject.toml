@@ -5,7 +5,7 @@ description = "Local-first, scrape-friendly software engineering job aggregator 
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Abdalla Bakr" }]
+authors = [{ name = "Ziad Ahmed Abdalla", email = "ziad.abdalla.swe@gmail.com" }]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",

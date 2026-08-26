@@ -126,7 +126,7 @@ async def test_careerjet_sends_referer_header(monkeypatch):
         scraper = CareerjetScraper(client=client, board="developer|Egypt")
         _ = [j async for j in scraper.fetch()]
     referer = route.calls[0].request.headers.get("referer", "")
-    assert referer == "https://github.com/Abdalla2004-collab/Jobhunt"
+    assert referer == "https://github.com/Ziad-Abdalla/jobhunt"
 
 
 @pytest.mark.asyncio

@@ -181,12 +181,12 @@ Two manual steps remain (one each):
 
      ...or via the UI at:
 
-       https://github.com/Abdalla2004-collab/Jobhunt/releases/new?tag=v${NEW_VERSION}
+       https://github.com/Ziad-Abdalla/jobhunt/releases/new?tag=v${NEW_VERSION}
 
 After PyPI accepts the upload, anyone (including you on a new machine) can:
 
-    irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex   # Windows
-    curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash   # macOS / Linux
+    irm https://raw.githubusercontent.com/Ziad-Abdalla/jobhunt/main/scripts/install.ps1 | iex   # Windows
+    curl -fsSL https://raw.githubusercontent.com/Ziad-Abdalla/jobhunt/main/scripts/install.sh | bash   # macOS / Linux
 
 ...and the install script's --refresh + cache-clean + bumped version-floor
 guarantees they get the new wheel, never a cached old one.

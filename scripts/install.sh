@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # jobhunt installer for macOS and Linux.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Ziad-Abdalla/jobhunt/main/scripts/install.sh | bash
 #
 # This script is idempotent — running it again on a later day pulls the latest
 # release. We force the uv tool cache to drop the old wheel so users never

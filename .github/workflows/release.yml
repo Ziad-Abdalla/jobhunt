@@ -11,7 +11,7 @@ name: release
 #
 # One-time setup (the only manual step left for releases):
 #   Add PYPI_API_TOKEN at the repo secrets page:
-#   https://github.com/Abdalla2004-collab/Jobhunt/settings/secrets/actions
+#   https://github.com/Ziad-Abdalla/jobhunt/settings/secrets/actions
 #   The token is scoped to jobhunt-app only.
 
 on:

@@ -1,6 +1,6 @@
 # jobhunt installer for Windows.
 # Usage:
-#   irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/Ziad-Abdalla/jobhunt/main/scripts/install.ps1 | iex
 $ErrorActionPreference = 'Continue'
 
 Write-Host ""

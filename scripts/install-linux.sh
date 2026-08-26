@@ -18,7 +18,7 @@ if command -v jobhunt >/dev/null 2>&1; then
     uv tool install --reinstall --upgrade jobhunt-app 2>/dev/null
 else
     echo "  Installing jobhunt from PyPI..."
-    uv tool install jobhunt-app 2>/dev/null || uv tool install "git+https://github.com/Abdalla2004-collab/Jobhunt.git" 2>/dev/null
+    uv tool install jobhunt-app 2>/dev/null || uv tool install "git+https://github.com/Ziad-Abdalla/jobhunt.git" 2>/dev/null
 fi
 
 export PATH="$HOME/.local/bin:$PATH"

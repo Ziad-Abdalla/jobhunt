@@ -15,13 +15,13 @@ No account needed. No data leaves your machine. Free and open source.
 
 **Windows** — open PowerShell (search "PowerShell" in Start), paste this:
 ```powershell
-irm https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/Ziad-Abdalla/jobhunt/main/scripts/install.ps1 | iex
 ```
 A `jobhunt` shortcut appears on your Desktop and in Start Menu. Click it to launch.
 
 **macOS / Linux** — open Terminal, paste this:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Abdalla2004-collab/Jobhunt/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Ziad-Abdalla/jobhunt/main/scripts/install.sh | bash
 ```
 Then type `jobhunt`. Your browser opens automatically.
 
@@ -159,7 +159,7 @@ The UI only listens on `127.0.0.1` (your machine, not your network).
 ## For developers
 
 ```bash
-git clone https://github.com/Abdalla2004-collab/Jobhunt && cd Jobhunt
+git clone https://github.com/Ziad-Abdalla/jobhunt && cd jobhunt
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 pytest -q && jobhunt

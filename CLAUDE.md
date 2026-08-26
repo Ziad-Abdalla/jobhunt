@@ -21,9 +21,8 @@ PyPI: `jobhunt-app`. CLI: `jobhunt`. MIT licensed, public repo.
   (test_cowork_import_guard.py enforces structurally).
 
 ## Session continuity
-Resume anchor: [`docs/internal/SESSION_LOG.md`](docs/internal/SESSION_LOG.md) — read the latest entry
-first. Owner-side action checklist for each session lives in `docs/sessions/`.
-A session **must** end by appending a SESSION_LOG entry (see `docs/internal/SESSION_LOG.md` for the template).
+The maintainer keeps a private session log and per-session owner checklists
+outside this repo; they are not part of the public distribution.
 
 ## Long-term maintenance
 External sources rot — APIs expire, ATS slugs change, free tiers tighten.

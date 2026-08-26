@@ -57,7 +57,7 @@ Open these in order:
 2. `src/jobhunt/sources.yaml` — the current source set.
 3. `src/jobhunt/scrapers/__init__.py` — the SCRAPER_REGISTRY (what
    source types we can wire to).
-4. The last entry in `docs/internal/SESSION_LOG.md` — context for the
+4. The maintainer's private session log, if you have it — context for the
    current session.
 
 ## The workflow — five phases

@@ -36,7 +36,7 @@ _MAX_JOBS = 50  # one page
 # add a Referer header so we know who is calling this API and from which
 # page." (live-observed 2026-07-22). Any identifying page is accepted; the
 # project homepage is the honest one for a locally-run app.
-_REFERER = "https://github.com/Abdalla2004-collab/Jobhunt"
+_REFERER = "https://github.com/Ziad-Abdalla/jobhunt"
 
 # Country (lowercased) → Careerjet locale. Unlisted locations fall back to
 # the API default en_GB with the raw text as the `location` param — so the
