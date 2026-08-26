@@ -3,7 +3,8 @@
 # Available source types: greenhouse, lever, ashby, workable, smartrecruiters,
 # recruitee, workday, remoteok, hackernews, simplifyjobs, arbeitnow, jobicy,
 # himalayas, themuse, jooble, arbeitsagentur, reed, wuzzuf, remotive,
-# workingnomads, weworkremotely, pythonjobs, jsearch, reddit, careerjet
+# workingnomads, weworkremotely, pythonjobs, jsearch, reddit, careerjet,
+# 4dayweek
 #
 # JSearch (jsearch) is a BYO-key indirect Egypt/MENA + remote route
 # (RapidAPI, ~200 req/month free tier — add only a FEW). Set the key on the
@@ -84,6 +85,10 @@
 - { source: remotive,      board: "",                          company: "(Remotive Remote)" }
 - { source: remotive,      board: "software-dev",              company: "(Remotive Software Dev)" }
 - { source: workingnomads, board: "",                          company: "(Working Nomads Remote)" }
+# 4dayweek states work_arrangement (remote/hybrid/onsite) and the country of
+# every location, so remote roles that are secretly single-country are visible.
+- { source: 4dayweek,      board: "engineering",                company: "(4dayweek Engineering)" }
+- { source: 4dayweek,      board: "product",                    company: "(4dayweek Product)" }
 - { source: weworkremotely, board: "remote-programming-jobs",  company: "(WWR Programming)" }
 - { source: weworkremotely, board: "remote-devops-sysadmin-jobs", company: "(WWR DevOps)" }
 - { source: weworkremotely, board: "remote-full-stack-programming-jobs", company: "(WWR Full-Stack)" }

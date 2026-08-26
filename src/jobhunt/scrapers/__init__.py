@@ -3,6 +3,7 @@ from .arbeitsagentur import ArbeitsagenturScraper
 from .ashby import AshbyScraper
 from .base import BaseScraper, RawJob
 from .careerjet import CareerjetScraper
+from .fourdayweek import FourDayWeekScraper
 from .greenhouse import GreenhouseScraper
 from .hackernews import HackerNewsScraper
 from .himalayas import HimalayasScraper
@@ -55,6 +56,8 @@ SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
     "reddit": RedditScraper,
     # 2026-07-21 — BYO-affid Egypt/MENA aggregator (off by default, no key).
     "careerjet": CareerjetScraper,
+    # 2026-08-26 — remote + 4-day-week board; carries hires_worldwide.
+    "4dayweek": FourDayWeekScraper,
 }
 
 __all__ = [
@@ -63,6 +66,7 @@ __all__ = [
     "AshbyScraper",
     "BaseScraper",
     "CareerjetScraper",
+    "FourDayWeekScraper",
     "GreenhouseScraper",
     "HackerNewsScraper",
     "HimalayasScraper",
